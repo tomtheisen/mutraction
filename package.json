@@ -1,0 +1,14 @@
+{
+  "name": "mutraction",
+  "version": "0.1.0",
+  "description": "Tired of spreads? Just mutate. Transact. Commit. Roll back. Undo. Redo.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Tom Theisen",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.1.6"
+  }
+}
