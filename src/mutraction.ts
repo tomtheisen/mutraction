@@ -83,7 +83,7 @@ class Tracker {
     }
     // record a mutation, if you have the secret key
     [RecordMutation](mutation: Mutation) {
-        this.#transaction.operations.push(mutation);
+        this.#transaction.operations.push(Object.freeze(mutation));
         this.clearRedos();
     }
 }
