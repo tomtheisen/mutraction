@@ -8,6 +8,7 @@ type Mutation = SingleMutation | Transaction;
 
 const RecordMutation = Symbol('RecordMutation');
 const IsTracked = Symbol("IsTracked");
+const GetTracker = Symbol("GetTracker");
 
 class Tracker {
     #callback?: (mutation: SingleMutation) => void;
@@ -109,12 +110,14 @@ function makeProxyHandler<TModel extends object>(
     return {
         get(target, name: (keyof TModel) & (string | symbol)) {
             if (name === IsTracked) return true;
+            if (name === GetTracker) return tracker;
             let result = target[name] as any;
             if (typeof result !== 'object' || result[IsTracked]) return result;
             const handler = makeProxyHandler(result, tracker, path.concat(name));
             return target[name] = new Proxy(result, handler);
         },
         set(target, name: (keyof TModel) & (string | symbol), newValue) {
+            // todo: array magic
             if (typeof newValue === 'object' && !newValue[IsTracked]) {
                 const handler = makeProxyHandler(newValue, tracker, path.concat(name));
                 newValue = new Proxy(newValue, handler);
@@ -133,6 +136,14 @@ function makeProxyHandler<TModel extends object>(
             return true;
         }
     }
+}
+
+export function isTracked(obj: object) {
+    return typeof obj === "object" && (obj as any)[IsTracked];
+}
+
+export function getTracker(obj: object) {
+    return (obj as any)[GetTracker];
 }
 
 // turn on change tracking
