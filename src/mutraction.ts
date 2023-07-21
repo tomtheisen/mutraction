@@ -7,8 +7,14 @@ type Transaction = {type: "transaction", parent?: Transaction, operations: Mutat
 type Mutation = SingleMutation | Transaction;
 
 const RecordMutation = Symbol('RecordMutation');
+const IsTracked = Symbol("IsTracked");
 
 class Tracker {
+    #callback?: (mutation: SingleMutation) => void;
+    constructor(callback?: (mutation: SingleMutation) => void) {
+        this.#callback = callback;
+    }
+
     #transaction: Transaction = { type: "transaction", operations: [] };
     #redos: Mutation[] = [];
 
@@ -18,6 +24,7 @@ class Tracker {
     startTransaction() {
         this.#transaction = { type: "transaction", parent: this.#transaction, operations: [] };
     }
+
     // resolve and close the most recent transaction
     // throws if no transactions are active
     commit() {
@@ -25,6 +32,7 @@ class Tracker {
         this.#transaction.parent.operations.push(this.#transaction);
         this.#transaction = this.#transaction.parent;
     }
+
     // undo all operations done since the beginning of the most recent trasaction
     // remove it from the transaction stack
     // if no transactions are active, undo all mutations
@@ -32,6 +40,7 @@ class Tracker {
         while (this.#transaction.operations.length) this.undo();
         this.#transaction = this.#transaction.parent ?? this.#transaction;
     }
+
     // undo last mutation or transaction and push into the redo stack
     undo() {
         const mutation = this.#transaction.operations.pop();
@@ -54,6 +63,7 @@ class Tracker {
                 }
         }
     }
+
     // repeat last undone mutation
     redo() {
         const mutation = this.#redos.shift();
@@ -76,31 +86,36 @@ class Tracker {
                 }
         }
     }
+
     // clear the redo stack  
     // any direct mutation implicitly does this
     clearRedos() {
         this.#redos.length = 0;
     }
+
     // record a mutation, if you have the secret key
-    [RecordMutation](mutation: Mutation) {
+    [RecordMutation](mutation: SingleMutation) {
         this.#transaction.operations.push(Object.freeze(mutation));
         this.clearRedos();
+        this.#callback?.(mutation);
     }
 }
 
-const proxied = new WeakSet;
-
 function makeProxyHandler<TModel extends object>(
-    model: TModel, 
+    model: TModel,
     tracker: Tracker,
     path: ReadonlyArray<string | symbol> = []
 ) : ProxyHandler<TModel> {
     return {
+        get(target, name: (keyof TModel) & (string | symbol)) {
+            if (name === IsTracked) return true;
+            let result = target[name] as any;
+            if (typeof result !== 'object' || result[IsTracked]) return result;
+            const handler = makeProxyHandler(result, tracker, path.concat(name));
+            return target[name] = new Proxy(result, handler);
+        },
         set(target, name: (keyof TModel) & (string | symbol), newValue) {
-            if (typeof newValue === 'object') {
-                if (proxied.has(newValue)) throw 'Object already being tracked. The same object may not be tracked from multiple locations.';
-                proxied.add(newValue);
-                newValue = structuredClone(newValue);
+            if (typeof newValue === 'object' && !newValue[IsTracked]) {
                 const handler = makeProxyHandler(newValue, tracker, path.concat(name));
                 newValue = new Proxy(newValue, handler);
             }
@@ -112,7 +127,7 @@ function makeProxyHandler<TModel extends object>(
             return true;
         },
         deleteProperty(target, name: (keyof TModel) & (string | symbol)) {
-            const mutation: SingleMutation = { type: "delete", target, path, name, oldValue: model[name] };
+            const mutation: DeleteProperty = { type: "delete", target, path, name, oldValue: model[name] };
             tracker[RecordMutation](mutation);
             delete target[name];
             return true;
@@ -122,8 +137,8 @@ function makeProxyHandler<TModel extends object>(
 
 // turn on change tracking
 // returns a proxied model object, and tracker to control history
-export function track<TModel extends object>(model: TModel): [TModel, Tracker] {
-    const tracker = new Tracker;
+export function track<TModel extends object>(model: TModel, callback?: (mutation: SingleMutation) => void): [TModel, Tracker] {
+    const tracker = new Tracker(callback);
     const proxied = new Proxy(model, makeProxyHandler(model, tracker));
     return [proxied, tracker];
 }
