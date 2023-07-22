@@ -1,7 +1,7 @@
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
-import { track } from '../src/mutraction';
+import { track } from '../';
 
 test('undo delete redo', () => {
     const [model, tracker] = track({ foo: "bar", x: 123 } as any);
@@ -75,10 +75,10 @@ test('array length 0 rollback test', () => {
     const [model, tracker] = track(['a','b','c'] as any);
 
     model.length = 0;
-    assert.equal(model, []);
+    assert.equal(model, [], "was emptied");
     
     tracker.rollback();
-    assert.equal(model, ['a', 'b', 'c']);
+    assert.equal(model, ['a', 'b', 'c'], "came back");
 });
 
 test.run();

@@ -7,7 +7,10 @@ export type ChangeProperty = BaseSingleMutation & { type: "change", oldValue: an
 // adds a single element OOB to an array
 export type ArrayExtend = BaseSingleMutation & { type: "arrayextend", oldLength: number, newIndex: number, newValue: any };
 
-export type SingleMutation = CreateProperty | DeleteProperty | ChangeProperty | ArrayExtend;
+// shorten an array using the length setter
+export type ArrayShorten = BaseSingleMutation & { type: "arrayshorten", oldLength: number, newLength: number, removed: ReadonlyArray<any> };
+
+export type SingleMutation = CreateProperty | DeleteProperty | ChangeProperty | ArrayExtend | ArrayShorten;
 export type Transaction = {type: "transaction", parent?: Transaction, operations: Mutation[]};
 export type Mutation = SingleMutation | Transaction;
 

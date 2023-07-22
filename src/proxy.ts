@@ -1,8 +1,14 @@
 import { Tracker } from "./tracker";
 import { GetTracker, IsTracked, RecordMutation } from "./symbols";
-import type { ArrayExtend, DeleteProperty, Key, SingleMutation } from "./types";
+import type { ArrayExtend, ArrayShorten, DeleteProperty, Key, SingleMutation } from "./types";
+
+function isArrayLength(value: string | symbol | number) {
+    if (typeof value === "string") return isArrayIndex(value);
+    return typeof value === "number" && (value & 0x7fff_ffff) === value;
+}
 
 function isArrayIndex(name: string | symbol): name is string {
+    // ES 6.1.7 https://tc39.es/ecma262/#array-index
     if (typeof name !== "string") return false;
     if (!/^\d{1,10}$/.test(name)) return false;
     return parseInt(name, 10) < 0x7fff_ffff;
@@ -41,7 +47,20 @@ function makeProxyHandler<TModel extends object>(
             throw 'This object used to be an array.  Expected an array.';
         }
         if (name === "length") {
-            //throw 'no length changes';
+            if (!isArrayLength(newValue)) target.length = newValue; // let it throw ❄️
+            
+            const oldLength = target.length;
+            const newLength = parseInt(newValue, 10);
+            
+            if (newLength < oldLength) {
+                const removed = Object.freeze(target.slice(newLength, oldLength));
+                const shorten: ArrayShorten = {
+                    type: "arrayshorten", target, name, path,
+                    oldLength, newLength, removed
+                };
+                tracker[RecordMutation](shorten);
+                return Reflect.set(target, name, newValue);
+            }
         }
         
         if (isArrayIndex(name)) {

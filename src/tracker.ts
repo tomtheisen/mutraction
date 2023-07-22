@@ -59,6 +59,9 @@ export class Tracker {
             case 'arrayextend':
                 (mutation.target as any).length = mutation.oldLength;
                 break;
+            case 'arrayshorten':
+                (mutation.target as any).push(...mutation.removed);
+                break;
             default:
                 mutation satisfies never;
         }
@@ -87,6 +90,9 @@ export class Tracker {
                 break;
             case 'arrayextend':
                 (mutation.target as any)[mutation.newIndex] = mutation.newValue;
+                break;
+            case 'arrayshorten':
+                (mutation.target as any).length = mutation.newLength;
                 break;
             default:
                 mutation satisfies never;
