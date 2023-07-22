@@ -97,6 +97,8 @@ function makeProxyHandler<TModel extends object>(
     
     if (isArguments(model)) throw Error('Tracking of exotic arguments objects not supported');
 
+    // possibly unhandled exotic objects: integer-indexed, module namespaces, immutable prototypes
+
     return { get, set, deleteProperty };
 }
 
