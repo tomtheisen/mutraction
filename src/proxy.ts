@@ -1,5 +1,5 @@
 import { Tracker } from "./tracker";
-import { Detach, GetTracker, IsTracked, RecordMutation } from "./symbols";
+import { Detach, GetTracker, IsTracked, RecordDependency, RecordMutation } from "./symbols";
 import type { ArrayExtend, ArrayShorten, DeleteProperty, Key, SingleMutation } from "./types";
 
 function isArrayLength(value: string | symbol | number) {
@@ -32,10 +32,15 @@ function makeProxyHandler<TModel extends object>(
         if (name === IsTracked) return true;
         if (name === GetTracker) return tracker;
         if (name === Detach) return () => { detached = true; return target };
+
+        tracker[RecordDependency](target);
+
         let result = target[name] as any;
-        if (typeof result !== 'object' || result[IsTracked]) return result;
-        const handler = makeProxyHandler(result, tracker);
-        return target[name] = new Proxy(result, handler);
+        if (typeof result === 'object' && !isTracked(result)) {
+            const handler = makeProxyHandler(result, tracker);
+            result = target[name] = new Proxy(result, handler);
+        }
+        return result;
     }
 
     function setOrdinary(target: TModel, name: TKey, newValue: any) {

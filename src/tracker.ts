@@ -1,4 +1,4 @@
-import { RecordMutation } from "./symbols";
+import { RecordDependency, RecordMutation } from "./symbols";
 import type { Mutation, SingleMutation, Transaction } from "./types";
 
 export class Tracker {
@@ -120,5 +120,22 @@ export class Tracker {
         this.clearRedos();
         this.advanceGeneration();
         this.#callback?.(mutation);
+    }
+
+    #dependencyTrackers: Set<object>[] = [];
+
+    startDependencyTrack(deps?: Set<object>): Set<object> {
+        this.#dependencyTrackers.push(deps ??= new Set);
+        return deps;
+    }
+
+    endDependencyTrack(): Set<object> {
+        const result = this.#dependencyTrackers.pop();
+        if (!result) throw Error('No dependency trackers started');
+        return result;
+    }
+
+    [RecordDependency](target: object) {
+        for(let dt of this.#dependencyTrackers) dt.add(target);
     }
 }
