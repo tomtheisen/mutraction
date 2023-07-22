@@ -1,5 +1,5 @@
 import { Tracker } from "./tracker";
-import { GetTracker, IsTracked, RecordMutation } from "./symbols";
+import { Detach, GetTracker, IsTracked, RecordMutation } from "./symbols";
 import type { ArrayExtend, ArrayShorten, DeleteProperty, Key, SingleMutation } from "./types";
 
 function isArrayLength(value: string | symbol | number) {
@@ -26,9 +26,13 @@ function makeProxyHandler<TModel extends object>(
 ) : ProxyHandler<TModel> {
     type TKey = (keyof TModel) & Key;
 
+    let detached = false;
+
     function get(target: TModel, name: TKey) {
+        if (detached) return Reflect.get(target, name);
         if (name === IsTracked) return true;
         if (name === GetTracker) return tracker;
+        if (name === Detach) return () => { detached = true; return target };
         let result = target[name] as any;
         if (typeof result !== 'object' || result[IsTracked]) return result;
         const handler = makeProxyHandler(result, tracker, path.concat(name));
@@ -36,6 +40,7 @@ function makeProxyHandler<TModel extends object>(
     }
 
     function setOrdinary(target: TModel, name: TKey, newValue: any) {
+        if (detached) return Reflect.set(target, name, newValue);
         if (typeof newValue === 'object' && !newValue[IsTracked]) {
             const handler = makeProxyHandler(newValue, tracker, path.concat(name));
             newValue = new Proxy(newValue, handler);
@@ -48,6 +53,7 @@ function makeProxyHandler<TModel extends object>(
     }
 
     function setArray(target: TModel, name: TKey, newValue: any) {
+        if (detached) return Reflect.set(target, name, newValue);
         if (!Array.isArray(target)) {
             throw 'This object used to be an array.  Expected an array.';
         }
@@ -87,6 +93,7 @@ function makeProxyHandler<TModel extends object>(
     }
 
     function deleteProperty(target: TModel, name: TKey) {
+        if (detached) return Reflect.deleteProperty(target, name);
         const mutation: DeleteProperty = { type: "delete", target, path, name, oldValue: model[name] };
         tracker[RecordMutation](mutation);
         return Reflect.deleteProperty(target, name);
@@ -108,6 +115,11 @@ export function isTracked(obj: object) {
 
 export function getTracker(obj: object) {
     return (obj as any)[GetTracker];
+}
+
+export function untrack(obj: object){
+    if (!isTracked(obj)) return obj;
+    return (obj as any)[Detach]() as object;
 }
 
 // turn on change tracking

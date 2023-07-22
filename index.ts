@@ -1,1 +1,1 @@
-export { track, isTracked, getTracker } from './src/proxy';
+export { track, untrack, isTracked, getTracker } from './src/proxy';

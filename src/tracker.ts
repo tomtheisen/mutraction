@@ -122,4 +122,3 @@ export class Tracker {
         this.#callback?.(mutation);
     }
 }
-
