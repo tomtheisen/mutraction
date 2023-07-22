@@ -3,12 +3,23 @@ declare module "src/symbols" {
     export const IsTracked: unique symbol;
     export const GetTracker: unique symbol;
     export const Detach: unique symbol;
+    export const RecordDependency: unique symbol;
+    export const LastChangeGeneration: unique symbol;
+}
+declare module "src/dependency" {
+    import { Tracker } from "src/tracker";
+    export class Dependency {
+        #private;
+        trackedObjects: Set<object>;
+        constructor(tracker: Tracker);
+        addDependency(target: object): void;
+        getLatestChangeGeneration(): number;
+    }
 }
 declare module "src/types" {
     export type Key = string | symbol;
     export type BaseSingleMutation = {
         target: object;
-        path: ReadonlyArray<Key>;
         name: Key;
     };
     export type CreateProperty = BaseSingleMutation & {
@@ -45,7 +56,8 @@ declare module "src/types" {
     export type Mutation = SingleMutation | Transaction;
 }
 declare module "src/tracker" {
-    import { RecordMutation } from "src/symbols";
+    import { RecordDependency, RecordMutation } from "src/symbols";
+    import { Dependency } from "src/dependency";
     import type { Mutation, SingleMutation } from "src/types";
     export class Tracker {
         #private;
@@ -62,6 +74,11 @@ declare module "src/tracker" {
         private redoOperation;
         clearRedos(): void;
         [RecordMutation](mutation: SingleMutation): void;
+        getLastChangeGeneration(target: object): any;
+        setLastChangeGeneration(target: object): void;
+        startDependencyTrack(): Dependency;
+        endDependencyTrack(dep: Dependency): Dependency;
+        [RecordDependency](target: object): void;
     }
 }
 declare module "src/proxy" {
@@ -77,3 +94,4 @@ declare module "index" {
 }
 declare module "scratch" { }
 declare module "tests/basic" { }
+declare module "tests/dependencies" { }

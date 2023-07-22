@@ -1,7 +1,7 @@
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
-import { track, untrack, isTracked } from '../';
+import { track, untrack, isTracked } from '../index';
 
 test('undo delete redo', () => {
     const [model, tracker] = track({ foo: "bar", x: 123 } as any);

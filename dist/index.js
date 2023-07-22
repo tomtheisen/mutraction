@@ -10,11 +10,40 @@
     "out/src/symbols.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
-      exports.Detach = exports.GetTracker = exports.IsTracked = exports.RecordMutation = void 0;
+      exports.LastChangeGeneration = exports.RecordDependency = exports.Detach = exports.GetTracker = exports.IsTracked = exports.RecordMutation = void 0;
       exports.RecordMutation = Symbol("RecordMutation");
       exports.IsTracked = Symbol("IsTracked");
       exports.GetTracker = Symbol("GetTracker");
       exports.Detach = Symbol("Detach");
+      exports.RecordDependency = Symbol("RecordDependency");
+      exports.LastChangeGeneration = Symbol("LastChangeGeneration");
+    }
+  });
+
+  // out/src/dependency.js
+  var require_dependency = __commonJS({
+    "out/src/dependency.js"(exports) {
+      "use strict";
+      Object.defineProperty(exports, "__esModule", { value: true });
+      exports.Dependency = void 0;
+      var Dependency = class {
+        trackedObjects = /* @__PURE__ */ new Set();
+        #tracker;
+        constructor(tracker) {
+          this.#tracker = tracker;
+        }
+        addDependency(target) {
+          this.trackedObjects.add(target);
+        }
+        getLatestChangeGeneration() {
+          let result = 0;
+          for (let obj of this.trackedObjects) {
+            result = Math.max(result, this.#tracker.getLastChangeGeneration(obj));
+          }
+          return result;
+        }
+      };
+      exports.Dependency = Dependency;
     }
   });
 
@@ -25,6 +54,7 @@
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.Tracker = void 0;
       var symbols_1 = require_symbols();
+      var dependency_1 = require_dependency();
       var Tracker = class {
         #callback;
         constructor(callback) {
@@ -70,11 +100,14 @@
           const mutation = this.#transaction.operations.pop();
           if (!mutation)
             return;
+          this.advanceGeneration();
           this.undoOperation(mutation);
           this.#redos.unshift(mutation);
-          this.advanceGeneration();
         }
         undoOperation(mutation) {
+          if ("target" in mutation) {
+            mutation.target[symbols_1.LastChangeGeneration] = this.generation;
+          }
           switch (mutation.type) {
             case "change":
             case "delete":
@@ -103,11 +136,14 @@
           const mutation = this.#redos.shift();
           if (!mutation)
             return;
+          this.advanceGeneration();
           this.redoOperation(mutation);
           this.#transaction.operations.push(mutation);
-          this.advanceGeneration();
         }
         redoOperation(mutation) {
+          if ("target" in mutation) {
+            mutation.target[symbols_1.LastChangeGeneration] = this.generation;
+          }
           switch (mutation.type) {
             case "change":
             case "create":
@@ -141,7 +177,38 @@
           this.#transaction.operations.push(Object.freeze(mutation));
           this.clearRedos();
           this.advanceGeneration();
+          this.setLastChangeGeneration(mutation.target);
           this.#callback?.(mutation);
+        }
+        getLastChangeGeneration(target) {
+          return target[symbols_1.LastChangeGeneration] ?? 0;
+        }
+        setLastChangeGeneration(target) {
+          if (!Object.hasOwn(target, symbols_1.LastChangeGeneration)) {
+            Object.defineProperty(target, symbols_1.LastChangeGeneration, {
+              enumerable: false,
+              writable: true,
+              configurable: false
+            });
+          }
+          target[symbols_1.LastChangeGeneration] = this.generation;
+        }
+        #dependencyTrackers = /* @__PURE__ */ new Set();
+        startDependencyTrack() {
+          let deps = new dependency_1.Dependency(this);
+          this.#dependencyTrackers.add(deps);
+          return deps;
+        }
+        endDependencyTrack(dep) {
+          const wasTracking = this.#dependencyTrackers.delete(dep);
+          ;
+          if (!wasTracking)
+            throw Error("No dependency trackers started");
+          return dep;
+        }
+        [symbols_1.RecordDependency](target) {
+          for (let dt of this.#dependencyTrackers)
+            dt.addDependency(target);
         }
       };
       exports.Tracker = Tracker;
@@ -172,7 +239,7 @@
         https:
           return Object.prototype.toString.call(item) === "[object Arguments]";
       }
-      function makeProxyHandler(model, tracker, path = []) {
+      function makeProxyHandler(model, tracker) {
         let detached = false;
         function get(target, name) {
           if (detached)
@@ -181,25 +248,29 @@
             return true;
           if (name === symbols_1.GetTracker)
             return tracker;
+          if (name === symbols_1.LastChangeGeneration)
+            return target[symbols_1.LastChangeGeneration];
           if (name === symbols_1.Detach)
             return () => {
               detached = true;
               return target;
             };
+          tracker[symbols_1.RecordDependency](target);
           let result = target[name];
-          if (typeof result !== "object" || result[symbols_1.IsTracked])
-            return result;
-          const handler = makeProxyHandler(result, tracker, path.concat(name));
-          return target[name] = new Proxy(result, handler);
+          if (typeof result === "object" && !isTracked(result)) {
+            const handler = makeProxyHandler(result, tracker);
+            result = target[name] = new Proxy(result, handler);
+          }
+          return result;
         }
         function setOrdinary(target, name, newValue) {
           if (detached)
             return Reflect.set(target, name, newValue);
           if (typeof newValue === "object" && !newValue[symbols_1.IsTracked]) {
-            const handler = makeProxyHandler(newValue, tracker, path.concat(name));
+            const handler = makeProxyHandler(newValue, tracker);
             newValue = new Proxy(newValue, handler);
           }
-          const mutation = name in target ? { type: "change", target, path, name, oldValue: model[name], newValue } : { type: "create", target, path, name, newValue };
+          const mutation = name in target ? { type: "change", target, name, oldValue: model[name], newValue } : { type: "create", target, name, newValue };
           tracker[symbols_1.RecordMutation](mutation);
           return Reflect.set(target, name, newValue);
         }
@@ -220,7 +291,6 @@
                 type: "arrayshorten",
                 target,
                 name,
-                path,
                 oldLength,
                 newLength,
                 removed
@@ -236,7 +306,6 @@
                 type: "arrayextend",
                 target,
                 name,
-                path,
                 oldLength: target.length,
                 newIndex: index,
                 newValue
@@ -250,7 +319,7 @@
         function deleteProperty(target, name) {
           if (detached)
             return Reflect.deleteProperty(target, name);
-          const mutation = { type: "delete", target, path, name, oldValue: model[name] };
+          const mutation = { type: "delete", target, name, oldValue: model[name] };
           tracker[symbols_1.RecordMutation](mutation);
           return Reflect.deleteProperty(target, name);
         }
