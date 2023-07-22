@@ -2,14 +2,16 @@
   "name": "mutraction",
   "version": "0.1.0",
   "description": "Tired of spreads? Just mutate. Transact. Commit. Roll back. Undo. Redo.",
-  "main": "index.ts",
+  "main": "dist/index.ts",
   "scripts": {
+    "bundle": "npx tsc && esbuild ./out/index.js --bundle --outfile=./dist/index.js",
     "test": "npx tsc && npx uvu out/tests",
     "clean": "npx tsc -b --clean"
   },
   "author": "Tom Theisen",
   "license": "MIT",
   "devDependencies": {
+    "esbuild": "^0.18.15",
     "typescript": "^5.1.6",
     "uvu": "^0.5.6"
   }
