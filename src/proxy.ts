@@ -22,7 +22,6 @@ function isArguments(item: any) {
 function makeProxyHandler<TModel extends object>(
     model: TModel,
     tracker: Tracker,
-    path: ReadonlyArray<Key> = []
 ) : ProxyHandler<TModel> {
     type TKey = (keyof TModel) & Key;
 
@@ -35,19 +34,19 @@ function makeProxyHandler<TModel extends object>(
         if (name === Detach) return () => { detached = true; return target };
         let result = target[name] as any;
         if (typeof result !== 'object' || result[IsTracked]) return result;
-        const handler = makeProxyHandler(result, tracker, path.concat(name));
+        const handler = makeProxyHandler(result, tracker);
         return target[name] = new Proxy(result, handler);
     }
 
     function setOrdinary(target: TModel, name: TKey, newValue: any) {
         if (detached) return Reflect.set(target, name, newValue);
         if (typeof newValue === 'object' && !newValue[IsTracked]) {
-            const handler = makeProxyHandler(newValue, tracker, path.concat(name));
+            const handler = makeProxyHandler(newValue, tracker);
             newValue = new Proxy(newValue, handler);
         }
         const mutation: SingleMutation = name in target
-            ? { type: "change", target, path, name, oldValue: model[name], newValue }
-            : { type: "create", target, path, name, newValue };
+            ? { type: "change", target, name, oldValue: model[name], newValue }
+            : { type: "create", target, name, newValue };
         tracker[RecordMutation](mutation);
         return Reflect.set(target, name, newValue);
     }
@@ -66,8 +65,7 @@ function makeProxyHandler<TModel extends object>(
             if (newLength < oldLength) {
                 const removed = Object.freeze(target.slice(newLength, oldLength));
                 const shorten: ArrayShorten = {
-                    type: "arrayshorten", target, name, path,
-                    oldLength, newLength, removed
+                    type: "arrayshorten", target, name, oldLength, newLength, removed
                 };
                 tracker[RecordMutation](shorten);
                 return Reflect.set(target, name, newValue);
@@ -79,10 +77,7 @@ function makeProxyHandler<TModel extends object>(
             if (index >= target.length) {
                 // assignment to array index will lengthen array    
                 const extension: ArrayExtend = { 
-                    type: "arrayextend", target, name, path, 
-                    oldLength: target.length,
-                    newIndex: index,
-                    newValue
+                    type: "arrayextend", target, name, oldLength: target.length, newIndex: index, newValue
                 };
                 tracker[RecordMutation](extension);
                 return Reflect.set(target, name, newValue);
@@ -94,7 +89,7 @@ function makeProxyHandler<TModel extends object>(
 
     function deleteProperty(target: TModel, name: TKey) {
         if (detached) return Reflect.deleteProperty(target, name);
-        const mutation: DeleteProperty = { type: "delete", target, path, name, oldValue: model[name] };
+        const mutation: DeleteProperty = { type: "delete", target, name, oldValue: model[name] };
         tracker[RecordMutation](mutation);
         return Reflect.deleteProperty(target, name);
     }
