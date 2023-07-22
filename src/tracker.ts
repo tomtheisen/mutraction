@@ -131,7 +131,7 @@ export class Tracker {
     }
 
     getLastChangeGeneration(target: object) {
-        return (target as any)[LastChangeGeneration];
+        return (target as any)[LastChangeGeneration] ?? 0;
     }
 
     setLastChangeGeneration(target: object) {
@@ -145,18 +145,18 @@ export class Tracker {
         (target as any)[LastChangeGeneration] = this.generation;
     }
 
-    #dependencyTrackers: Dependency[] = [];
+    #dependencyTrackers: Set<Dependency> = new Set;
 
     startDependencyTrack(): Dependency {
         let deps = new Dependency(this);
-        this.#dependencyTrackers.push(deps);
+        this.#dependencyTrackers.add(deps);
         return deps;
     }
 
-    endDependencyTrack(): Dependency {
-        const result = this.#dependencyTrackers.pop();
-        if (!result) throw Error('No dependency trackers started');
-        return result;
+    endDependencyTrack(dep: Dependency): Dependency {
+        const wasTracking = this.#dependencyTrackers.delete(dep);;
+        if (!wasTracking) throw Error('No dependency trackers started');
+        return dep;
     }
 
     [RecordDependency](target: object) {
