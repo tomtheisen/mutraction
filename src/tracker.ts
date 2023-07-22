@@ -1,4 +1,5 @@
-import { RecordDependency, RecordMutation } from "./symbols";
+import { LastChangeGeneration, RecordDependency, RecordMutation } from "./symbols";
+import { Dependency } from "./dependency";
 import type { Mutation, SingleMutation, Transaction } from "./types";
 
 export class Tracker {
@@ -46,11 +47,14 @@ export class Tracker {
     undo() {
         const mutation = this.#transaction.operations.pop();
         if (!mutation) return;
+        this.advanceGeneration();
         this.undoOperation(mutation);
         this.#redos.unshift(mutation);
-        this.advanceGeneration();
     }
     private undoOperation(mutation: Mutation) {
+        if ("target" in mutation) {
+            (mutation.target as any)[LastChangeGeneration] = this.generation;
+        }
         switch (mutation.type) {
             case 'change':
             case 'delete':
@@ -79,11 +83,14 @@ export class Tracker {
     redo() {
         const mutation = this.#redos.shift();
         if (!mutation) return;
+        this.advanceGeneration();
         this.redoOperation(mutation);
         this.#transaction.operations.push(mutation);
-        this.advanceGeneration();
     }
     private redoOperation(mutation: Mutation) {
+        if ("target" in mutation) {
+            (mutation.target as any)[LastChangeGeneration] = this.generation;
+        }
         switch (mutation.type) {
             case 'change':
             case 'create':
@@ -119,23 +126,41 @@ export class Tracker {
         this.#transaction.operations.push(Object.freeze(mutation));
         this.clearRedos();
         this.advanceGeneration();
+        this.setLastChangeGeneration(mutation.target);
         this.#callback?.(mutation);
     }
 
-    #dependencyTrackers: Set<object>[] = [];
+    getLastChangeGeneration(target: object) {
+        return (target as any)[LastChangeGeneration];
+    }
 
-    startDependencyTrack(deps?: Set<object>): Set<object> {
-        this.#dependencyTrackers.push(deps ??= new Set);
+    setLastChangeGeneration(target: object) {
+        if (!Object.hasOwn(target, LastChangeGeneration)) {
+            Object.defineProperty(target, LastChangeGeneration, {
+                enumerable: false,
+                writable: true,
+                configurable: false,
+            });
+        }
+        (target as any)[LastChangeGeneration] = this.generation;
+    }
+
+    #dependencyTrackers: Dependency[] = [];
+
+    startDependencyTrack(): Dependency {
+        let deps = new Dependency(this);
+        this.#dependencyTrackers.push(deps);
         return deps;
     }
 
-    endDependencyTrack(): Set<object> {
+    endDependencyTrack(): Dependency {
         const result = this.#dependencyTrackers.pop();
         if (!result) throw Error('No dependency trackers started');
         return result;
     }
 
     [RecordDependency](target: object) {
-        for(let dt of this.#dependencyTrackers) dt.add(target);
+        for(let dt of this.#dependencyTrackers) dt.addDependency(target);
     }
 }
+

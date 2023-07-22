@@ -8,13 +8,13 @@ test('track inner dep', () => {
 
     let dt1 = tracker.startDependencyTrack();
     model.foo;
-    assert.equal(dt1, new Set([model]));
+    assert.equal(dt1.trackedObjects, new Set([model]));
 
     tracker.startDependencyTrack();
     model.inner.leaf1;
     model.inner.leaf2;
     let dt2 = tracker.endDependencyTrack();
-    assert.equal(dt2, new Set([model, model.inner]));
+    assert.equal(dt2.trackedObjects, new Set([model, model.inner]));
 
     tracker.endDependencyTrack();
 
