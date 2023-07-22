@@ -2,9 +2,10 @@
   "name": "mutraction",
   "version": "0.1.0",
   "description": "Tired of spreads? Just mutate. Transact. Commit. Roll back. Undo. Redo.",
-  "main": "dist/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "bundle": "npx tsc && esbuild ./out/index.js --bundle --outfile=./dist/index.js",
+    "bundle": "npx tsc && esbuild ./out/index.js --bundle --outfile=./dist/index.js && npx tsc --declaration --emitDeclarationOnly --outFile dist/index.d.ts",
     "test": "npx tsc && npx uvu out/tests",
     "clean": "npx tsc -b --clean"
   },

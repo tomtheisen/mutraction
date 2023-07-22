@@ -1,4 +1,5 @@
 node_modules
+/out
 /scratch.ts
 *.js
 !dist/index.js
