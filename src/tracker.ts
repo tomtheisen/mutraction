@@ -9,8 +9,14 @@ export class Tracker {
 
     #transaction: Transaction = { type: "transaction", operations: [] };
     #redos: Mutation[] = [];
+    #generation = 0;
 
     get history(): ReadonlyArray<Readonly<Mutation>> { return this.#transaction.operations; }
+    get generation() { return this.#generation; }
+
+    private advanceGeneration() {
+        ++this.#generation;
+    }
 
     // add another transaction to the stack
     startTransaction() {
@@ -33,6 +39,7 @@ export class Tracker {
     rollback() {
         while (this.#transaction.operations.length) this.undo();
         this.#transaction = this.#transaction.parent ?? this.#transaction;
+        this.advanceGeneration();
     }
 
     // undo last mutation or transaction and push into the redo stack
@@ -41,6 +48,7 @@ export class Tracker {
         if (!mutation) return;
         this.undoOperation(mutation);
         this.#redos.unshift(mutation);
+        this.advanceGeneration();
     }
     private undoOperation(mutation: Mutation) {
         switch (mutation.type) {
@@ -73,6 +81,7 @@ export class Tracker {
         if (!mutation) return;
         this.redoOperation(mutation);
         this.#transaction.operations.push(mutation);
+        this.advanceGeneration();
     }
     private redoOperation(mutation: Mutation) {
         switch (mutation.type) {
@@ -109,6 +118,7 @@ export class Tracker {
     [RecordMutation](mutation: SingleMutation) {
         this.#transaction.operations.push(Object.freeze(mutation));
         this.clearRedos();
+        this.advanceGeneration();
         this.#callback?.(mutation);
     }
 }
