@@ -1,17 +1,13 @@
 import { track, isTracked, getTracker } from './src/mutraction';
 
-let [model, tracker] = track([1] as any, m => console.log("mutation", m));
+const log = (m: unknown) => console.log("mutation", m)
 
-model[0] = 4;
-model[2] = 3;
+const [model, tracker] = track(['a','b','c'] as any, log);
 
-console.log({model});
+model.length = 0;
 
-tracker.undo();
+console.log({model, history: tracker.history});
 
-console.log({model});
+tracker.rollback();
 
-tracker.redo();
-
-console.log({model});
-    
+console.log({model, history: tracker.history});
