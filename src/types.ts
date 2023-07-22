@@ -1,5 +1,5 @@
 export type Key = string | symbol;
-export type BaseSingleMutation = { target: object, path: ReadonlyArray<Key>, name: Key };
+export type BaseSingleMutation = { target: object, name: Key };
 export type CreateProperty = BaseSingleMutation & { type: "create", newValue: any };
 export type DeleteProperty = BaseSingleMutation & { type: "delete", oldValue: any };
 export type ChangeProperty = BaseSingleMutation & { type: "change", oldValue: any, newValue: any };
