@@ -14,6 +14,11 @@ function isArrayIndex(name: string | symbol): name is string {
     return parseInt(name, 10) < 0x7fff_ffff;
 }
 
+function isArguments(item: any) {
+    https://stackoverflow.com/a/29924715
+    return Object.prototype.toString.call(item) === '[object Arguments]';
+}
+
 function makeProxyHandler<TModel extends object>(
     model: TModel,
     tracker: Tracker,
@@ -89,6 +94,8 @@ function makeProxyHandler<TModel extends object>(
 
     let set = setOrdinary;
     if (Array.isArray(model)) set = setArray;
+    
+    if (isArguments(model)) throw Error('Tracking of exotic arguments objects not supported');
 
     return { get, set, deleteProperty };
 }

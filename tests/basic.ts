@@ -81,4 +81,10 @@ test('array length 0 rollback test', () => {
     assert.equal(model, ['a', 'b', 'c'], "came back");
 });
 
+test('arguments untrackable', () => {
+    const [model, tracker] = track({whatever: 'x'} as any);
+
+    assert.throws(function() { model.some = arguments; });
+});
+
 test.run();
