@@ -1,8 +1,13 @@
-type BaseSingleMutation = { target: object, path: ReadonlyArray<string | symbol>, name: string | symbol };
+type Key = string | symbol;
+type BaseSingleMutation = { target: object, path: ReadonlyArray<Key>, name: Key };
 type CreateProperty = BaseSingleMutation & { type: "create", newValue: any };
 type DeleteProperty = BaseSingleMutation & { type: "delete", oldValue: any };
 type ChangeProperty = BaseSingleMutation & { type: "change", oldValue: any, newValue: any };
-type SingleMutation = CreateProperty | DeleteProperty | ChangeProperty
+
+// adds a single element OOB to an array
+type ArrayExtend = BaseSingleMutation & { type: "arrayextend", oldLength: number, newIndex: number, newValue: any };
+
+type SingleMutation = CreateProperty | DeleteProperty | ChangeProperty | ArrayExtend;
 type Transaction = {type: "transaction", parent?: Transaction, operations: Mutation[]};
 type Mutation = SingleMutation | Transaction;
 
@@ -62,6 +67,12 @@ class Tracker {
                 for (let i = mutation.operations.length; i-- > 0;) {
                     this.undoOperation(mutation.operations[i]);
                 }
+                break;
+            case 'arrayextend':
+                (mutation.target as any).length = mutation.oldLength;
+                break;
+            default:
+                mutation satisfies never;
         }
     }
 
@@ -85,6 +96,12 @@ class Tracker {
                 for (let i = 0; i < mutation.operations.length; i++) {
                     this.redoOperation(mutation.operations[i]);
                 }
+                break;
+            case 'arrayextend':
+                (mutation.target as any)[mutation.newIndex] = mutation.newValue;
+                break;
+            default:
+                mutation satisfies never;
         }
     }
 
@@ -102,40 +119,76 @@ class Tracker {
     }
 }
 
+function isArrayIndex(name: string | symbol): name is string {
+    if (typeof name !== "string") return false;
+    if (!/^\d{1,10}$/.test(name)) return false;
+    return parseInt(name, 10) < 0x7fff_ffff;
+}
+
 function makeProxyHandler<TModel extends object>(
     model: TModel,
     tracker: Tracker,
-    path: ReadonlyArray<string | symbol> = []
+    path: ReadonlyArray<Key> = []
 ) : ProxyHandler<TModel> {
-    return {
-        get(target, name: (keyof TModel) & (string | symbol)) {
-            if (name === IsTracked) return true;
-            if (name === GetTracker) return tracker;
-            let result = target[name] as any;
-            if (typeof result !== 'object' || result[IsTracked]) return result;
-            const handler = makeProxyHandler(result, tracker, path.concat(name));
-            return target[name] = new Proxy(result, handler);
-        },
-        set(target, name: (keyof TModel) & (string | symbol), newValue) {
-            // todo: array magic
-            if (typeof newValue === 'object' && !newValue[IsTracked]) {
-                const handler = makeProxyHandler(newValue, tracker, path.concat(name));
-                newValue = new Proxy(newValue, handler);
-            }
-            const mutation: SingleMutation = name in target
-                ? { type: "change", target, path, name, oldValue: model[name], newValue }
-                : { type: "create", target, path, name, newValue };
-            tracker[RecordMutation](mutation);
-            target[name] = newValue;
-            return true;
-        },
-        deleteProperty(target, name: (keyof TModel) & (string | symbol)) {
-            const mutation: DeleteProperty = { type: "delete", target, path, name, oldValue: model[name] };
-            tracker[RecordMutation](mutation);
-            delete target[name];
-            return true;
-        }
+    type TKey = (keyof TModel) & Key;
+
+    function get(target: TModel, name: TKey) {
+        if (name === IsTracked) return true;
+        if (name === GetTracker) return tracker;
+        let result = target[name] as any;
+        if (typeof result !== 'object' || result[IsTracked]) return result;
+        const handler = makeProxyHandler(result, tracker, path.concat(name));
+        return target[name] = new Proxy(result, handler);
     }
+
+    function setOrdinary(target: TModel, name: TKey, newValue: any) {
+        if (typeof newValue === 'object' && !newValue[IsTracked]) {
+            const handler = makeProxyHandler(newValue, tracker, path.concat(name));
+            newValue = new Proxy(newValue, handler);
+        }
+        const mutation: SingleMutation = name in target
+            ? { type: "change", target, path, name, oldValue: model[name], newValue }
+            : { type: "create", target, path, name, newValue };
+        tracker[RecordMutation](mutation);
+        return Reflect.set(target, name, newValue);
+    }
+
+    function setArray(target: TModel, name: TKey, newValue: any) {
+        if (!Array.isArray(target)) {
+            throw 'This object used to be an array.  Expected an array.';
+        }
+        if (name === "length") {
+            //throw 'no length changes';
+        }
+        
+        if (isArrayIndex(name)) {
+            const index = parseInt(name, 10);
+            if (index >= target.length) {
+                // assignment to array index will lengthen array    
+                const extension: ArrayExtend = { 
+                    type: "arrayextend", target, name, path, 
+                    oldLength: target.length,
+                    newIndex: index,
+                    newValue
+                };
+                tracker[RecordMutation](extension);
+                return Reflect.set(target, name, newValue);
+            }
+        }
+
+        return setOrdinary(target, name, newValue);
+    }
+
+    function deleteProperty(target: TModel, name: TKey) {
+        const mutation: DeleteProperty = { type: "delete", target, path, name, oldValue: model[name] };
+        tracker[RecordMutation](mutation);
+        return Reflect.deleteProperty(target, name);
+    }
+
+    let set = setOrdinary;
+    if (Array.isArray(model)) set = setArray;
+
+    return { get, set, deleteProperty };
 }
 
 export function isTracked(obj: object) {

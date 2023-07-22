@@ -4,7 +4,8 @@
   "description": "Tired of spreads? Just mutate. Transact. Commit. Roll back. Undo. Redo.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npx tsc && npx uvu out/tests",
+    "clean": "npx tsc -b --clean"
   },
   "author": "Tom Theisen",
   "license": "MIT",
