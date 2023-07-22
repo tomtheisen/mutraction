@@ -95,7 +95,7 @@ test('detach', () => {
     assert.ok(isTracked(model))
 
     let original = untrack(model) as any;
-    original.asdf = 555;
+    model.asdf = 555;
     assert.is(1, tracker.history.length);
     assert.not.ok(isTracked(original));
 });

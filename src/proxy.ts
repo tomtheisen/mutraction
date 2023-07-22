@@ -55,7 +55,7 @@ function makeProxyHandler<TModel extends object>(
     function setArray(target: TModel, name: TKey, newValue: any) {
         if (detached) return Reflect.set(target, name, newValue);
         if (!Array.isArray(target)) {
-            throw 'This object used to be an array.  Expected an array.';
+            throw Error('This object used to be an array.  Expected an array.');
         }
         if (name === "length") {
             if (!isArrayLength(newValue)) target.length = newValue; // let it throw ❄️
@@ -125,6 +125,7 @@ export function untrack(obj: object){
 // turn on change tracking
 // returns a proxied model object, and tracker to control history
 export function track<TModel extends object>(model: TModel, callback?: (mutation: SingleMutation) => void): [TModel, Tracker] {
+    if (isTracked(model)) throw Error('Object already tracked');
     const tracker = new Tracker(callback);
     const proxied = new Proxy(model, makeProxyHandler(model, tracker));
     return [proxied, tracker];
