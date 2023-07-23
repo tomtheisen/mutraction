@@ -13,6 +13,10 @@ export class Dependency {
         this.trackedObjects.add(target);
     }
 
+    endDependencyTrack() {
+        this.#tracker.endDependencyTrack(this);
+    }
+
     getLatestChangeGeneration(): number {
         let result = 0;
         for (let obj of this.trackedObjects) {

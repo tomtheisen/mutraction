@@ -2,10 +2,21 @@ import { LastChangeGeneration, RecordDependency, RecordMutation } from "./symbol
 import { Dependency } from "./dependency";
 import type { Mutation, SingleMutation, Transaction } from "./types";
 
+type Subscription = (mutation: SingleMutation) => void;
 export class Tracker {
-    #callback?: (mutation: SingleMutation) => void;
-    constructor(callback?: (mutation: SingleMutation) => void) {
-        this.#callback = callback;
+    #subscribers: Set<Subscription> = new Set;
+    constructor(callback?: Subscription) {
+        if (callback) this.subscribe(callback);
+    }
+
+    subscribe(callback: Subscription) {
+        this.#subscribers.add(callback);
+        const dispose = () => this.#subscribers.delete(callback);
+        return { dispose };
+    }
+
+    #notifySubscribers(mutation: SingleMutation) {
+        for (const s of this.#subscribers) s(mutation);
     }
 
     #transaction: Transaction = { type: "transaction", operations: [] };
@@ -127,7 +138,7 @@ export class Tracker {
         this.clearRedos();
         this.advanceGeneration();
         this.setLastChangeGeneration(mutation.target);
-        this.#callback?.(mutation);
+        this.#notifySubscribers(mutation);
     }
 
     getLastChangeGeneration(target: object) {
@@ -155,7 +166,7 @@ export class Tracker {
 
     endDependencyTrack(dep: Dependency): Dependency {
         const wasTracking = this.#dependencyTrackers.delete(dep);;
-        if (!wasTracking) throw Error('No dependency trackers started');
+        if (!wasTracking) throw Error('Dependency tracker was not active on this tracker');
         return dep;
     }
 
