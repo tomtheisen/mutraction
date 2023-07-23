@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "bundle": "del /Q dist\\* && npx tsc && esbuild ./out/index.js --bundle --outfile=./dist/index.js && npx tsc --declaration --emitDeclarationOnly --outFile dist/index.d.ts",
+    "bundle": "del /Q /S dist\\* && npx tsc && esbuild ./out/index.js --bundle --outfile=./dist/index.js && npx tsc -p tsconfig-declarations.json",
     "test": "npx tsc && npx uvu out/tests",
     "clean": "npx tsc -b --clean"
   },
