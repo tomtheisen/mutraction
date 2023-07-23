@@ -10,5 +10,10 @@ body {
 }
 
 button, input, textarea {
-    font-size: 14pt;
+    font-size: 1em;
+    margin: 0 0.3em;
+}
+
+.small {
+    font-size: 70%;
 }
