@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build:react": "npx tsc && npx esbuild --bundle .\\react\\counter.js --sourcemap --outfile=.\\react\\counter_bundle.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

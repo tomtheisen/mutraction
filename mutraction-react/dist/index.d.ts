@@ -1,2 +1,2 @@
-export { trackComponent } from './src/hook';
+export { trackComponent } from './src/trackComponent';
 //# sourceMappingURL=index.d.ts.map
