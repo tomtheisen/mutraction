@@ -64,3 +64,7 @@ root.render(<App />);
 ## Does it really work like that?
 
 Yes.  It uses `useSyncExternalStore`.  The tracking proxy also tracks reads.  All the property reads during component rendering are dependencies of that component instance.  When any of those properties is written to later, the tracker informs react that the external store has changed.
+
+## Seems thin on details?
+
+You like details?  [Check out the docs.](./docs/)
