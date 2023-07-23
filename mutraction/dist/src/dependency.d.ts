@@ -1,4 +1,4 @@
-import { Tracker } from "./tracker";
+import { Tracker } from "./tracker.js";
 export declare class Dependency {
     #private;
     trackedObjects: Set<object>;

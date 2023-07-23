@@ -1,5 +1,5 @@
-import { Tracker } from "./tracker";
-import {  } from "./proxy";
+import { Tracker } from "./tracker.js";
+import {  } from "./proxy.js";
 
 export class Dependency {
     trackedObjects = new Set<object>;

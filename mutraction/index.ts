@@ -1,2 +1,2 @@
-export { track, untrack, isTracked, getTracker } from './src/proxy';
-export { Tracker } from './src/tracker';
+export { track, untrack, isTracked, getTracker } from './src/proxy.js';
+export { Tracker } from './src/tracker.js';

@@ -1,5 +1,5 @@
-import { Tracker } from "./tracker";
-import type { SingleMutation } from "./types";
+import { Tracker } from "./tracker.js";
+import type { SingleMutation } from "./types.js";
 export declare function isTracked(obj: object): any;
 export declare function getTracker(obj: object): any;
 export declare function untrack(obj: object): object;

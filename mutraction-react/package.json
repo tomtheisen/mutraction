@@ -1,5 +1,6 @@
 {
   "name": "mutraction-react",
+  "type": "module",
   "version": "0.2.0",
   "description": "React integration for mutraction.",
   "main": "dist/index.js",

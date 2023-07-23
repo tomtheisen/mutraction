@@ -1,4 +1,4 @@
-import type { Tracker } from "../../mutraction/dist/index";
+import type { Tracker } from "../../mutraction/dist/index.js";
 
 // TODO: this is another react instance somehow
 //import { useSyncExternalStore } from 'react';  

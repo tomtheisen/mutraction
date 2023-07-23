@@ -1,4 +1,4 @@
-import { track } from "./src/proxy";
+import { track } from "./src/proxy.js";
 const [model, tracker] = track({ foo: "bar", inner: { leaf1: 4, leaf2: 45 } });
 let dt = tracker.startDependencyTrack();
 let inner = model.inner;

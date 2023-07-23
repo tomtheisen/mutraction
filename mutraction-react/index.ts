@@ -1,1 +1,1 @@
-export { trackComponent } from './src/trackComponent';
+export { trackComponent } from './src/trackComponent.js';

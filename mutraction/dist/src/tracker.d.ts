@@ -1,6 +1,6 @@
-import { RecordDependency, RecordMutation } from "./symbols";
-import { Dependency } from "./dependency";
-import type { Mutation, SingleMutation } from "./types";
+import { RecordDependency, RecordMutation } from "./symbols.js";
+import { Dependency } from "./dependency.js";
+import type { Mutation, SingleMutation } from "./types.js";
 type Subscriber = (mutation: SingleMutation) => void;
 export declare class Tracker {
     #private;

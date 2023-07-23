@@ -1,1 +1,1 @@
-{"version":3,"file":"dependency.d.ts","sourceRoot":"","sources":["../../src/dependency.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,MAAM,WAAW,CAAC;AAGpC,qBAAa,UAAU;;IACnB,cAAc,cAAmB;gBAGrB,OAAO,EAAE,OAAO;IAI5B,aAAa,CAAC,MAAM,EAAE,MAAM;IAI5B,kBAAkB;IAIlB,yBAAyB,IAAI,MAAM;CAOtC"}
+{"version":3,"file":"dependency.d.ts","sourceRoot":"","sources":["../../src/dependency.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,MAAM,cAAc,CAAC;AAGvC,qBAAa,UAAU;;IACnB,cAAc,cAAmB;gBAGrB,OAAO,EAAE,OAAO;IAI5B,aAAa,CAAC,MAAM,EAAE,MAAM;IAI5B,kBAAkB;IAIlB,yBAAyB,IAAI,MAAM;CAOtC"}

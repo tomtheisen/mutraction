@@ -1,5 +1,6 @@
 {
   "name": "mutraction",
+  "type": "module",
   "version": "0.2.0",
   "description": "Tired of spreads? Just mutate. Transact. Commit. Roll back. Undo. Redo.",
   "main": "dist/index.js",
