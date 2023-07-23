@@ -1,4 +1,4 @@
-import { Tracker } from "mutraction";
+import type { Tracker } from "../../mutraction/dist/index";
 import { useSyncExternalStore } from 'react';
 
 export function trackComponent<TProps extends {}>(tracker: Tracker, Component: React.FC<TProps>) {

@@ -1,7 +1,7 @@
 cd mutraction
-npm run bundle
+call npm run bundle
 cd ..
 
 cd mutraction-react
-npm run bundle
+call npm run bundle
 cd ..
