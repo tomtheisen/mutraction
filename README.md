@@ -38,17 +38,17 @@ I wanted to make an undo/time-travel feature without immutability.  I like immut
 If you have to.  There's a react integration called `mutraction-react` on npm.  It works like this.
 
 ```tsx
-let [model, tracker] = track({count: 0});
+const [model, sync] = trackAndSync({count: 0});
 
 function increase() { ++model.count; }
 
-const CountDisplay = trackComponent(tracker, 
-    () => <p>Click count: {model.count}</p>);
+const CountDisplay = sync(
+    () => <p>Click count: { model.count }</p>);
 
-const ClickButton = trackComponent(tracker, 
-    () => <button onClick={increase}>+1</button>);
+const ClickButton = sync(
+    () => <button onClick={ increase }>+1</button>);
 
-const App = trackComponent(tracker, function App() {
+const App = sync(function App() {
     return <>
         <ClickButton />
         <CountDisplay />

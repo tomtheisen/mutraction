@@ -1,16 +1,15 @@
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';
-import { track } from 'mutraction';
-import { trackComponent } from 'mutraction-react';
+import { trackAndSync } from 'mutraction-react';
 
-let [model, tracker] = track({count: 0}, mut => console.log("model mutation", mut));
+const [model, sync] = trackAndSync({count: 0});
 
 function increase() { ++model.count; }
 
-const CountDisplay = trackComponent(tracker, () => <p>Click count: {model.count}</p>);
-const ClickButton = trackComponent(tracker, () => <button onClick={increase}>+1</button>)
+const CountDisplay = sync(() => <p>Click count: {model.count}</p>);
+const ClickButton = sync(() => <button onClick={increase}>+1</button>);
 
-const App = trackComponent(tracker, function App() {
+const App = sync(function App() {
     return <>
         <ClickButton />
         <CountDisplay />
