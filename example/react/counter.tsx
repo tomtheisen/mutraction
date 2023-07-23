@@ -5,14 +5,17 @@ import { trackComponent } from 'mutraction-react';
 
 let [model, tracker] = track({count: 0}, mut => console.log("model mutation", mut));
 
-const App = 
-trackComponent(React.useSyncExternalStore, tracker, 
-    function App() {
-        return <>
-            tracked <button onClick={() => ++model.count}>{model.count}</button>
-        </>;
-    }
-);
+function increase() { ++model.count; }
+
+const CountDisplay = trackComponent(tracker, () => <p>Click count: {model.count}</p>);
+const ClickButton = trackComponent(tracker, () => <button onClick={increase}>+1</button>)
+
+const App = trackComponent(tracker, function App() {
+    return <>
+        <ClickButton />
+        <CountDisplay />
+    </>;
+});
 
 const root = createRoot(document.getElementById('root')!);
 root.render(<App />);
