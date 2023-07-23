@@ -1,0 +1,14 @@
+body {
+    margin: 3em;
+    color: black;
+    background-color: white;
+    font-size: 20pt;
+}
+
+.done {
+    color: #999;
+}
+
+button, input, textarea {
+    font-size: 14pt;
+}
