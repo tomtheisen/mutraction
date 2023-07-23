@@ -1,6 +1,6 @@
-import { Tracker } from "./tracker";
-import { Detach, GetTracker, IsTracked, LastChangeGeneration, RecordDependency, RecordMutation } from "./symbols";
-import type { ArrayExtend, ArrayShorten, DeleteProperty, Key, SingleMutation } from "./types";
+import { Tracker } from "./tracker.js";
+import { Detach, GetTracker, IsTracked, LastChangeGeneration, RecordDependency, RecordMutation } from "./symbols.js";
+import type { ArrayExtend, ArrayShorten, DeleteProperty, Key, SingleMutation } from "./types.js";
 
 function isArrayLength(value: string | symbol | number) {
     if (typeof value === "string") return isArrayIndex(value);

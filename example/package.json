@@ -1,0 +1,25 @@
+{
+  "name": "mutraction-examples",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build:react": "npx tsc && npx esbuild --bundle .\\react\\counter.js --sourcemap --outfile=.\\react\\counter_bundle.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "esbuild": "^0.18.16",
+    "typescript": "^5.1.6"
+  },
+  "dependencies": {
+    "@types/react": "^18.2.15",
+    "@types/react-dom": "^18.2.7",
+    "mutraction": "^0.3.0",
+    "mutraction-react": "^0.3.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}

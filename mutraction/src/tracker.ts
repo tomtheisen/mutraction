@@ -1,11 +1,22 @@
-import { LastChangeGeneration, RecordDependency, RecordMutation } from "./symbols";
-import { Dependency } from "./dependency";
-import type { Mutation, SingleMutation, Transaction } from "./types";
+import { LastChangeGeneration, RecordDependency, RecordMutation } from "./symbols.js";
+import { Dependency } from "./dependency.js";
+import type { Mutation, SingleMutation, Transaction } from "./types.js";
 
+type Subscriber = (mutation: SingleMutation) => void;
 export class Tracker {
-    #callback?: (mutation: SingleMutation) => void;
-    constructor(callback?: (mutation: SingleMutation) => void) {
-        this.#callback = callback;
+    #subscribers: Set<Subscriber> = new Set;
+    constructor(callback?: Subscriber) {
+        if (callback) this.subscribe(callback);
+    }
+
+    subscribe(callback: Subscriber) {
+        this.#subscribers.add(callback);
+        const dispose = () => this.#subscribers.delete(callback);
+        return { dispose };
+    }
+
+    #notifySubscribers(mutation: SingleMutation) {
+        for (const sub of this.#subscribers) sub(mutation);
     }
 
     #transaction: Transaction = { type: "transaction", operations: [] };
@@ -127,7 +138,7 @@ export class Tracker {
         this.clearRedos();
         this.advanceGeneration();
         this.setLastChangeGeneration(mutation.target);
-        this.#callback?.(mutation);
+        this.#notifySubscribers(mutation);
     }
 
     getLastChangeGeneration(target: object) {
@@ -155,12 +166,11 @@ export class Tracker {
 
     endDependencyTrack(dep: Dependency): Dependency {
         const wasTracking = this.#dependencyTrackers.delete(dep);;
-        if (!wasTracking) throw Error('No dependency trackers started');
+        if (!wasTracking) throw Error('Dependency tracker was not active on this tracker');
         return dep;
     }
 
     [RecordDependency](target: object) {
-        for(let dt of this.#dependencyTrackers) dt.addDependency(target);
+        for (let dt of this.#dependencyTrackers) dt.addDependency(target);
     }
 }
-
