@@ -11,7 +11,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "bundle": "npm run clean && npx tsc",
-    "test": "npx tsc && npx uvu dist/tests",
+    "test": "npx tsc && npx uvu dist/tests -i \"[.]d[.]ts$\"",
     "clean": "del /Q /S dist"
   },
   "author": "Tom Theisen",
