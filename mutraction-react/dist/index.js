@@ -1,1 +1,1 @@
-export { trackComponent } from './src/trackComponent.js';
+export { trackAndSync, syncFromTracker } from './src/syncFromTracker.js';

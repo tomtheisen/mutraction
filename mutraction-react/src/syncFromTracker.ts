@@ -1,7 +1,7 @@
-import type { Tracker } from "../../mutraction/dist/index.js";
+import { track, Tracker } from 'mutraction';
 import { useSyncExternalStore } from 'react';  
 
-export function trackComponent<TProps extends {}>(tracker: Tracker, Component: React.FC<TProps>) {
+export function syncFromTracker<TProps extends {}>(tracker: Tracker, Component: React.FC<TProps>) {
     return function TrackedComponent(props: TProps){
         const deps = tracker.startDependencyTrack();
         const component = Component(props);
@@ -17,4 +17,12 @@ export function trackComponent<TProps extends {}>(tracker: Tracker, Component: R
 
         return component;
     }
+}
+
+export function trackAndSync<TProps extends {}, TModel extends {}>(model: TModel) {
+    const [trackedModel, tracker] = track(model);
+    function sync(Component: React.FC<TProps>) {
+        return syncFromTracker(tracker, Component);
+    }
+    return [trackedModel, sync, tracker];
 }
