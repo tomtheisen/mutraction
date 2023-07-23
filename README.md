@@ -1,5 +1,7 @@
 # μ-traction
 
+![mutraction logo](logo.png)
+
 ## Transactional reactive state management
 
 ```js
