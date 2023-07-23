@@ -1,0 +1,24 @@
+{
+  "name": "mutraction-react",
+  "version": "0.2.0",
+  "description": "React integration for mutraction.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "bundle": "del /Q dist\\* && npx tsc && esbuild ./out/index.js --bundle --outfile=./dist/index.js && npx tsc --declaration --emitDeclarationOnly --outFile dist/index.d.ts",
+    "clean": "npx tsc -b --clean"
+  },
+  "author": "Tom Theisen",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/react": "^18.2.15",
+    "@types/react-dom": "^18.2.7",
+    "esbuild": "^0.18.15",
+    "typescript": "^5.1.6"
+  },
+  "dependencies": {
+    "mutraction": "^0.1.0",
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  }
+}

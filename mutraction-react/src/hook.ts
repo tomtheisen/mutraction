@@ -1,6 +1,6 @@
 // npm install @types/react @types/react-dom react react-dom --no-save
 
-import { Tracker } from "../index";
+import { Tracker } from "mutraction";
 import { useSyncExternalStore } from 'react';
 
 export function trackComponent<TProps extends {}>(tracker: Tracker, Component: React.FC<TProps>) {

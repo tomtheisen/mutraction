@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';
-import { track } from '../index';
+import { track } from '../../mutraction/index';
 import { trackComponent } from './hook';
 
 let [model, tracker] = track({count: 0}, mut => console.log("model mutation", mut));

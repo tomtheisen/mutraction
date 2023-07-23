@@ -1,3 +1,4 @@
+/// <reference types="react" />
 declare module "src/symbols" {
     export const RecordMutation: unique symbol;
     export const IsTracked: unique symbol;
@@ -13,6 +14,7 @@ declare module "src/dependency" {
         trackedObjects: Set<object>;
         constructor(tracker: Tracker);
         addDependency(target: object): void;
+        endDependencyTrack(): void;
         getLatestChangeGeneration(): number;
     }
 }
@@ -59,9 +61,13 @@ declare module "src/tracker" {
     import { RecordDependency, RecordMutation } from "src/symbols";
     import { Dependency } from "src/dependency";
     import type { Mutation, SingleMutation } from "src/types";
+    type Subscription = (mutation: SingleMutation) => void;
     export class Tracker {
         #private;
-        constructor(callback?: (mutation: SingleMutation) => void);
+        constructor(callback?: Subscription);
+        subscribe(callback: Subscription): {
+            dispose: () => boolean;
+        };
         get history(): ReadonlyArray<Readonly<Mutation>>;
         get generation(): number;
         private advanceGeneration;
@@ -91,7 +97,13 @@ declare module "src/proxy" {
 }
 declare module "index" {
     export { track, untrack, isTracked, getTracker } from "src/proxy";
+    export { Tracker } from "src/tracker";
 }
 declare module "scratch" { }
+declare module "hooks/hook" {
+    import { Tracker } from "index";
+    export function trackComponent<TProps extends {}>(tracker: Tracker, Component: React.FC<TProps>): (props: TProps) => import("react").ReactNode;
+}
+declare module "hooks/example" { }
 declare module "tests/basic" { }
 declare module "tests/dependencies" { }
