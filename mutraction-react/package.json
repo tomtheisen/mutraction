@@ -5,8 +5,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "bundle": "npm run clean && npx tsc && esbuild ./out/index.js --bundle --outfile=./dist/index.js && npx tsc -p tsconfig-declarations.json",
-    "clean": "del /Q /S dist && del /Q /S out"
+    "bundle": "npm run clean && npx tsc",
+    "clean": "del /Q /S dist"
   },
   "author": "Tom Theisen",
   "license": "MIT",
