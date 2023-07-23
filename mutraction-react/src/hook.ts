@@ -1,5 +1,3 @@
-// npm install @types/react @types/react-dom react react-dom --no-save
-
 import { Tracker } from "mutraction";
 import { useSyncExternalStore } from 'react';
 

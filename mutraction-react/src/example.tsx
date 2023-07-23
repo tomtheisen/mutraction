@@ -1,8 +1,6 @@
-// npx tsc; npx esbuild --bundle --outfile=out\hooks\example_bundle.js .\out\hooks\example.js
-
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';
-import { track } from '../../mutraction/index';
+import { track } from 'mutraction';
 import { trackComponent } from './hook';
 
 let [model, tracker] = track({count: 0}, mut => console.log("model mutation", mut));

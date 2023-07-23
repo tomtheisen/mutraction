@@ -1,11 +1,11 @@
 import { RecordDependency, RecordMutation } from "./symbols";
 import { Dependency } from "./dependency";
 import type { Mutation, SingleMutation } from "./types";
-type Subscription = (mutation: SingleMutation) => void;
+type Subscriber = (mutation: SingleMutation) => void;
 export declare class Tracker {
     #private;
-    constructor(callback?: Subscription);
-    subscribe(callback: Subscription): {
+    constructor(callback?: Subscriber);
+    subscribe(callback: Subscriber): {
         dispose: () => boolean;
     };
     get history(): ReadonlyArray<Readonly<Mutation>>;

@@ -70,8 +70,8 @@
           return { dispose };
         }
         #notifySubscribers(mutation) {
-          for (const s of this.#subscribers)
-            s(mutation);
+          for (const sub of this.#subscribers)
+            sub(mutation);
         }
         #transaction = { type: "transaction", operations: [] };
         #redos = [];

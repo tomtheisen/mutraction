@@ -2,21 +2,21 @@ import { LastChangeGeneration, RecordDependency, RecordMutation } from "./symbol
 import { Dependency } from "./dependency";
 import type { Mutation, SingleMutation, Transaction } from "./types";
 
-type Subscription = (mutation: SingleMutation) => void;
+type Subscriber = (mutation: SingleMutation) => void;
 export class Tracker {
-    #subscribers: Set<Subscription> = new Set;
-    constructor(callback?: Subscription) {
+    #subscribers: Set<Subscriber> = new Set;
+    constructor(callback?: Subscriber) {
         if (callback) this.subscribe(callback);
     }
 
-    subscribe(callback: Subscription) {
+    subscribe(callback: Subscriber) {
         this.#subscribers.add(callback);
         const dispose = () => this.#subscribers.delete(callback);
         return { dispose };
     }
 
     #notifySubscribers(mutation: SingleMutation) {
-        for (const s of this.#subscribers) s(mutation);
+        for (const sub of this.#subscribers) sub(mutation);
     }
 
     #transaction: Transaction = { type: "transaction", operations: [] };
@@ -171,6 +171,6 @@ export class Tracker {
     }
 
     [RecordDependency](target: object) {
-        for(let dt of this.#dependencyTrackers) dt.addDependency(target);
+        for (let dt of this.#dependencyTrackers) dt.addDependency(target);
     }
 }

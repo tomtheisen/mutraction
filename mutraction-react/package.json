@@ -5,14 +5,14 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "bundle": "del /Q dist\\* && npx tsc && esbuild ./out/index.js --bundle --outfile=./dist/index.js && npx tsc --declaration --emitDeclarationOnly --outFile dist/index.d.ts",
+    "bundle": "del /Q /S dist\\* && npx tsc && esbuild ./out/index.js --bundle --outfile=./dist/index.js && npx tsc -p tsconfig-declarations.json",
     "clean": "npx tsc -b --clean"
   },
   "author": "Tom Theisen",
   "license": "MIT",
   "devDependencies": {
-    "@types/react": "^18.2.15",
-    "@types/react-dom": "^18.2.7",
+    "@types/react": ">=18.0.0",
+    "@types/react-dom": ">=18.0.0",
     "esbuild": "^0.18.15",
     "typescript": "^5.1.6"
   },
