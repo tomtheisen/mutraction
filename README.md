@@ -67,4 +67,4 @@ Yes.  It uses `useSyncExternalStore`.  The tracking proxy also tracks reads.  Al
 
 ## Seems thin on details?
 
-You like details?  [Check out the docs.](./docs/)
+You like details?  Check out the [docs](./docs/) or [examples](./example/).
