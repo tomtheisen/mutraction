@@ -5,7 +5,7 @@
     "type": "git",
     "url": "https://github.com/tomtheisen/mutraction"
   },
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "React integration for mutraction.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -24,6 +24,6 @@
     "react-dom": ">=18.0.0"
   },
   "dependencies": {
-    "mutraction": "^0.6.0"
+    "mutraction": "^0.6.1"
   }
 }
