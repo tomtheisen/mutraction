@@ -8,9 +8,7 @@ function moveFinishedToBottom() {
 }
 
 export function SortItems() {
-    return <div>
-        <button onClick={moveFinishedToBottom}>
-            Sort by unfinished
-        </button>
-    </div>;
+    return <button onClick={moveFinishedToBottom}>
+        Sort by unfinished
+    </button>;
 }

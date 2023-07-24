@@ -1,10 +1,12 @@
 import * as React from "react";
 import { TodoItemModel } from "./TodoItemModel.js";
-import { items, itemsSync } from "./items.js";
+import { items, itemsSync, tracker } from "./items.js";
 
 function remove(item: TodoItemModel) {
     const index = items.indexOf(item);
+    tracker.startTransaction();
     items.splice(index, 1);
+    tracker.commit();
 }
 
 export const TodoItem = itemsSync(function TodoItem({ item }: { item: TodoItemModel }) {
