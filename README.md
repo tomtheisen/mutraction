@@ -40,9 +40,12 @@ I wanted to make an undo/time-travel feature without immutability.  I like immut
 If you have to.  There's a react integration called `mutraction-react` on npm.  It works like this.
 
 ```tsx
+// state lives outside the component
 const [model, sync] = trackAndSync({count: 0});
 
-function increase() { ++model.count; }
+function increase() { 
+    ++model.count; // look at this, literally ++
+}
 
 const CountDisplay = sync(
     () => <p>Click count: { model.count }</p>);
