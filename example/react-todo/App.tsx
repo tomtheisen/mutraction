@@ -11,7 +11,7 @@ export const App = itemsSync(function App() {
         <h1>To-do List</h1>
         <div><SortItems /><UndoButton /></div>
         <ul>
-            { items.map(e => <TodoItem item={e} key={key(e)} />) }
+            { items.map(e => <TodoItem item={ e } key={ key(e) } />) }
         </ul>
         <AddItem />
     </div>

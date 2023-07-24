@@ -15,7 +15,7 @@ export function AddItem() {
     return <form onSubmit={ doAdd }>
         <label>
             New item:
-            <input value={title} onChange={ ev => setTitle(ev.target.value) } />
+            <input value={ title } onChange={ ev => setTitle(ev.target.value) } />
         </label>
         <button onClick={ doAdd }>Add</button>
     </form>
