@@ -6,7 +6,7 @@
   "main": "index.js",
   "scripts": {
     "build:react": "npx tsc && npx esbuild --bundle .\\react\\counter.js   --sourcemap --outfile=.\\react\\counter_bundle.js",
-    "build:todo":  "npx tsc && npx esbuild --bundle .\\react-todo\\todo.js --sourcemap --outfile=.\\react-todo\\todo_bundle.js",
+    "build:todo": "npx tsc && npx esbuild --bundle .\\react-todo\\todo.js --sourcemap --outfile=.\\react-todo\\todo_bundle.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -18,8 +18,7 @@
   "dependencies": {
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
-    "mutraction": "^0.3.0",
-    "mutraction-react": "^0.5.0",
+    "mutraction-react": "^0.5.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   }

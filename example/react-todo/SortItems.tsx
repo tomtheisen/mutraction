@@ -1,15 +1,16 @@
 import * as React from "react";
-import { items, itemsSync } from "./items.js";
+import { items, tracker } from "./items.js";
 
 function moveFinishedToBottom() {
+    tracker.startTransaction();
     items.sort((a, b) => Number(a.done) - Number(b.done));
+    tracker.commit();
 }
 
-export const SortItems = itemsSync(function SortItems() {
+export function SortItems() {
     return <div>
         <button onClick={moveFinishedToBottom}>
             Sort by unfinished
         </button>
     </div>;
-});
-
+}

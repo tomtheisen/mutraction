@@ -9,6 +9,7 @@ export function key(obj: object) {
     // This whole function ought to be the identity function.
     // But reacts types say that `key` is `string | number`.
     // You can't even use a bigint or symbol.
+    if (obj == null) return -1;
     let key = keyRegistry.get(obj);
     if (key) return key;
     keyRegistry.set(obj, ++lastKey);

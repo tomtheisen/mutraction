@@ -78,7 +78,7 @@ export class Tracker {
                 for (let i = mutation.operations.length; i-- > 0;) {
                     this.undoOperation(mutation.operations[i]);
                 }
-                break;
+                return;
             case 'arrayextend':
                 (mutation.target as any).length = mutation.oldLength;
                 break;
@@ -88,6 +88,7 @@ export class Tracker {
             default:
                 mutation satisfies never;
         }
+        this.#notifySubscribers(mutation);
     }
 
     // repeat last undone mutation
@@ -114,7 +115,7 @@ export class Tracker {
                 for (let i = 0; i < mutation.operations.length; i++) {
                     this.redoOperation(mutation.operations[i]);
                 }
-                break;
+                return;
             case 'arrayextend':
                 (mutation.target as any)[mutation.newIndex] = mutation.newValue;
                 break;
@@ -124,6 +125,7 @@ export class Tracker {
             default:
                 mutation satisfies never;
         }
+        this.#notifySubscribers(mutation);
     }
 
     // clear the redo stack  

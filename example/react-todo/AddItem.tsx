@@ -1,5 +1,5 @@
 import * as React from "react";
-import { items } from "./items.js";
+import { items, tracker } from "./items.js";
 import { TodoItemModel } from "./TodoItemModel.js";
 
 export function AddItem() {
@@ -8,7 +8,9 @@ export function AddItem() {
 
     function doAdd(ev: React.SyntheticEvent) {
         setTitle("");
+        tracker.startTransaction();
         items.push(new TodoItemModel(title));
+        tracker.commit();
         ev.preventDefault();
     }
 
