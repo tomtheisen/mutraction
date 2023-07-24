@@ -15,4 +15,13 @@ test('array sort undo', () => {
     assert.equal(arr, ["a", "c", "b"]);
 });
 
+test('array atomicity', () => {
+    const [arr, tracker] = track([3, 4]);
+
+    arr.push(8);
+    arr.push(6, 7);
+    tracker.undo();
+    assert.equal(arr, [3, 4, 8]);
+});
+
 test.run();

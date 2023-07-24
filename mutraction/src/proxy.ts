@@ -2,6 +2,9 @@ import { Tracker } from "./tracker.js";
 import { Detach, GetTracker, IsTracked, LastChangeGeneration, RecordDependency, RecordMutation } from "./symbols.js";
 import type { ArrayExtend, ArrayShorten, DeleteProperty, Key, SingleMutation } from "./types.js";
 
+const mutatingArrayMethods 
+    = ["copyWithin","fill","pop","push","reverse","shift","sort","splice","unshift"];
+
 function isArrayLength(value: string | symbol | number) {
     if (typeof value === "string") return isArrayIndex(value);
     return typeof value === "number" && (value & 0x7fff_ffff) === value;
@@ -27,7 +30,7 @@ function makeProxyHandler<TModel extends object>(
 
     let detached = false;
 
-    function get(target: TModel, name: TKey) {
+    function getOrdinary(target: TModel, name: TKey) {
         if (detached) return Reflect.get(target, name);
         if (name === IsTracked) return true;
         if (name === GetTracker) return tracker;
@@ -42,6 +45,25 @@ function makeProxyHandler<TModel extends object>(
             result = target[name] = new Proxy(result, handler);
         }
         return result;
+    }
+
+    function getArray(target: TModel, name: TKey) {
+        if (detached) return Reflect.get(target, name);
+        if (name === Detach) return () => { detached = true; return target };
+
+        if (typeof name === "string" && mutatingArrayMethods.includes(name)) {
+            const arrayFunction = target[name] as Function;
+            function proxyWrapped(this: Array<unknown>) {
+                tracker.startTransaction();
+                const arrayResult = arrayFunction.apply(this, arguments);
+                tracker.commit();
+                return arrayResult;
+            }
+            return proxyWrapped;
+        }
+        else {
+            return getOrdinary(target, name);
+        }
     }
 
     function setOrdinary(target: TModel, name: TKey, newValue: any) {
@@ -100,8 +122,11 @@ function makeProxyHandler<TModel extends object>(
         return Reflect.deleteProperty(target, name);
     }
 
-    let set = setOrdinary;
-    if (Array.isArray(model)) set = setArray;
+    let set = setOrdinary, get = getOrdinary;
+    if (Array.isArray(model)) {
+        set = setArray;
+        get = getArray;
+    }
     
     if (isArguments(model)) throw Error('Tracking of exotic arguments objects not supported');
 

@@ -5,7 +5,7 @@
     "type": "git",
     "url": "https://github.com/tomtheisen/mutraction"
   },
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Tired of spreads? Just mutate. Transact. Commit. Roll back. Undo. Redo.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
