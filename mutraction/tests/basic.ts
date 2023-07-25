@@ -116,4 +116,21 @@ test('no symbol key leakage', () => {
     assert.equal(Object.keys(model), ["foo"]);
 });
 
+test('clear history', () => {
+    const [model, tracker] = track({} as any);
+
+    model.a = 1;
+    model.b = 2;
+
+    tracker.undo();
+    tracker.clearHistory();
+    assert.equal(model, {a: 1});
+
+    tracker.undo();
+    assert.equal(model, {a: 1});
+
+    tracker.redo();
+    assert.equal(model, {a: 1});
+});
+
 test.run();

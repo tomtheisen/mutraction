@@ -34,6 +34,10 @@ After undoing, you can redo to restore the changes.  You can continue to redo un
 
 Making any mutation to the object graph will instantly invalidate the redo stack, making it impossible to redo.  You can also call `clearRedos()` to achieve the same effect.
 
+### `clearHistory()`
+
+This commits all active transactions and then clears the undo and redo queues. 
+
 ### `startDependencyTrack()`
 
 This returns a `Dependency` that will monitor all the property gets in the object graph.

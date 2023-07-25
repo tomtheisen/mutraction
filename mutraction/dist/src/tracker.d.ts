@@ -19,6 +19,7 @@ export declare class Tracker {
     redo(): void;
     private redoOperation;
     clearRedos(): void;
+    clearHistory(): void;
     [RecordMutation](mutation: SingleMutation): void;
     getLastChangeGeneration(target: object): any;
     setLastChangeGeneration(target: object): void;

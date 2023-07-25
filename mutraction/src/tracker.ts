@@ -134,6 +134,12 @@ export class Tracker {
         this.#redos.length = 0;
     }
 
+    clearHistory() {
+        this.#transaction.parent = undefined;
+        this.#transaction.operations.length = 0;
+        this.clearRedos();
+    }
+
     // record a mutation, if you have the secret key
     [RecordMutation](mutation: SingleMutation) {
         this.#transaction.operations.push(Object.freeze(mutation));
