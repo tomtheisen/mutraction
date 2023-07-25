@@ -9,6 +9,7 @@
   "description": "React integration for mutraction.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": ["dist/*.*", "dist/src"],
   "scripts": {
     "bundle": "npm run clean && npx tsc",
     "clean": "del /Q /S dist"

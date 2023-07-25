@@ -9,6 +9,7 @@
   "description": "Tired of spreads? Just mutate. Transact. Commit. Roll back. Undo. Redo.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": ["dist/*.*", "dist/src"],
   "scripts": {
     "bundle": "npm run clean && npx tsc",
     "test": "npx tsc && npx uvu dist/tests -i \"[.]d[.]ts$\"",
