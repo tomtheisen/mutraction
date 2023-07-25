@@ -24,4 +24,11 @@ test('array atomicity', () => {
     assert.equal(arr, [3, 4, 8]);
 });
 
+test('array detection', () => {
+    const [arr, tracker] = track([]);
+
+    assert.ok(isTracked(arr));
+    assert.ok(Array.isArray(arr));
+});
+
 test.run();

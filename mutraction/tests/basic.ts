@@ -100,4 +100,20 @@ test('detach', () => {
     assert.not.ok(isTracked(original));
 });
 
+test('instanceof', () => {
+    class C {}
+
+    const [model] = track(new C);
+
+    assert.ok(model instanceof C);
+});
+
+test('no symbol key leakage', () => {
+    const [model] = track({} as any);
+
+    model.foo = 1;
+
+    assert.equal(Object.keys(model), ["foo"]);
+});
+
 test.run();
