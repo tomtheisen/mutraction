@@ -55,4 +55,21 @@ test('inner change does not increase outer dependency generation', () => {
     assert.ok(g2_2 < g2_3, "second tracker generation changed");
 });
 
+test('history dependency', () => {
+    const [model, tracker] = track({} as any);
+
+    const dep = tracker.startDependencyTrack();
+    // establish history dependency
+    const history = tracker.history;
+    dep.endDependencyTrack();
+
+    assert.equal(history.length, 0);
+    assert.equal(dep.getLatestChangeGeneration(), 0);
+
+    model.foo = {}; // 1
+    model.foo.bar = {}; // 2
+    tracker.undo(); // 3
+    assert.equal(dep.getLatestChangeGeneration(), 3);
+});
+
 test.run();

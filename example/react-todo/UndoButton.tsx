@@ -1,8 +1,9 @@
 import * as React from "react";
-import { tracker } from "./items.js";
+import { tracker, itemsSync } from "./items.js";
 
-export function UndoButton() {
-    return <button onClick={ () => tracker.undo() }>
+export const UndoButton = itemsSync(function UndoButton() {
+    const disabled = tracker.history.length === 0;
+    return <button disabled={ disabled } onClick={ () => tracker.undo() }>
         Undo
     </button>;
-}
+});

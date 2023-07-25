@@ -2,6 +2,11 @@ import { LastChangeGeneration, RecordDependency, RecordMutation } from "./symbol
 import { Dependency } from "./dependency.js";
 import type { Mutation, SingleMutation, Transaction } from "./types.js";
 
+// When found in a dependency list, the presence of this object indicates
+// that the tracker history itself is a dependency.  Any change to the
+// model, including undo and redo constitutes a change in the dependency.
+const HistorySentinel = {};
+
 type Subscriber = (mutation: SingleMutation) => void;
 export class Tracker {
     #subscribers: Set<Subscriber> = new Set;
@@ -23,7 +28,10 @@ export class Tracker {
     #redos: Mutation[] = [];
     #generation = 0;
 
-    get history(): ReadonlyArray<Readonly<Mutation>> { return this.#transaction.operations; }
+    get history(): ReadonlyArray<Readonly<Mutation>> {
+        this[RecordDependency](HistorySentinel);
+        return this.#transaction.operations; 
+    }
     get generation() { return this.#generation; }
 
     private advanceGeneration() {
@@ -133,7 +141,7 @@ export class Tracker {
     clearRedos() {
         this.#redos.length = 0;
     }
-
+    
     clearHistory() {
         this.#transaction.parent = undefined;
         this.#transaction.operations.length = 0;
@@ -150,6 +158,10 @@ export class Tracker {
     }
 
     getLastChangeGeneration(target: object) {
+        // The history itself is a dependency.  Therefore, every change to the model
+        // affects this dependency.  So return the tracker's current generation.
+        if (target === HistorySentinel) return this.generation;
+
         return (target as any)[LastChangeGeneration] ?? 0;
     }
 
@@ -179,6 +191,8 @@ export class Tracker {
     }
 
     [RecordDependency](target: object) {
-        for (let dt of this.#dependencyTrackers) dt.addDependency(target);
+        for (const dt of this.#dependencyTrackers) {
+            dt.addDependency(target);
+        }
     }
 }
