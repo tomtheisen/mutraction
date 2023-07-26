@@ -1,4 +1,5 @@
 import { track, Tracker } from 'mutraction';
+import { TrackerOptions } from 'mutraction/dist/src/tracker.js';
 import { useSyncExternalStore } from 'react';  
 
 export function syncFromTracker<P extends {}>(tracker: Tracker, Component: React.FC<P>) {
@@ -27,8 +28,10 @@ export function syncFromTracker<P extends {}>(tracker: Tracker, Component: React
 
 type ComponentWrapper = <P extends {}>(Component: React.FC<P>) => React.FC<P>;
 
-export function trackAndSync<TModel extends {}>(model: TModel): [TModel, ComponentWrapper, Tracker] {
-    const [trackedModel, tracker] = track(model);
+export function trackAndSync<TModel extends {}>(model: TModel, options?: TrackerOptions)
+    : [TModel, ComponentWrapper, Tracker] 
+{
+    const [trackedModel, tracker] = track(model, options);
     function sync<P extends {}>(Component: React.FC<P>) {
         return syncFromTracker(tracker, Component);
     }
