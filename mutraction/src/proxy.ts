@@ -68,10 +68,12 @@ function makeProxyHandler<TModel extends object>(
 
     function setOrdinary(target: TModel, name: TKey, newValue: any) {
         if (detached) return Reflect.set(target, name, newValue);
+
         if (typeof newValue === 'object' && !newValue[IsTracked]) {
             const handler = makeProxyHandler(newValue, tracker);
             newValue = new Proxy(newValue, handler);
         }
+
         const mutation: SingleMutation = name in target
             ? { type: "change", target, name, oldValue: model[name], newValue }
             : { type: "create", target, name, newValue };
