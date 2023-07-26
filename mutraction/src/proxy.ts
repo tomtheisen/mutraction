@@ -47,7 +47,7 @@ function makeProxyHandler<TModel extends object>(
         return result;
     }
 
-    function getArray(target: TModel, name: TKey) {
+    function getArrayTransactionShim(target: TModel, name: TKey) {
         if (detached) return Reflect.get(target, name);
         if (name === Detach) return () => { detached = true; return target };
 
@@ -125,7 +125,7 @@ function makeProxyHandler<TModel extends object>(
     let set = setOrdinary, get = getOrdinary;
     if (Array.isArray(model)) {
         set = setArray;
-        get = getArray;
+        if (tracker.tracksHistory()) get = getArrayTransactionShim;
     }
     
     if (isArguments(model)) throw Error('Tracking of exotic arguments objects not supported');

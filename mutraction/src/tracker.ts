@@ -41,6 +41,10 @@ export class Tracker {
         return this.#transaction;
     }
 
+    tracksHistory() {
+        return !!this.#transaction;
+    }
+
     get history(): ReadonlyArray<Readonly<Mutation>> {
         const transaction = this.ensureHistory();
         this[RecordDependency](HistorySentinel);

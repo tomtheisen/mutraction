@@ -12,6 +12,7 @@ export declare class Tracker {
         dispose: () => boolean;
     };
     ensureHistory(): Transaction;
+    tracksHistory(): boolean;
     get history(): ReadonlyArray<Readonly<Mutation>>;
     get generation(): number;
     private advanceGeneration;

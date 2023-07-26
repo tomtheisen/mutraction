@@ -31,4 +31,12 @@ test('array detection', () => {
     assert.ok(Array.isArray(arr));
 });
 
+test ('no history arrays', () => {
+    const [arr, tracker] = track([1], { trackHistory: false });
+
+    arr.push(2);
+
+    assert.equal(arr, [1, 2]);
+})
+
 test.run();

@@ -73,6 +73,8 @@ model.title += " *";
 #### Arguments
 
 * `model` is an untracked data model that will be tracked.
+* `options` is an optional configuration object.
+    * `trackHistory` is a boolean configuration property that turns history tracking on or off.  It's on by default.
 
 #### Return value
 
