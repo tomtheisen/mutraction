@@ -133,4 +133,15 @@ test('clear history', () => {
     assert.equal(model, {a: 1});
 });
 
+test('no history', () => {
+    const [model, tracker] = track({} as any, { trackHistory: false });
+
+    model.foo = 7;
+    assert.throws(() => tracker.undo());
+    assert.throws(() => tracker.redo());
+    assert.throws(() => tracker.commit());
+    assert.throws(() => tracker.rollback());
+    assert.equal(model.foo, 7);
+})
+
 test.run();

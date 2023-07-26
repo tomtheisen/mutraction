@@ -1,13 +1,17 @@
 import { RecordDependency, RecordMutation } from "./symbols.js";
 import { Dependency } from "./dependency.js";
-import type { Mutation, SingleMutation } from "./types.js";
+import type { Mutation, SingleMutation, Transaction } from "./types.js";
 type Subscriber = (mutation: SingleMutation) => void;
+export type TrackerOptions = {
+    trackHistory?: boolean;
+};
 export declare class Tracker {
     #private;
-    constructor(callback?: Subscriber);
+    constructor(options?: TrackerOptions);
     subscribe(callback: Subscriber): {
         dispose: () => boolean;
     };
+    ensureHistory(): Transaction;
     get history(): ReadonlyArray<Readonly<Mutation>>;
     get generation(): number;
     private advanceGeneration;

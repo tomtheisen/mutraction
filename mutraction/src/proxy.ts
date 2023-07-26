@@ -1,4 +1,4 @@
-import { Tracker } from "./tracker.js";
+import { Tracker, TrackerOptions } from "./tracker.js";
 import { Detach, GetTracker, IsTracked, LastChangeGeneration, RecordDependency, RecordMutation } from "./symbols.js";
 import type { ArrayExtend, ArrayShorten, DeleteProperty, Key, SingleMutation } from "./types.js";
 
@@ -150,9 +150,9 @@ export function untrack(obj: object){
 
 // turn on change tracking
 // returns a proxied model object, and tracker to control history
-export function track<TModel extends object>(model: TModel, callback?: (mutation: SingleMutation) => void): [TModel, Tracker] {
+export function track<TModel extends object>(model: TModel, options?: TrackerOptions): [TModel, Tracker] {
     if (isTracked(model)) throw Error('Object already tracked');
-    const tracker = new Tracker(callback);
+    const tracker = new Tracker(options);
     const proxied = new Proxy(model, makeProxyHandler(model, tracker));
     return [proxied, tracker];
 }

@@ -8,10 +8,22 @@ import type { Mutation, SingleMutation, Transaction } from "./types.js";
 const HistorySentinel = {};
 
 type Subscriber = (mutation: SingleMutation) => void;
+
+export type TrackerOptions = {
+    trackHistory?: boolean;
+}
+
 export class Tracker {
     #subscribers: Set<Subscriber> = new Set;
-    constructor(callback?: Subscriber) {
-        if (callback) this.subscribe(callback);
+    #transaction?: Transaction;
+    #redos: Mutation[] = [];
+    #generation = 0;
+
+    constructor(options?: TrackerOptions) {
+        if (options?.trackHistory ?? true) {
+            // create root transaction to enable history tracking
+            this.#transaction = { type: "transaction", operations: [] };
+        }
     }
 
     subscribe(callback: Subscriber) {
@@ -24,13 +36,15 @@ export class Tracker {
         for (const sub of this.#subscribers) sub(mutation);
     }
 
-    #transaction: Transaction = { type: "transaction", operations: [] };
-    #redos: Mutation[] = [];
-    #generation = 0;
+    ensureHistory(): Transaction {
+        if (!this.#transaction) throw new Error("History tracking disabled.");
+        return this.#transaction;
+    }
 
     get history(): ReadonlyArray<Readonly<Mutation>> {
+        const transaction = this.ensureHistory();
         this[RecordDependency](HistorySentinel);
-        return this.#transaction.operations; 
+        return transaction.operations; 
     }
     get generation() { return this.#generation; }
 
@@ -40,16 +54,18 @@ export class Tracker {
 
     // add another transaction to the stack
     startTransaction() {
-        this.#transaction = { type: "transaction", parent: this.#transaction, operations: [] };
+        const transaction = this.ensureHistory();
+        this.#transaction = { type: "transaction", parent: transaction, operations: [] };
     }
 
     // resolve and close the most recent transaction
     // throws if no transactions are active
     commit() {
-        if (!this.#transaction?.parent) throw 'Cannot commit root transaction';
-        const parent = this.#transaction.parent;
-        parent.operations.push(this.#transaction);
-        this.#transaction.parent = undefined;
+        const transaction = this.ensureHistory();
+        if (!transaction.parent) throw 'Cannot commit root transaction';
+        const parent = transaction.parent;
+        parent.operations.push(transaction);
+        transaction.parent = undefined;
         this.#transaction = parent;
     }
 
@@ -57,14 +73,16 @@ export class Tracker {
     // remove it from the transaction stack
     // if no transactions are active, undo all mutations
     rollback() {
-        while (this.#transaction.operations.length) this.undo();
-        this.#transaction = this.#transaction.parent ?? this.#transaction;
+        const transaction = this.ensureHistory();
+        while (transaction.operations.length) this.undo();
+        this.#transaction = transaction.parent ?? transaction;
         this.advanceGeneration();
     }
 
     // undo last mutation or transaction and push into the redo stack
     undo() {
-        const mutation = this.#transaction.operations.pop();
+        const transaction = this.ensureHistory();
+        const mutation = transaction.operations.pop();
         if (!mutation) return;
         this.advanceGeneration();
         this.undoOperation(mutation);
@@ -101,11 +119,12 @@ export class Tracker {
 
     // repeat last undone mutation
     redo() {
+        const transaction = this.ensureHistory();
         const mutation = this.#redos.shift();
         if (!mutation) return;
         this.advanceGeneration();
         this.redoOperation(mutation);
-        this.#transaction.operations.push(mutation);
+        transaction.operations.push(mutation);
     }
     private redoOperation(mutation: Mutation) {
         if ("target" in mutation) {
@@ -143,14 +162,18 @@ export class Tracker {
     }
     
     clearHistory() {
-        this.#transaction.parent = undefined;
-        this.#transaction.operations.length = 0;
+        const transaction = this.ensureHistory();
+        transaction.parent = undefined;
+        transaction.operations.length = 0;
         this.clearRedos();
     }
 
     // record a mutation, if you have the secret key
     [RecordMutation](mutation: SingleMutation) {
-        this.#transaction.operations.push(Object.freeze(mutation));
+        if (this.#transaction) {
+            // history tracking is enabled
+            this.#transaction.operations.push(Object.freeze(mutation));
+        }
         this.clearRedos();
         this.advanceGeneration();
         this.setLastChangeGeneration(mutation.target);
