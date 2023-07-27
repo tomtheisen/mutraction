@@ -11,6 +11,6 @@ export type ArrayExtend = BaseSingleMutation & { type: "arrayextend", oldLength:
 export type ArrayShorten = BaseSingleMutation & { type: "arrayshorten", oldLength: number, newLength: number, removed: ReadonlyArray<any> };
 
 export type SingleMutation = CreateProperty | DeleteProperty | ChangeProperty | ArrayExtend | ArrayShorten;
-export type Transaction = {type: "transaction", parent?: Transaction, operations: Mutation[]};
+export type Transaction = {type: "transaction", transactionName?: string, parent?: Transaction, operations: Mutation[]};
 export type Mutation = SingleMutation | Transaction;
 

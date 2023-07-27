@@ -57,9 +57,10 @@ export class Tracker {
     }
 
     // add another transaction to the stack
-    startTransaction() {
+    startTransaction(name?: string) {
         const transaction = this.ensureHistory();
         this.#transaction = { type: "transaction", parent: transaction, operations: [] };
+        if (name) this.#transaction.transactionName = name;
     }
 
     // resolve and close the most recent transaction

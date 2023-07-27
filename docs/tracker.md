@@ -22,11 +22,11 @@ This is a read-only property that changes whenever mutations happen.  It's alway
 
 ## Methods
 
-### `startTransaction()`
+### `startTransaction(name?)`
 ### `commit()`
 ### `rollback()`
 
-These methods control batches of changes.  Starting a new transaction establishes a checkpoint.  If you're happy with the changes made during a transaction, you can commit it to keep them.  If you'd like to revert the changes instead, you can roll it back.
+These methods control batches of changes.  Starting a new transaction establishes a checkpoint.  If you're happy with the changes made during a transaction, you can commit it to keep them.  If you'd like to revert the changes instead, you can roll it back.  Transaction names are optional.  They have no functional impact, but can be useful for inspecting the change history.
 
 Transactions are recursive.  Each time you commit or rollback, it applies to the inner-most transaction.
 
