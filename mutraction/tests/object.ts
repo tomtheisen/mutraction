@@ -22,26 +22,36 @@ test('state methods', () => {
     assert.equal(model.getProp(), 7);
 });
 
-test('private property with accessors', () => {
+test('compound setter records only leaf operations', () => {
     class C {
-        #prop = 0;
-        setProp(val: number) { this.#prop = val; }
-        getProp() { return this.#prop; }
+        _maxProp: number;
+        _prop: number;
+
+        constructor(value: number) {
+            this._prop = this._maxProp = value;
+        }
+
+        get prop() { return this._prop; }
+        set prop(value: number) {
+            this._maxProp = Math.max(value, this._maxProp);
+            this._prop = value;
+        }
     }
 
-    const [model, tracker] = track(new C);
+    const [model, tracker] = track(new C(4));
 
-    model.setProp(7);
-    assert.equal(model.getProp(), 7);
+    tracker.startTransaction();
+    model.prop = 5;
+    tracker.commit();
+    assert.equal(model._maxProp, 5);
 
-    model.setProp(12);
-    assert.equal(model.getProp(), 12);
-
-    // https://github.com/tc39/proposal-class-fields/issues/106#issuecomment-397385661
+    assert.equal(tracker.history.length, 1);
+    assert.equal(tracker.history[0].type, "transaction");
+    assert.equal(tracker.history[0].type === "transaction" && tracker.history[0].operations.length, 2);
 
     tracker.undo();
-    assert.equal(model.getProp(), 7);
+    assert.equal(model._maxProp, 4);
 });
 
-
 test.run();
+

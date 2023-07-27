@@ -30,7 +30,7 @@ function makeProxyHandler<TModel extends object>(
 
     let detached = false;
 
-    function getOrdinary(target: TModel, name: TKey) {
+    function getOrdinary(target: TModel, name: TKey, receiver: TModel) {
         if (detached) return Reflect.get(target, name);
         if (name === IsTracked) return true;
         if (name === GetTracker) return tracker;
@@ -47,26 +47,30 @@ function makeProxyHandler<TModel extends object>(
         return result;
     }
 
-    function getArrayTransactionShim(target: TModel, name: TKey) {
+    function getArrayTransactionShim(target: TModel, name: TKey, receiver: TModel) {
         if (detached) return Reflect.get(target, name);
-        if (name === Detach) return () => { detached = true; return target };
+        if (name === Detach) return () => (detached = true, target);
 
         if (typeof name === "string" && mutatingArrayMethods.includes(name)) {
             const arrayFunction = target[name] as Function;
-            function proxyWrapped(this: Array<unknown>) {
+            function proxyWrapped() {
                 tracker.startTransaction();
-                const arrayResult = arrayFunction.apply(this, arguments);
+                const arrayResult = arrayFunction.apply(receiver, arguments);
                 tracker.commit();
                 return arrayResult;
             }
             return proxyWrapped;
         }
         else {
-            return getOrdinary(target, name);
+            return getOrdinary(target, name, receiver);
         }
     }
 
-    function setOrdinary(target: TModel, name: TKey, newValue: any) {
+    // number of completed set operations.  we only want to record accessor sets, aka "leaf" sets
+    // setters that call other setters should not be represented in the history.
+    // so if the number of completed sets changes between start and end of parent set, then don't record it
+    let sets = 0;
+    function setOrdinary(target: TModel, name: TKey, newValue: any, receiver: TModel) {
         if (detached) return Reflect.set(target, name, newValue);
 
         if (typeof newValue === 'object' && !newValue[IsTracked]) {
@@ -76,12 +80,20 @@ function makeProxyHandler<TModel extends object>(
 
         const mutation: SingleMutation = name in target
             ? { type: "change", target, name, oldValue: model[name], newValue }
-            : { type: "create", target, name, newValue };
-        tracker[RecordMutation](mutation);
-        return Reflect.set(target, name, newValue);
+            : { type: "create", target, name,                        newValue };
+        
+        const initialSets = sets;
+        const wasSet = Reflect.set(target, name, newValue, receiver);
+        if (initialSets == sets) {
+            // no other set operation completed while this one was being executed
+            // if there *was* one or more, we want to record those instead of this
+            tracker[RecordMutation](mutation);
+        }
+        ++sets;
+        return wasSet;
     }
 
-    function setArray(target: TModel, name: TKey, newValue: any) {
+    function setArray(target: TModel, name: TKey, newValue: any, receiver: TModel) {
         if (detached) return Reflect.set(target, name, newValue);
         if (!Array.isArray(target)) {
             throw Error('This object used to be an array.  Expected an array.');
@@ -98,7 +110,7 @@ function makeProxyHandler<TModel extends object>(
                     type: "arrayshorten", target, name, oldLength, newLength, removed
                 };
                 tracker[RecordMutation](shorten);
-                return Reflect.set(target, name, newValue);
+                return Reflect.set(target, name, newValue, receiver);
             }
         }
         
@@ -114,7 +126,7 @@ function makeProxyHandler<TModel extends object>(
             }
         }
 
-        return setOrdinary(target, name, newValue);
+        return setOrdinary(target, name, newValue, receiver);
     }
 
     function deleteProperty(target: TModel, name: TKey) {
@@ -138,7 +150,7 @@ function makeProxyHandler<TModel extends object>(
 }
 
 export function isTracked(obj: object) {
-    return typeof obj === "object" && (obj as any)[IsTracked];
+    return typeof obj === "object" && !!(obj as any)[IsTracked];
 }
 
 export function getTracker(obj: object) {
