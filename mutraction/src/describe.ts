@@ -1,9 +1,5 @@
 import { Mutation } from "./types.js";
 
-function isObject(arg: unknown): arg is Object {
-    return typeof arg === "object";
-}
-
 function describeValue(val: unknown): string {
     if (val === undefined) return "undefined";
     if (val === null) return "null";
