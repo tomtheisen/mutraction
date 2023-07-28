@@ -31,6 +31,7 @@ export type ArrayShorten = BaseSingleMutation & {
 export type SingleMutation = CreateProperty | DeleteProperty | ChangeProperty | ArrayExtend | ArrayShorten;
 export type Transaction = {
     type: "transaction";
+    transactionName?: string;
     parent?: Transaction;
     operations: Mutation[];
 };

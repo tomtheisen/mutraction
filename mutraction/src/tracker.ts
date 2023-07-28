@@ -11,19 +11,28 @@ type Subscriber = (mutation: SingleMutation) => void;
 
 export type TrackerOptions = {
     trackHistory?: boolean;
+    autoTransactionalize?: boolean;
 }
+
+const defaultTrackerOptions: Required<TrackerOptions> = Object.freeze({
+    trackHistory: true,
+    autoTransactionalize: false,
+});
 
 export class Tracker {
     #subscribers: Set<Subscriber> = new Set;
     #transaction?: Transaction;
     #redos: Mutation[] = [];
     #generation = 0;
+    options: Readonly<Required<TrackerOptions>>;
 
-    constructor(options?: TrackerOptions) {
-        if (options?.trackHistory ?? true) {
+    constructor(options: TrackerOptions = {}) {
+        const appliedOptions = { ...defaultTrackerOptions, ...options };
+        if (appliedOptions.trackHistory) {
             // create root transaction to enable history tracking
             this.#transaction = { type: "transaction", operations: [] };
         }
+        this.options = Object.freeze(appliedOptions);
     }
 
     subscribe(callback: Subscriber) {

@@ -31,12 +31,19 @@ test('array detection', () => {
     assert.ok(Array.isArray(arr));
 });
 
-test ('no history arrays', () => {
+test('no history arrays', () => {
     const [arr, tracker] = track([1], { trackHistory: false });
 
     arr.push(2);
 
     assert.equal(arr, [1, 2]);
+});
+
+test('array lengthen', () => {
+    const [arr, tracker] = track([]);
+
+    arr.length = 10;
+    assert.equal(arr.length, 10);
 })
 
 test.run();

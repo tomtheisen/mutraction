@@ -4,9 +4,11 @@ import type { Mutation, SingleMutation, Transaction } from "./types.js";
 type Subscriber = (mutation: SingleMutation) => void;
 export type TrackerOptions = {
     trackHistory?: boolean;
+    autoTransactionalize?: boolean;
 };
 export declare class Tracker {
     #private;
+    options: Readonly<Required<TrackerOptions>>;
     constructor(options?: TrackerOptions);
     subscribe(callback: Subscriber): {
         dispose: () => boolean;
@@ -16,7 +18,7 @@ export declare class Tracker {
     get history(): ReadonlyArray<Readonly<Mutation>>;
     get generation(): number;
     private advanceGeneration;
-    startTransaction(): void;
+    startTransaction(name?: string): void;
     commit(): void;
     rollback(): void;
     undo(): void;

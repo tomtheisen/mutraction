@@ -27,7 +27,7 @@ function makeProxyHandler<TModel extends object>(
     tracker: Tracker,
 ) : ProxyHandler<TModel> {
     type TKey = (keyof TModel) & Key;
-
+    
     let detached = false;
 
     function getOrdinary(target: TModel, name: TKey, receiver: TModel) {
@@ -39,10 +39,23 @@ function makeProxyHandler<TModel extends object>(
 
         tracker[RecordDependency](target);
 
-        let result = target[name] as any;
+        let result = Reflect.get(target, name, receiver) as any;
         if (typeof result === 'object' && !isTracked(result)) {
             const handler = makeProxyHandler(result, tracker);
             result = target[name] = new Proxy(result, handler);
+        }
+        if (typeof result === 'function' && tracker.options.autoTransactionalize) {
+            const original = result as Function;
+            function proxyWrapped() {
+                tracker.startTransaction(original.name ?? "auto");
+                try {
+                    return original.apply(receiver, arguments);
+                }
+                finally {
+                    tracker.commit();
+                }
+            }
+            return proxyWrapped;
         }
         return result;
     }
@@ -54,7 +67,7 @@ function makeProxyHandler<TModel extends object>(
         if (typeof name === "string" && mutatingArrayMethods.includes(name)) {
             const arrayFunction = target[name] as Function;
             function proxyWrapped() {
-                tracker.startTransaction();
+                tracker.startTransaction(String(name));
                 const arrayResult = arrayFunction.apply(receiver, arguments);
                 tracker.commit();
                 return arrayResult;
@@ -69,7 +82,7 @@ function makeProxyHandler<TModel extends object>(
     // number of completed set operations.  we only want to record accessor sets, aka "leaf" sets
     // setters that call other setters should not be represented in the history.
     // so if the number of completed sets changes between start and end of parent set, then don't record it
-    let sets = 0;
+    let setsCompleted = 0;
     function setOrdinary(target: TModel, name: TKey, newValue: any, receiver: TModel) {
         if (detached) return Reflect.set(target, name, newValue);
 
@@ -82,14 +95,14 @@ function makeProxyHandler<TModel extends object>(
             ? { type: "change", target, name, oldValue: model[name], newValue }
             : { type: "create", target, name,                        newValue };
         
-        const initialSets = sets;
+        const initialSets = setsCompleted;
         const wasSet = Reflect.set(target, name, newValue, receiver);
-        if (initialSets == sets) {
+        if (initialSets == setsCompleted) {
             // no other set operation completed while this one was being executed
             // if there *was* one or more, we want to record those instead of this
             tracker[RecordMutation](mutation);
         }
-        ++sets;
+        ++setsCompleted;
         return wasSet;
     }
 
@@ -110,6 +123,7 @@ function makeProxyHandler<TModel extends object>(
                     type: "arrayshorten", target, name, oldLength, newLength, removed
                 };
                 tracker[RecordMutation](shorten);
+                ++setsCompleted;
                 return Reflect.set(target, name, newValue, receiver);
             }
         }
@@ -122,7 +136,8 @@ function makeProxyHandler<TModel extends object>(
                     type: "arrayextend", target, name, oldLength: target.length, newIndex: index, newValue
                 };
                 tracker[RecordMutation](extension);
-                return Reflect.set(target, name, newValue);
+                ++setsCompleted;
+                return Reflect.set(target, name, newValue, receiver);
             }
         }
 

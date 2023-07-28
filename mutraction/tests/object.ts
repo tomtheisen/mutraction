@@ -53,5 +53,23 @@ test('compound setter records only leaf operations', () => {
     assert.equal(model._maxProp, 4);
 });
 
+test('auto transact', () => {
+    class C {
+        a = 1;
+        b = 2;
+        c = 3;
+        incrementAll() { (this.a++, this.b++, this.c++); }
+    }
+
+    const [model, tracker] = track(new C, { autoTransactionalize: true });
+
+    model.b = 12;
+    model.incrementAll();
+    assert.equal({ ...model }, { a:2, b:13, c:4 });
+
+    tracker.undo();
+    assert.equal({ ...model }, { a:1, b:12, c:3 });
+});
+
 test.run();
 

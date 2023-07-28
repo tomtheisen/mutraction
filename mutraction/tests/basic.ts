@@ -137,10 +137,10 @@ test('no history', () => {
     const [model, tracker] = track({} as any, { trackHistory: false });
 
     model.foo = 7;
-    assert.throws(() => tracker.undo());
-    assert.throws(() => tracker.redo());
-    assert.throws(() => tracker.commit());
-    assert.throws(() => tracker.rollback());
+    assert.throws(() => tracker.undo(), "undo should throw");
+    assert.throws(() => tracker.redo(), "redo should throw");
+    assert.throws(() => tracker.commit(), "commit should throw");
+    assert.throws(() => tracker.rollback(), "rollback should throw");
     assert.equal(model.foo, 7);
 })
 
