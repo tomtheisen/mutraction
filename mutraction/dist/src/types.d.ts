@@ -36,4 +36,7 @@ export type Transaction = {
     operations: Mutation[];
 };
 export type Mutation = SingleMutation | Transaction;
+export type ReadonlyDeep<T extends object> = {
+    readonly [K in keyof T]: T[K] extends object ? ReadonlyDeep<T[K]> : T[K];
+};
 //# sourceMappingURL=types.d.ts.map

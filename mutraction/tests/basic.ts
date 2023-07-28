@@ -142,6 +142,10 @@ test('no history', () => {
     assert.throws(() => tracker.commit(), "commit should throw");
     assert.throws(() => tracker.rollback(), "rollback should throw");
     assert.equal(model.foo, 7);
-})
+});
+
+test('no history but auto', () => {
+    assert.throws(() => track({}, { trackHistory: false, autoTransactionalize: true }));
+});
 
 test.run();

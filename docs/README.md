@@ -24,6 +24,10 @@ const [trackedModel, tracker] =  track(model, callback);
 * the model object wrapped in a tracking proxy
 * a [Tracker](#tracker) object that can be used to observe and manage state changes
 
+### `trackAsReadOnlyDeep`
+
+This function is behaviorally identical to `track`, above.  If called from typescript, the return type will have all properties marked `readonly`, meaning that no properties can be set.  This might be useful if your model is a class, and you want to ensure that state changes only happen within methods of the class.
+
 ### `isTracked`
 
 This tests whether an object has a tracking proxy attached.
@@ -73,8 +77,7 @@ model.title += " *";
 #### Arguments
 
 * `model` is an untracked data model that will be tracked.
-* `options` is an optional configuration object.
-    * `trackHistory` is a boolean configuration property that turns history tracking on or off.  It's on by default.
+* `options` is an optional [configuration object](./options.md).
 
 #### Return value
 

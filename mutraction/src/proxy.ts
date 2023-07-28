@@ -1,6 +1,6 @@
 import { Tracker, TrackerOptions } from "./tracker.js";
 import { Detach, GetTracker, IsTracked, LastChangeGeneration, RecordDependency, RecordMutation } from "./symbols.js";
-import type { ArrayExtend, ArrayShorten, DeleteProperty, Key, SingleMutation } from "./types.js";
+import type { ArrayExtend, ArrayShorten, DeleteProperty, Key, ReadonlyDeep, SingleMutation } from "./types.js";
 
 const mutatingArrayMethods 
     = ["copyWithin","fill","pop","push","reverse","shift","sort","splice","unshift"];
@@ -49,10 +49,13 @@ function makeProxyHandler<TModel extends object>(
             function proxyWrapped() {
                 tracker.startTransaction(original.name ?? "auto");
                 try {
-                    return original.apply(receiver, arguments);
-                }
-                finally {
+                    const result = original.apply(receiver, arguments);
                     tracker.commit();
+                    return result;
+                }
+                catch (er) {
+                    tracker.rollback();
+                    throw er;
                 }
             }
             return proxyWrapped;
@@ -184,4 +187,8 @@ export function track<TModel extends object>(model: TModel, options?: TrackerOpt
     const tracker = new Tracker(options);
     const proxied = new Proxy(model, makeProxyHandler(model, tracker));
     return [proxied, tracker];
+}
+
+export function trackAsReadonlyDeep<TModel extends object>(model: TModel, options?: TrackerOptions): [ReadonlyDeep<TModel>, Tracker] {
+    return track(model, options);
 }

@@ -8,7 +8,7 @@
 new Tracker(options?)
 ```
 
-The `Tracker` constructor takes an optional `options` object.  `options` has a single property boolean property `trackHistory` that enables or disables history tracking.  If history tracking is disabled, transactions and history management will not be available, but memory usage will be lower.
+The `Tracker` constructor takes an optional [`options` object](./options.md).  
 
 ## Properties
 

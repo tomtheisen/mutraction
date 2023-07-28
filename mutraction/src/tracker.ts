@@ -28,6 +28,9 @@ export class Tracker {
 
     constructor(options: TrackerOptions = {}) {
         const appliedOptions = { ...defaultTrackerOptions, ...options };
+        if (appliedOptions.autoTransactionalize && !appliedOptions.trackHistory) {
+            throw Error("Option autoTransactionalize requires option trackHistory");
+        }
         if (appliedOptions.trackHistory) {
             // create root transaction to enable history tracking
             this.#transaction = { type: "transaction", operations: [] };

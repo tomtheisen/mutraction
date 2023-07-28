@@ -14,3 +14,8 @@ export type SingleMutation = CreateProperty | DeleteProperty | ChangeProperty | 
 export type Transaction = {type: "transaction", transactionName?: string, parent?: Transaction, operations: Mutation[]};
 export type Mutation = SingleMutation | Transaction;
 
+export type ReadonlyDeep<T extends object> = {
+    readonly [K in keyof T]: T[K] extends object
+        ? ReadonlyDeep<T[K]>
+        : T[K]
+}

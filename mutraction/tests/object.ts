@@ -71,5 +71,15 @@ test('auto transact', () => {
     assert.equal({ ...model }, { a:1, b:12, c:3 });
 });
 
+test('auto rollback', () => {
+    const [model] = track({
+        p: 3,
+        m() { this.p = 4; throw 'fail'; }
+    }, {autoTransactionalize: true});
+
+    assert.throws(() => model.m());
+    assert.equal(model.p, 3);
+})
+
 test.run();
 
