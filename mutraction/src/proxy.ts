@@ -51,16 +51,16 @@ function makeProxyHandler<TModel extends object>(
                 try {
                     const result = original.apply(receiver, arguments);
                     if (autoTransaction.operations.length > 0) {
-                        tracker.commit();
+                        tracker.commit(autoTransaction);
                     }
                     else {
                         // don't commit auto transactions in which nothing happened
-                        tracker.rollback();
+                        tracker.rollback(autoTransaction);
                     }
                     return result;
                 }
                 catch (er) {
-                    tracker.rollback();
+                    tracker.rollback(autoTransaction);
                     throw er;
                 }
             }
@@ -76,9 +76,9 @@ function makeProxyHandler<TModel extends object>(
         if (typeof name === "string" && mutatingArrayMethods.includes(name)) {
             const arrayFunction = target[name] as Function;
             function proxyWrapped() {
-                tracker.startTransaction(String(name));
+                const arrayTransaction = tracker.startTransaction(String(name));
                 const arrayResult = arrayFunction.apply(receiver, arguments);
-                tracker.commit();
+                tracker.commit(arrayTransaction);
                 return arrayResult;
             }
             return proxyWrapped;
