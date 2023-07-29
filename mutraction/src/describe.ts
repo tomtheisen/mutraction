@@ -11,7 +11,7 @@ function describeValue(val: unknown): string {
             return "[" + val.map(describeValue).join() + "]";
         }
     }
-    if (typeof val === "object") return "object";
+    if (typeof val === "object") return "{...}";
     if (typeof val === "string") return JSON.stringify(val);
     return String(val);
 }

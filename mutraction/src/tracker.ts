@@ -9,15 +9,12 @@ const HistorySentinel = {};
 
 type Subscriber = (mutation: SingleMutation) => void;
 
-export type TrackerOptions = {
-    trackHistory?: boolean;
-    autoTransactionalize?: boolean;
-}
-
-const defaultTrackerOptions: Readonly<Required<TrackerOptions>> = Object.freeze({
+const defaultTrackerOptions = {
     trackHistory: true,
     autoTransactionalize: false,
-});
+};
+
+export type TrackerOptions = Partial<typeof defaultTrackerOptions>;
 
 export class Tracker {
     #subscribers: Set<Subscriber> = new Set;

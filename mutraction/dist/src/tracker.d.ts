@@ -2,10 +2,12 @@ import { RecordDependency, RecordMutation } from "./symbols.js";
 import { Dependency } from "./dependency.js";
 import type { Mutation, SingleMutation, Transaction } from "./types.js";
 type Subscriber = (mutation: SingleMutation) => void;
-export type TrackerOptions = {
-    trackHistory?: boolean;
-    autoTransactionalize?: boolean;
+declare const defaultTrackerOptions: {
+    trackHistory: boolean;
+    trackPath: boolean;
+    autoTransactionalize: boolean;
 };
+export type TrackerOptions = Partial<typeof defaultTrackerOptions>;
 export declare class Tracker {
     #private;
     options: Readonly<Required<TrackerOptions>>;

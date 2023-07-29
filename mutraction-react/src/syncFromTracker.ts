@@ -14,9 +14,7 @@ export function syncFromTracker<P extends {}>(tracker: Tracker, Component: React
 
         function subscribe(callback: () => void) {
             const subscription = tracker.subscribe(callback);
-            return function unsubscribe() {
-                subscription.dispose();
-            };
+            return () => subscription.dispose();
         }
         useSyncExternalStore(subscribe, () => deps.getLatestChangeGeneration());
 
