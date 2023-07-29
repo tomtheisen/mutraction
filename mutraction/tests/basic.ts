@@ -148,4 +148,21 @@ test('no history but auto', () => {
     assert.throws(() => track({}, { trackHistory: false, autoTransactionalize: true }));
 });
 
+test('transaction does not obscure history', () => {
+    const [model, tracker] = track({} as any);
+
+    model.asdf = 123;
+    tracker.startTransaction();
+    assert.equal(tracker.history.length, 1);
+});
+
+test('transaction out of order resolution fails', () => {
+    const [model, tracker] = track({} as any);
+
+    const t1 = tracker.startTransaction();
+    const t2 = tracker.startTransaction();
+    assert.throws(() => tracker.commit(t1));
+});
+
+
 test.run();

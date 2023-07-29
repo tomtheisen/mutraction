@@ -23,14 +23,27 @@ This is a read-only property that changes whenever mutations happen.  It's alway
 ## Methods
 
 ### `startTransaction(name?)`
-### `commit()`
-### `rollback()`
 
-These methods control batches of changes.  Starting a new transaction establishes a checkpoint.  If you're happy with the changes made during a transaction, you can commit it to keep them.  If you'd like to revert the changes instead, you can roll it back.  Transaction names are optional.  They have no functional impact, but can be useful for inspecting the change history.
+Starting a new transaction establishes a checkpoint.  If you're happy with the changes made during a transaction, you can commit it to keep them.  If you'd like to revert the changes instead, you can roll it back.  Transactions are recursive.  Each time you commit or rollback, it applies to the inner-most transaction.
 
-Transactions are recursive.  Each time you commit or rollback, it applies to the inner-most transaction.
+#### Arguments
 
-None of these methods have a return value.
+* `name` is the optional name of the transaction.  Transaction names have no functional impact, but can be useful for inspecting the change history.
+
+#### Return value
+
+The transaction object is returned.  It has an optional `transactionName`, optional `parentTransaction`, and a `operations` array.
+
+### `commit(transaction?)`
+### `rollback(transaction?)`
+
+These methods resolve the current transaction.  Commit to keep the changes.  Roll back to discard.  Transactions are recursive.  Each time you commit or rollback, it applies to the inner-most transaction.
+
+Neither of these methods have a return value.
+
+#### Arguments
+
+* `transaction` is the transaction object to resolve.  It must be newest un-resolved transaction.  If you omit this parameter, it will be determined automatically.  Supplying this parameter acts as an assertion that the transaction stack has not gotten unbalanced.
 
 ### `undo()`
 ### `redo()`

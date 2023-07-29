@@ -19,6 +19,7 @@ export type TrackerOptions = Partial<typeof defaultTrackerOptions>;
 export class Tracker {
     #subscribers: Set<Subscriber> = new Set;
     #transaction?: Transaction;
+    #rootTransaction?: Transaction;
     #redos: Mutation[] = [];
     #generation = 0;
     options: Readonly<Required<TrackerOptions>>;
@@ -30,7 +31,7 @@ export class Tracker {
         }
         if (appliedOptions.trackHistory) {
             // create root transaction to enable history tracking
-            this.#transaction = { type: "transaction", operations: [] };
+            this.#rootTransaction = this.#transaction = { type: "transaction", operations: [] };
         }
         this.options = Object.freeze(appliedOptions);
     }
@@ -55,9 +56,14 @@ export class Tracker {
     }
 
     get history(): ReadonlyArray<Readonly<Mutation>> {
-        const transaction = this.ensureHistory();
+        this.ensureHistory();
+        // reading the history can create a dependency too, for use cases 
+        // that depend on the tracker history
         this[RecordDependency](HistorySentinel);
-        return transaction.operations; 
+        if (!this.#rootTransaction) throw new Error(
+            "History tracking enabled, but no root transaction. "
+            + "Probably mutraction internal error.");
+        return this.#rootTransaction.operations; 
     }
     get generation() { return this.#generation; }
 
@@ -66,30 +72,37 @@ export class Tracker {
     }
 
     // add another transaction to the stack
-    startTransaction(name?: string) {
+    startTransaction(name?: string): Transaction {
         const transaction = this.ensureHistory();
         this.#transaction = { type: "transaction", parent: transaction, operations: [] };
         if (name) this.#transaction.transactionName = name;
+        return this.#transaction;
     }
 
     // resolve and close the most recent transaction
     // throws if no transactions are active
-    commit() {
-        const transaction = this.ensureHistory();
-        if (!transaction.parent) throw 'Cannot commit root transaction';
-        const parent = transaction.parent;
-        parent.operations.push(transaction);
-        transaction.parent = undefined;
+    commit(transaction?: Transaction) {
+        const actualTransaction = this.ensureHistory();
+        if (transaction && transaction !== actualTransaction) throw new Error(
+            'Attempted to commit wrong transaction. '
+            + 'Transactions must be resolved in stack order.');
+        if (!actualTransaction.parent) throw new Error('Cannot commit root transaction');
+        const parent = actualTransaction.parent;
+        parent.operations.push(actualTransaction);
+        actualTransaction.parent = undefined;
         this.#transaction = parent;
     }
 
     // undo all operations done since the beginning of the most recent trasaction
     // remove it from the transaction stack
     // if no transactions are active, undo all mutations
-    rollback() {
-        const transaction = this.ensureHistory();
-        while (transaction.operations.length) this.undo();
-        this.#transaction = transaction.parent ?? transaction;
+    rollback(transaction?: Transaction) {
+        const actualTransaction = this.ensureHistory();
+        if (transaction && transaction !== actualTransaction) throw new Error(
+            'Attempted to commit wrong transaction. '
+            + 'Transactions must be resolved in stack order.');
+        while (actualTransaction.operations.length) this.undo();
+        this.#transaction = actualTransaction.parent ?? actualTransaction;
         this.advanceGeneration();
     }
 

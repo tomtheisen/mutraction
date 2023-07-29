@@ -4,7 +4,6 @@ import type { Mutation, SingleMutation, Transaction } from "./types.js";
 type Subscriber = (mutation: SingleMutation) => void;
 declare const defaultTrackerOptions: {
     trackHistory: boolean;
-    trackPath: boolean;
     autoTransactionalize: boolean;
 };
 export type TrackerOptions = Partial<typeof defaultTrackerOptions>;
@@ -20,9 +19,9 @@ export declare class Tracker {
     get history(): ReadonlyArray<Readonly<Mutation>>;
     get generation(): number;
     private advanceGeneration;
-    startTransaction(name?: string): void;
-    commit(): void;
-    rollback(): void;
+    startTransaction(name?: string): Transaction;
+    commit(transaction?: Transaction): void;
+    rollback(transaction?: Transaction): void;
     undo(): void;
     private undoOperation;
     redo(): void;

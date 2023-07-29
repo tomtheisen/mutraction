@@ -47,10 +47,16 @@ function makeProxyHandler<TModel extends object>(
         if (typeof result === 'function' && tracker.options.autoTransactionalize) {
             const original = result as Function;
             function proxyWrapped() {
-                tracker.startTransaction(original.name ?? "auto");
+                const autoTransaction = tracker.startTransaction(original.name ?? "auto");
                 try {
                     const result = original.apply(receiver, arguments);
-                    tracker.commit();
+                    if (autoTransaction.operations.length > 0) {
+                        tracker.commit();
+                    }
+                    else {
+                        // don't commit auto transactions in which nothing happened
+                        tracker.rollback();
+                    }
                     return result;
                 }
                 catch (er) {
