@@ -14,7 +14,7 @@ export const App = itemsSync(function App() {
             { items.map(e => <TodoItem item={ e } key={ key(e) } />) }
         </ul>
         <AddItem />
-        <h2>History:</h2>
+        <h2>History</h2>
         <UndoButton />
         <ChangeHistory tracker={ tracker } />
     </div>

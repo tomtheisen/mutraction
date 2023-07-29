@@ -13,7 +13,7 @@ export class TodoItemModel {
         this.editingTitle = this.title;
     }
 
-    commit() {
+    saveTitle() {
         this.editing = false;
         this.title = this.editingTitle;
     }

@@ -11,7 +11,7 @@ export const TodoItem = itemsSync(function TodoItem({ item }: { item: TodoItemMo
     const display = item.editing
         ? <span>
             <input value={ item.editingTitle } onChange={ ev => item.editingTitle = ev.target.value } />
-            <button title="Apply" className="small" onClick={ () => item.commit() }>✅</button>
+            <button title="Apply" className="small" onClick={ () => item.saveTitle() }>✅</button>
             <button title="Cancel" className="small" onClick= {() => item.cancel() }>❌</button>
         </span>
         : <span>
