@@ -19,22 +19,22 @@ function describeValue(val: unknown): string {
 export function describeMutation(mutation: Readonly<Mutation>): string {
     switch(mutation.type) {
         case "create":
-            return `Create property [${ describeValue(mutation.name) }] = ${ describeValue(mutation.newValue) }`;
+            return `Create [${ describeValue(mutation.name) }] = ${ describeValue(mutation.newValue) }`;
         case "delete":
-            return `Delete property [${ describeValue(mutation.name) }]`;
+            return `Delete [${ describeValue(mutation.name) }]`;
         case "change":
-            return `Change property [${ describeValue(mutation.name) }] = ${ describeValue(mutation.newValue) }`;
+            return `Change [${ describeValue(mutation.name) }] = ${ describeValue(mutation.newValue) }`;
         case "arrayshorten":
-            return `Shorten array to length ${ mutation.newLength }`;
+            return `Shorten to length ${ mutation.newLength }`;
         case "arrayextend":
-            return `Extend array to index ${ mutation.newIndex } with value ${ describeValue(mutation.newValue) }`;
+            return `Extend to [${ mutation.newIndex }] = ${ describeValue(mutation.newValue) }`;
         case "transaction":
-            const operationsDescription = mutation.operations.map(describeMutation).join();
+            const operationsDescription = mutation.operations.map(describeMutation).join(", ");
             if (mutation.transactionName) {
-                return `Traction "${ mutation.transactionName }": [${ operationsDescription }]`;
+                return `Transaction ${ mutation.transactionName }: [${ operationsDescription }]`;
             }
             else {
-                return `Traction: [${ operationsDescription }]`;
+                return `Transaction [${ operationsDescription }]`;
             }
         default:
             mutation satisfies never;
