@@ -14,7 +14,7 @@ export type TrackerOptions = {
     autoTransactionalize?: boolean;
 }
 
-const defaultTrackerOptions: Required<TrackerOptions> = Object.freeze({
+const defaultTrackerOptions: Readonly<Required<TrackerOptions>> = Object.freeze({
     trackHistory: true,
     autoTransactionalize: false,
 });
