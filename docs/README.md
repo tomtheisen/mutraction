@@ -16,6 +16,7 @@ This is the basic state tracking package.  You can use it on its own.  It's `mut
 This package provides a react integration to make components automatically react to model mutations.  It's `mutraction-react` on npm.
 
 * **[`trackAndSync()`](./trackandsync.md)** - start here
-* [`syncFromTracker()`](./syncFromTracker)
+* [`syncFromTracker()`](./syncFromTracker.md)
 * [`key()`](./key.md)
+* [`<ChangeHistory />`](./changehistory.md)
 
