@@ -37,7 +37,7 @@ I wanted to make an undo/time-travel feature without immutability.  I like immut
 
 ## But can I use it in React?
 
-If you have to.  There's a react integration called `mutraction-react` on npm.  It works like this.
+If you have to.  There's a react integration called `mutraction-react` on npm.  It works like this.  You can also [try it in a sandbox](https://codesandbox.io/s/mutraction-react-demo-9yfylw?file=/src/index.js).
 
 ```tsx
 // state lives outside the component

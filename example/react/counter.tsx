@@ -7,14 +7,14 @@ const [model, sync] = trackAndSync({ count: 0 });
 function increase() { ++model.count; }
 
 const CountDisplay = sync(() => <p>Click count: { model.count }</p>);
-const ClickButton = sync(() => <button onClick={ increase }>+1</button>);
+const ClickButton = () => <button onClick={ increase }>+1</button>;
 
-const App = sync(function App() {
+function App() {
     return <>
         <ClickButton />
         <CountDisplay />
     </>;
-});
+}
 
 const root = createRoot(document.getElementById('root')!);
 root.render(<App />);
