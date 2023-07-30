@@ -6,14 +6,14 @@
     "url": "https://github.com/tomtheisen/mutraction"
   },
   "version": "0.8.0",
-  "description": "Tired of spreads? Just mutate. Transact. Commit. Roll back. Undo. Redo.",
+  "description": "Transactional reactive state management based on simple mutation.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": ["dist/*.*", "dist/src"],
   "scripts": {
-    "bundle": "npm run clean && npx tsc",
+    "bundle": "npm run clean && npx tsc && npx esbuild .\\out\\index.js --bundle --format=esm --outfile=.\\dist\\index.js",
     "test": "npx tsc && npx uvu dist/tests -i \"[.]d[.]ts$\"",
-    "clean": "del /Q /S dist"
+    "clean": "del /Q /S dist && del /Q /S out"
   },
   "author": "Tom Theisen",
   "license": "MIT",
