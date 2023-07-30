@@ -3,4 +3,3 @@ import * as React from 'react';
 export declare const ChangeHistory: React.FC<{
     tracker: Tracker;
 }>;
-//# sourceMappingURL=ChangeHistory.d.ts.map

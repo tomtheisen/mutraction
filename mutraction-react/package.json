@@ -11,8 +11,11 @@
   "types": "dist/index.d.ts",
   "files": ["dist/*.*", "dist/src"],
   "scripts": {
-    "bundle": "npm run clean && npx tsc",
-    "clean": "del /Q /S dist"
+    "bundle": "npm run clean && npx tsc && npm run combine && npm run types",
+    "combine": "npx esbuild .\\out\\index.js --bundle --format=esm --outfile=.\\dist\\index.js --external:react --external:mutraction",
+    "types": "npx tsc --declaration --emitDeclarationOnly --module ES2022 --target ES2022 --outDir dist --jsx react --moduleResolution Node16 .\\index.ts",
+    "test": "npx tsc && npx uvu dist/tests -i \"[.]d[.]ts$\"",
+    "clean": "del /Q /S dist && del /Q /S out"
   },
   "author": "Tom Theisen",
   "license": "MIT",

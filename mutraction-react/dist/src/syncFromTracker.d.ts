@@ -4,4 +4,3 @@ export declare function syncFromTracker<P extends {}>(tracker: Tracker, Componen
 type ComponentWrapper = <P extends {}>(Component: React.FC<P>) => React.FC<P>;
 export declare function trackAndSync<TModel extends {}>(model: TModel, options?: TrackerOptions): [TModel, ComponentWrapper, Tracker];
 export {};
-//# sourceMappingURL=syncFromTracker.d.ts.map
