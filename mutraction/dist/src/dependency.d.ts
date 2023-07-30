@@ -7,4 +7,3 @@ export declare class Dependency {
     endDependencyTrack(): void;
     getLatestChangeGeneration(): number;
 }
-//# sourceMappingURL=dependency.d.ts.map

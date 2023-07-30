@@ -11,7 +11,9 @@
   "types": "dist/index.d.ts",
   "files": ["dist/*.*", "dist/src"],
   "scripts": {
-    "bundle": "npm run clean && npx tsc && npx esbuild .\\out\\index.js --bundle --format=esm --outfile=.\\dist\\index.js",
+    "bundle": "npm run clean && npx tsc && npm run combine && npm run types",
+    "combine": "npx esbuild .\\out\\index.js --bundle --format=esm --outfile=.\\dist\\index.js",
+    "types": "npx tsc --declaration --emitDeclarationOnly --module ES2022 --target ES2022 --outDir dist .\\index.ts",
     "test": "npx tsc && npx uvu dist/tests -i \"[.]d[.]ts$\"",
     "clean": "del /Q /S dist && del /Q /S out"
   },
