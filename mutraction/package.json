@@ -11,11 +11,12 @@
   "types": "dist/index.d.ts",
   "files": ["dist/*.*", "dist/src"],
   "scripts": {
-    "bundle": "npm run clean && npx tsc && npm run combine && npm run types",
-    "combine": "npx esbuild .\\out\\index.js --bundle --format=esm --outfile=.\\dist\\index.js",
-    "types": "npx tsc --declaration --emitDeclarationOnly --module ES2022 --target ES2022 --outDir dist .\\index.ts",
+    "build": "npm run clean && npx tsc && npm run bundle && npm run types && npm run cleanout",
+    "bundle": "npx esbuild .\\out\\index.js --bundle --format=esm --outfile=.\\dist\\index.js",
+    "types": "npx tsc -p tsconfig.types.json",
     "test": "npx tsc && npx uvu dist/tests -i \"[.]d[.]ts$\"",
-    "clean": "del /Q /S dist && del /Q /S out"
+    "clean": "del /Q /S dist && del /Q /S out",
+    "cleanout": "del /Q /S out"
   },
   "author": "Tom Theisen",
   "license": "MIT",
