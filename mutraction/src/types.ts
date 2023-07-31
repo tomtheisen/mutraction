@@ -15,7 +15,10 @@ export type Transaction = {type: "transaction", transactionName?: string, parent
 export type Mutation = SingleMutation | Transaction;
 
 export type ReadonlyDeep<T extends object> = {
-    readonly [K in keyof T]: T[K] extends object
-        ? ReadonlyDeep<T[K]>
+    readonly [K in keyof T]:
+        T[K] extends Array<infer E> ? ReadonlyArray<E>
+        : T[K] extends Set<infer E> ? ReadonlySet<E>
+        : T[K] extends Map<infer D, infer E> ? ReadonlyMap<D, E>
+        : T[K] extends object ? ReadonlyDeep<T[K]>
         : T[K]
 }

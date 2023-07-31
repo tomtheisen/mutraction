@@ -14,7 +14,7 @@
     "build": "npm run clean && npx tsc && npm run bundle && npm run types && npm run cleanout",
     "bundle": "npx esbuild .\\out\\index.js --bundle --format=esm --outfile=.\\dist\\index.js",
     "types": "npx tsc -p tsconfig.types.json",
-    "test": "npx tsc && npx uvu dist/tests -i \"[.]d[.]ts$\"",
+    "test": "npx tsc && npx uvu out/tests -i \"[.]d[.]ts$\"",
     "clean": "del /Q /S dist && del /Q /S out",
     "cleanout": "rd /Q /S out"
   },
