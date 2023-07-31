@@ -45,6 +45,34 @@ Neither of these methods have a return value.
 
 * `transaction` is the transaction object to resolve.  It must be newest un-resolved transaction.  If you omit this parameter, it will be determined automatically.  Supplying this parameter acts as an assertion that the transaction stack has not gotten unbalanced.
 
+### `subscribe(callback)`
+
+This method registers a callback to be notified any time the tracked model changes.  The callback will be invoked for any property change.  It will not be invoked for starting or commiting a transaction.  Rollback, undo, and redo will trigger a callback if they cause a property to change.
+
+#### Arguments
+
+* `callback` is a function that takes a "mutation" object, and has no return value.  The object structure is given the exported type `SingleMutation` in this typescript excerpt.  Each mutation object contains enough information to undo and redo the change of state.
+
+    ```ts
+    type Key = string | symbol;
+    type BaseSingleMutation = { target: object, name: Key };
+    type CreateProperty = BaseSingleMutation & { type: "create", newValue: any };
+    type DeleteProperty = BaseSingleMutation & { type: "delete", oldValue: any };
+    type ChangeProperty = BaseSingleMutation & { type: "change", oldValue: any, newValue: any };
+
+    // adds a single element OOB to an array
+    type ArrayExtend = BaseSingleMutation & { type: "arrayextend", oldLength: number, newIndex: number, newValue: any };
+
+    // shorten an array using the length setter
+    type ArrayShorten = BaseSingleMutation & { type: "arrayshorten", oldLength: number, newLength: number, removed: ReadonlyArray<any> };
+
+    type SingleMutation = CreateProperty | DeleteProperty | ChangeProperty | ArrayExtend | ArrayShorten;
+    ```
+
+#### Return value
+
+An object is returned containing a `dispose()` method.  Call it to terminate the subscription.
+
 ### `undo()`
 ### `redo()`
 ### `clearRedos()`
