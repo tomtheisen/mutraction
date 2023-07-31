@@ -19,6 +19,7 @@ export type ReadonlyDeep<T extends object> = {
         T[K] extends Array<infer E> ? ReadonlyArray<E>
         : T[K] extends Set<infer E> ? ReadonlySet<E>
         : T[K] extends Map<infer D, infer E> ? ReadonlyMap<D, E>
+        : T[K] extends Function ? T[K]
         : T[K] extends object ? ReadonlyDeep<T[K]>
         : T[K]
 }

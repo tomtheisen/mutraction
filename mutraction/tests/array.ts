@@ -1,7 +1,7 @@
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
-import { track, untrack, isTracked } from '../index.js';
+import { track, trackAsReadonlyDeep, untrack, isTracked } from '../index.js';
 
 test('array sort undo', () => {
     const [arr, tracker] = track(["a","c","b"]);
@@ -36,6 +36,7 @@ test('no history arrays', () => {
 
     arr.push(2);
 
+    assert.ok(isTracked(arr));
     assert.equal(arr, [1, 2]);
 });
 
@@ -45,5 +46,17 @@ test('array lengthen', () => {
     arr.length = 10;
     assert.equal(arr.length, 10);
 })
+
+test('action log recipe', () => {
+    const [model, tracker] = trackAsReadonlyDeep(
+        { arr: [1,2,3], add(n: number) { this.arr.push(n) } },
+        { autoTransactionalize: true });
+
+    model.add(5);
+    assert.snapshot(
+        JSON.stringify(tracker.history),
+        `[{"type":"transaction","operations":[{"type":"transaction","operations":[{"type":"arrayextend","target":[1,2,3,5],"name":"3","oldLength":3,"newIndex":3,"newValue":5},{"type":"change","target":[1,2,3,5],"name":"length","oldValue":4,"newValue":4}],"transactionName":"push"}],"transactionName":"add"}]`
+    );
+});
 
 test.run();

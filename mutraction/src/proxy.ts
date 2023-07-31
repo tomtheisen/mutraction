@@ -44,7 +44,7 @@ function makeProxyHandler<TModel extends object>(
             const handler = makeProxyHandler(result, tracker);
             result = target[name] = new Proxy(result, handler);
         }
-        if (typeof result === 'function' && tracker.options.autoTransactionalize) {
+        if (typeof result === 'function' && tracker.options.autoTransactionalize && name !== "constructor") {
             const original = result as Function;
             function proxyWrapped() {
                 const autoTransaction = tracker.startTransaction(original.name ?? "auto");
