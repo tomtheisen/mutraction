@@ -2,7 +2,6 @@
 var RecordMutation = Symbol("RecordMutation");
 var IsTracked = Symbol("IsTracked");
 var GetTracker = Symbol("GetTracker");
-var Detach = Symbol("Detach");
 var RecordDependency = Symbol("RecordDependency");
 var LastChangeGeneration = Symbol("LastChangeGeneration");
 
@@ -275,18 +274,13 @@ function makeProxyHandler(model, tracker) {
       return tracker;
     if (name === LastChangeGeneration)
       return target[LastChangeGeneration];
-    if (name === Detach)
-      return () => {
-        detached = true;
-        return target;
-      };
     tracker[RecordDependency](target);
     let result = Reflect.get(target, name, receiver);
     if (typeof result === "object" && !isTracked(result)) {
       const handler = makeProxyHandler(result, tracker);
       result = target[name] = new Proxy(result, handler);
     }
-    if (typeof result === "function" && tracker.options.autoTransactionalize) {
+    if (typeof result === "function" && tracker.options.autoTransactionalize && name !== "constructor") {
       let proxyWrapped2 = function() {
         const autoTransaction = tracker.startTransaction(original.name ?? "auto");
         try {
@@ -311,8 +305,6 @@ function makeProxyHandler(model, tracker) {
   function getArrayTransactionShim(target, name, receiver) {
     if (detached)
       return Reflect.get(target, name);
-    if (name === Detach)
-      return () => (detached = true, target);
     if (typeof name === "string" && mutatingArrayMethods.includes(name)) {
       let proxyWrapped2 = function() {
         const arrayTransaction = tracker.startTransaction(String(name));
@@ -411,17 +403,15 @@ function isTracked(obj) {
 function getTracker(obj) {
   return obj[GetTracker];
 }
-function untrack(obj) {
-  if (!isTracked(obj))
-    return obj;
-  return obj[Detach]();
-}
 function track(model, options) {
   if (isTracked(model))
     throw Error("Object already tracked");
   const tracker = new Tracker(options);
   const proxied = new Proxy(model, makeProxyHandler(model, tracker));
   return [proxied, tracker];
+}
+function trackAsReadonlyDeep(model, options) {
+  return track(model, options);
 }
 
 // out/src/describe.js
@@ -473,5 +463,5 @@ export {
   getTracker,
   isTracked,
   track,
-  untrack
+  trackAsReadonlyDeep
 };

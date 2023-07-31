@@ -1,7 +1,7 @@
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
-import { track, untrack, isTracked } from '../index.js';
+import { track, isTracked } from '../index.js';
 
 test('undo delete redo', () => {
     const [model, tracker] = track({ foo: "bar", x: 123 } as any);
@@ -85,19 +85,6 @@ test('arguments untrackable', () => {
     const [model, tracker] = track({whatever: 'x'} as any);
 
     assert.throws(function() { model.some = arguments; });
-});
-
-test('detach', () => {
-    const [model, tracker] = track({whatever: 'x'} as any);
-
-    model.zxcv = 213;
-    assert.is(1, tracker.history.length);
-    assert.ok(isTracked(model))
-
-    let original = untrack(model) as any;
-    model.asdf = 555;
-    assert.is(1, tracker.history.length);
-    assert.not.ok(isTracked(original));
 });
 
 test('instanceof', () => {

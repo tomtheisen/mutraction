@@ -1,7 +1,7 @@
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
-import { track, untrack, isTracked } from '../index.js';
+import { track, isTracked } from '../index.js';
 
 test('state methods', () => {
     class C {

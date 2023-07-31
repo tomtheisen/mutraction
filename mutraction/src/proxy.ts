@@ -1,5 +1,5 @@
 import { Tracker, TrackerOptions } from "./tracker.js";
-import { Detach, GetTracker, IsTracked, LastChangeGeneration, RecordDependency, RecordMutation } from "./symbols.js";
+import { GetTracker, IsTracked, LastChangeGeneration, RecordDependency, RecordMutation } from "./symbols.js";
 import type { ArrayExtend, ArrayShorten, DeleteProperty, Key, ReadonlyDeep, SingleMutation } from "./types.js";
 
 const mutatingArrayMethods 
@@ -35,7 +35,6 @@ function makeProxyHandler<TModel extends object>(
         if (name === IsTracked) return true;
         if (name === GetTracker) return tracker;
         if (name === LastChangeGeneration) return (target as any)[LastChangeGeneration];
-        if (name === Detach) return () => { detached = true; return target };
 
         tracker[RecordDependency](target);
 
@@ -71,7 +70,6 @@ function makeProxyHandler<TModel extends object>(
 
     function getArrayTransactionShim(target: TModel, name: TKey, receiver: TModel) {
         if (detached) return Reflect.get(target, name);
-        if (name === Detach) return () => (detached = true, target);
 
         if (typeof name === "string" && mutatingArrayMethods.includes(name)) {
             const arrayFunction = target[name] as Function;
@@ -179,11 +177,6 @@ export function isTracked(obj: object) {
 
 export function getTracker(obj: object) {
     return (obj as any)[GetTracker];
-}
-
-export function untrack(obj: object){
-    if (!isTracked(obj)) return obj;
-    return (obj as any)[Detach]() as object;
 }
 
 // turn on change tracking
