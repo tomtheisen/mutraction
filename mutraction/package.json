@@ -16,7 +16,7 @@
     "types": "npx tsc -p tsconfig.types.json",
     "test": "npx tsc && npx uvu dist/tests -i \"[.]d[.]ts$\"",
     "clean": "del /Q /S dist && del /Q /S out",
-    "cleanout": "del /Q /S out"
+    "cleanout": "rd /Q /S out"
   },
   "author": "Tom Theisen",
   "license": "MIT",

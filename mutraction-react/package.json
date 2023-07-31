@@ -12,11 +12,11 @@
   "files": ["dist/*.*", "dist/src"],
   "scripts": {
     "build": "npm run clean && npx tsc && npm run bundle && npm run types && npm run cleanout",
-    "bundle": "npx esbuild .\\out\\index.js --bundle --format=esm --outfile=.\\dist\\index.js",
+    "bundle": "npx esbuild .\\out\\index.js --bundle --format=esm --outfile=.\\dist\\index.js --external:react --external:mutraction",
     "types": "npx tsc -p tsconfig.types.json",
     "test": "npx tsc && npx uvu dist/tests -i \"[.]d[.]ts$\"",
     "clean": "del /Q /S dist && del /Q /S out",
-    "cleanout": "del /Q /S out"
+    "cleanout": "rd /Q /S out"
   },
   "author": "Tom Theisen",
   "license": "MIT",

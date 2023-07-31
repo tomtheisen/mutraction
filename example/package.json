@@ -5,9 +5,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build:react": "npx tsc && npx esbuild --bundle .\\react\\counter.js   --sourcemap --outfile=.\\react\\counter_bundle.js",
-    "build:todo": "npx tsc && npx esbuild --bundle .\\react-todo\\todo.js --sourcemap --outfile=.\\react-todo\\todo_bundle.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "npm run build:react && npm run build:todo",
+    "build:react": "npx tsc && npx esbuild --bundle .\\react\\counter.js --sourcemap --outfile=.\\react\\counter_bundle.js",
+    "build:todo": "npx tsc && npx esbuild --bundle .\\react-todo\\todo.js --sourcemap --outfile=.\\react-todo\\todo_bundle.js"
   },
   "author": "",
   "license": "ISC",
