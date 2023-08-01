@@ -1,7 +1,6 @@
 // out/src/symbols.js
 var RecordMutation = Symbol("RecordMutation");
 var IsTracked = Symbol("IsTracked");
-var GetTracker = Symbol("GetTracker");
 var RecordDependency = Symbol("RecordDependency");
 var LastChangeGeneration = Symbol("LastChangeGeneration");
 
@@ -270,8 +269,6 @@ function makeProxyHandler(model, tracker) {
       return Reflect.get(target, name);
     if (name === IsTracked)
       return true;
-    if (name === GetTracker)
-      return tracker;
     if (name === LastChangeGeneration)
       return target[LastChangeGeneration];
     tracker[RecordDependency](target);
@@ -400,9 +397,6 @@ function makeProxyHandler(model, tracker) {
 function isTracked(obj) {
   return typeof obj === "object" && !!obj[IsTracked];
 }
-function getTracker(obj) {
-  return obj[GetTracker];
-}
 function track(model, options) {
   if (isTracked(model))
     throw Error("Object already tracked");
@@ -460,7 +454,6 @@ function describeMutation(mutation) {
 export {
   Tracker,
   describeMutation,
-  getTracker,
   isTracked,
   track,
   trackAsReadonlyDeep

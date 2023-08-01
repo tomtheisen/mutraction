@@ -1,5 +1,5 @@
 import { Tracker, TrackerOptions } from "./tracker.js";
-import { GetTracker, IsTracked, LastChangeGeneration, RecordDependency, RecordMutation } from "./symbols.js";
+import { IsTracked, LastChangeGeneration, RecordDependency, RecordMutation } from "./symbols.js";
 import type { ArrayExtend, ArrayShorten, DeleteProperty, Key, ReadonlyDeep, SingleMutation } from "./types.js";
 
 const mutatingArrayMethods 
@@ -33,7 +33,6 @@ function makeProxyHandler<TModel extends object>(
     function getOrdinary(target: TModel, name: TKey, receiver: TModel) {
         if (detached) return Reflect.get(target, name);
         if (name === IsTracked) return true;
-        if (name === GetTracker) return tracker;
         if (name === LastChangeGeneration) return (target as any)[LastChangeGeneration];
 
         tracker[RecordDependency](target);
@@ -173,10 +172,6 @@ function makeProxyHandler<TModel extends object>(
 
 export function isTracked(obj: object) {
     return typeof obj === "object" && !!(obj as any)[IsTracked];
-}
-
-export function getTracker(obj: object) {
-    return (obj as any)[GetTracker];
 }
 
 // turn on change tracking
