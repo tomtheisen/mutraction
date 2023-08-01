@@ -1,7 +1,7 @@
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
-import { track, isTracked } from '../index.js';
+import { track, isTracked, identical } from '../index.js';
 
 test('state methods', () => {
     class C {
@@ -89,7 +89,15 @@ test('auto rollback on empty', () => {
 
     model.m();
     assert.equal(tracker.history.length, 0);
-})
+});
+
+test('identity tracking through proxy', () => {
+    const original = {};
+    const [model, tracker] = track(original);
+
+    assert.not(original === model);
+    assert.ok(identical(original, model));
+});
 
 test.run();
 

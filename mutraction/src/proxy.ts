@@ -1,5 +1,5 @@
 import { Tracker, TrackerOptions } from "./tracker.js";
-import { IsTracked, LastChangeGeneration, RecordDependency, RecordMutation } from "./symbols.js";
+import { IsTracked, LastChangeGeneration, RecordDependency, RecordMutation, ProxyTarget } from "./symbols.js";
 import type { ArrayExtend, ArrayShorten, DeleteProperty, Key, ReadonlyDeep, SingleMutation } from "./types.js";
 
 const mutatingArrayMethods 
@@ -28,12 +28,10 @@ function makeProxyHandler<TModel extends object>(
 ) : ProxyHandler<TModel> {
     type TKey = (keyof TModel) & Key;
     
-    let detached = false;
-
     function getOrdinary(target: TModel, name: TKey, receiver: TModel) {
-        if (detached) return Reflect.get(target, name);
         if (name === IsTracked) return true;
         if (name === LastChangeGeneration) return (target as any)[LastChangeGeneration];
+        if (name === ProxyTarget) return target;
 
         tracker[RecordDependency](target);
 
@@ -68,8 +66,6 @@ function makeProxyHandler<TModel extends object>(
     }
 
     function getArrayTransactionShim(target: TModel, name: TKey, receiver: TModel) {
-        if (detached) return Reflect.get(target, name);
-
         if (typeof name === "string" && mutatingArrayMethods.includes(name)) {
             const arrayFunction = target[name] as Function;
             function proxyWrapped() {
@@ -90,8 +86,6 @@ function makeProxyHandler<TModel extends object>(
     // so if the number of completed sets changes between start and end of parent set, then don't record it
     let setsCompleted = 0;
     function setOrdinary(target: TModel, name: TKey, newValue: any, receiver: TModel) {
-        if (detached) return Reflect.set(target, name, newValue);
-
         if (typeof newValue === 'object' && !newValue[IsTracked]) {
             const handler = makeProxyHandler(newValue, tracker);
             newValue = new Proxy(newValue, handler);
@@ -113,7 +107,6 @@ function makeProxyHandler<TModel extends object>(
     }
 
     function setArray(target: TModel, name: TKey, newValue: any, receiver: TModel) {
-        if (detached) return Reflect.set(target, name, newValue);
         if (!Array.isArray(target)) {
             throw Error('This object used to be an array.  Expected an array.');
         }
@@ -151,7 +144,6 @@ function makeProxyHandler<TModel extends object>(
     }
 
     function deleteProperty(target: TModel, name: TKey) {
-        if (detached) return Reflect.deleteProperty(target, name);
         const mutation: DeleteProperty = { type: "delete", target, name, oldValue: model[name] };
         tracker[RecordMutation](mutation);
         return Reflect.deleteProperty(target, name);
@@ -185,4 +177,10 @@ export function track<TModel extends object>(model: TModel, options?: TrackerOpt
 
 export function trackAsReadonlyDeep<TModel extends object>(model: TModel, options?: TrackerOptions): [ReadonlyDeep<TModel>, Tracker] {
     return track(model, options);
+}
+
+export function identical(obj1: object, obj2: object) {
+    if (isTracked(obj1)) obj1 = (obj1 as any)[ProxyTarget];
+    if (isTracked(obj2)) obj2 = (obj2 as any)[ProxyTarget];
+    return obj1 === obj2;
 }
