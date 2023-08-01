@@ -1,6 +1,6 @@
 # Tracker
 
-`Tracker` objects are used to observe and manage state changes for an object graph.
+`Tracker` objects are used to observe and manage state changes for an object graph.  Generally, you'll probably want to get these from the [`track`](./track.md) function rather than constructing one directly.
 
 ## Constructor
 
