@@ -235,7 +235,7 @@ export class Tracker {
     }
 
     endDependencyTrack(dep: Dependency): Dependency {
-        const wasTracking = this.#dependencyTrackers.delete(dep);;
+        const wasTracking = this.#dependencyTrackers.delete(dep);
         if (!wasTracking) throw Error('Dependency tracker was not active on this tracker');
         return dep;
     }
