@@ -60,7 +60,7 @@ var Tracker = class {
   }
   ensureHistory() {
     if (!this.#transaction)
-      throw new Error("History tracking disabled.");
+      throw Error("History tracking disabled.");
     return this.#transaction;
   }
   tracksHistory() {
@@ -70,7 +70,7 @@ var Tracker = class {
     this.ensureHistory();
     this[RecordDependency](HistorySentinel);
     if (!this.#rootTransaction)
-      throw new Error("History tracking enabled, but no root transaction. Probably mutraction internal error.");
+      throw Error("History tracking enabled, but no root transaction. Probably mutraction internal error.");
     return this.#rootTransaction.operations;
   }
   get generation() {
@@ -92,9 +92,9 @@ var Tracker = class {
   commit(transaction) {
     const actualTransaction = this.ensureHistory();
     if (transaction && transaction !== actualTransaction)
-      throw new Error("Attempted to commit wrong transaction. Transactions must be resolved in stack order.");
+      throw Error("Attempted to commit wrong transaction. Transactions must be resolved in stack order.");
     if (!actualTransaction.parent)
-      throw new Error("Cannot commit root transaction");
+      throw Error("Cannot commit root transaction");
     const parent = actualTransaction.parent;
     parent.operations.push(actualTransaction);
     actualTransaction.parent = void 0;
@@ -106,7 +106,7 @@ var Tracker = class {
   rollback(transaction) {
     const actualTransaction = this.ensureHistory();
     if (transaction && transaction !== actualTransaction)
-      throw new Error("Attempted to commit wrong transaction. Transactions must be resolved in stack order.");
+      throw Error("Attempted to commit wrong transaction. Transactions must be resolved in stack order.");
     while (actualTransaction.operations.length)
       this.undo();
     this.#transaction = actualTransaction.parent ?? actualTransaction;

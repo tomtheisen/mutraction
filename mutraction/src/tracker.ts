@@ -47,7 +47,7 @@ export class Tracker {
     }
 
     ensureHistory(): Transaction {
-        if (!this.#transaction) throw new Error("History tracking disabled.");
+        if (!this.#transaction) throw Error("History tracking disabled.");
         return this.#transaction;
     }
 
@@ -60,9 +60,8 @@ export class Tracker {
         // reading the history can create a dependency too, for use cases 
         // that depend on the tracker history
         this[RecordDependency](HistorySentinel);
-        if (!this.#rootTransaction) throw new Error(
-            "History tracking enabled, but no root transaction. "
-            + "Probably mutraction internal error.");
+        if (!this.#rootTransaction) 
+            throw Error("History tracking enabled, but no root transaction. Probably mutraction internal error.");
         return this.#rootTransaction.operations; 
     }
     get generation() { return this.#generation; }
@@ -83,10 +82,9 @@ export class Tracker {
     // throws if no transactions are active
     commit(transaction?: Transaction) {
         const actualTransaction = this.ensureHistory();
-        if (transaction && transaction !== actualTransaction) throw new Error(
-            'Attempted to commit wrong transaction. '
-            + 'Transactions must be resolved in stack order.');
-        if (!actualTransaction.parent) throw new Error('Cannot commit root transaction');
+        if (transaction && transaction !== actualTransaction) 
+            throw Error('Attempted to commit wrong transaction. Transactions must be resolved in stack order.');
+        if (!actualTransaction.parent) throw Error('Cannot commit root transaction');
         const parent = actualTransaction.parent;
         parent.operations.push(actualTransaction);
         actualTransaction.parent = undefined;
@@ -98,9 +96,8 @@ export class Tracker {
     // if no transactions are active, undo all mutations
     rollback(transaction?: Transaction) {
         const actualTransaction = this.ensureHistory();
-        if (transaction && transaction !== actualTransaction) throw new Error(
-            'Attempted to commit wrong transaction. '
-            + 'Transactions must be resolved in stack order.');
+        if (transaction && transaction !== actualTransaction) 
+            throw Error('Attempted to commit wrong transaction. Transactions must be resolved in stack order.');
         while (actualTransaction.operations.length) this.undo();
         this.#transaction = actualTransaction.parent ?? actualTransaction;
         this.advanceGeneration();
