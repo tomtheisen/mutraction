@@ -232,7 +232,6 @@ var Tracker = class {
   }
   endDependencyTrack(dep) {
     const wasTracking = this.#dependencyTrackers.delete(dep);
-    ;
     if (!wasTracking)
       throw Error("Dependency tracker was not active on this tracker");
     return dep;
@@ -263,10 +262,7 @@ function isArguments(item) {
     return Object.prototype.toString.call(item) === "[object Arguments]";
 }
 function makeProxyHandler(model, tracker) {
-  let detached = false;
   function getOrdinary(target, name, receiver) {
-    if (detached)
-      return Reflect.get(target, name);
     if (name === IsTracked)
       return true;
     if (name === LastChangeGeneration)
@@ -300,8 +296,6 @@ function makeProxyHandler(model, tracker) {
     return result;
   }
   function getArrayTransactionShim(target, name, receiver) {
-    if (detached)
-      return Reflect.get(target, name);
     if (typeof name === "string" && mutatingArrayMethods.includes(name)) {
       let proxyWrapped2 = function() {
         const arrayTransaction = tracker.startTransaction(String(name));
@@ -318,8 +312,6 @@ function makeProxyHandler(model, tracker) {
   }
   let setsCompleted = 0;
   function setOrdinary(target, name, newValue, receiver) {
-    if (detached)
-      return Reflect.set(target, name, newValue);
     if (typeof newValue === "object" && !newValue[IsTracked]) {
       const handler = makeProxyHandler(newValue, tracker);
       newValue = new Proxy(newValue, handler);
@@ -334,8 +326,6 @@ function makeProxyHandler(model, tracker) {
     return wasSet;
   }
   function setArray(target, name, newValue, receiver) {
-    if (detached)
-      return Reflect.set(target, name, newValue);
     if (!Array.isArray(target)) {
       throw Error("This object used to be an array.  Expected an array.");
     }
@@ -378,8 +368,6 @@ function makeProxyHandler(model, tracker) {
     return setOrdinary(target, name, newValue, receiver);
   }
   function deleteProperty(target, name) {
-    if (detached)
-      return Reflect.deleteProperty(target, name);
     const mutation = { type: "delete", target, name, oldValue: model[name] };
     tracker[RecordMutation](mutation);
     return Reflect.deleteProperty(target, name);

@@ -1,5 +1,5 @@
 import { Tracker, TrackerOptions } from "./tracker.js";
-import { IsTracked, LastChangeGeneration, RecordDependency, RecordMutation, ProxyTarget } from "./symbols.js";
+import { IsTracked, LastChangeGeneration, RecordDependency, RecordMutation } from "./symbols.js";
 import type { ArrayExtend, ArrayShorten, DeleteProperty, Key, ReadonlyDeep, SingleMutation } from "./types.js";
 
 const mutatingArrayMethods 
@@ -31,7 +31,6 @@ function makeProxyHandler<TModel extends object>(
     function getOrdinary(target: TModel, name: TKey, receiver: TModel) {
         if (name === IsTracked) return true;
         if (name === LastChangeGeneration) return (target as any)[LastChangeGeneration];
-        if (name === ProxyTarget) return target;
 
         tracker[RecordDependency](target);
 
@@ -177,10 +176,4 @@ export function track<TModel extends object>(model: TModel, options?: TrackerOpt
 
 export function trackAsReadonlyDeep<TModel extends object>(model: TModel, options?: TrackerOptions): [ReadonlyDeep<TModel>, Tracker] {
     return track(model, options);
-}
-
-export function identical(obj1: object, obj2: object) {
-    if (isTracked(obj1)) obj1 = (obj1 as any)[ProxyTarget];
-    if (isTracked(obj2)) obj2 = (obj2 as any)[ProxyTarget];
-    return obj1 === obj2;
 }
