@@ -6,7 +6,7 @@ function moveFinishedToBottom() {
 }
 
 export function SortItems() {
-    return <button onClick={moveFinishedToBottom}>
+    return <button onClick={ moveFinishedToBottom }>
         Sort by unfinished
     </button>;
 }
