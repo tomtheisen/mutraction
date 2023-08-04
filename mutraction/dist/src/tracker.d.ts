@@ -5,6 +5,7 @@ type Subscriber = (mutation: SingleMutation) => void;
 declare const defaultTrackerOptions: {
     trackHistory: boolean;
     autoTransactionalize: boolean;
+    deferNotifications: boolean;
 };
 export type TrackerOptions = Partial<typeof defaultTrackerOptions>;
 export declare class Tracker {
@@ -14,18 +15,14 @@ export declare class Tracker {
     subscribe(callback: Subscriber): {
         dispose: () => boolean;
     };
-    ensureHistory(): Transaction;
-    tracksHistory(): boolean;
+    get tracksHistory(): boolean;
     get history(): ReadonlyArray<Readonly<Mutation>>;
     get generation(): number;
-    private advanceGeneration;
     startTransaction(name?: string): Transaction;
     commit(transaction?: Transaction): void;
     rollback(transaction?: Transaction): void;
     undo(): void;
-    private undoOperation;
     redo(): void;
-    private redoOperation;
     clearRedos(): void;
     clearHistory(): void;
     [RecordMutation](mutation: SingleMutation): void;

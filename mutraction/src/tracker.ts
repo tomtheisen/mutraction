@@ -12,6 +12,7 @@ type Subscriber = (mutation: SingleMutation) => void;
 const defaultTrackerOptions = {
     trackHistory: true,
     autoTransactionalize: false,
+    deferNotifications: true,
 };
 
 export type TrackerOptions = Partial<typeof defaultTrackerOptions>;
@@ -38,25 +39,27 @@ export class Tracker {
 
     subscribe(callback: Subscriber) {
         this.#subscribers.add(callback);
-        const dispose = () => this.#subscribers.delete(callback);
-        return { dispose };
+        return { dispose: () => this.#subscribers.delete(callback) };
     }
 
     #notifySubscribers(mutation: SingleMutation) {
-        for (const sub of this.#subscribers) sub(mutation);
+        if (this.options.deferNotifications) {
+            for (const sub of this.#subscribers) queueMicrotask(() => sub(mutation));
+        }
+        else {
+            for (const sub of this.#subscribers) sub(mutation);
+        }
     }
 
-    ensureHistory(): Transaction {
+    #ensureHistory(): Transaction {
         if (!this.#transaction) throw Error("History tracking disabled.");
         return this.#transaction;
     }
 
-    tracksHistory() {
-        return !!this.#transaction;
-    }
+    get tracksHistory() { return !!this.#transaction; }
 
     get history(): ReadonlyArray<Readonly<Mutation>> {
-        this.ensureHistory();
+        this.#ensureHistory();
         // reading the history can create a dependency too, for use cases 
         // that depend on the tracker history
         this[RecordDependency](HistorySentinel);
@@ -64,15 +67,16 @@ export class Tracker {
             throw Error("History tracking enabled, but no root transaction. Probably mutraction internal error.");
         return this.#rootTransaction.operations; 
     }
+
     get generation() { return this.#generation; }
 
-    private advanceGeneration() {
+    #advanceGeneration() {
         ++this.#generation;
     }
 
     // add another transaction to the stack
     startTransaction(name?: string): Transaction {
-        const transaction = this.ensureHistory();
+        const transaction = this.#ensureHistory();
         this.#transaction = { type: "transaction", parent: transaction, operations: [] };
         if (name) this.#transaction.transactionName = name;
         return this.#transaction;
@@ -81,7 +85,7 @@ export class Tracker {
     // resolve and close the most recent transaction
     // throws if no transactions are active
     commit(transaction?: Transaction) {
-        const actualTransaction = this.ensureHistory();
+        const actualTransaction = this.#ensureHistory();
         if (transaction && transaction !== actualTransaction) 
             throw Error('Attempted to commit wrong transaction. Transactions must be resolved in stack order.');
         if (!actualTransaction.parent) throw Error('Cannot commit root transaction');
@@ -95,24 +99,24 @@ export class Tracker {
     // remove it from the transaction stack
     // if no transactions are active, undo all mutations
     rollback(transaction?: Transaction) {
-        const actualTransaction = this.ensureHistory();
+        const actualTransaction = this.#ensureHistory();
         if (transaction && transaction !== actualTransaction) 
             throw Error('Attempted to commit wrong transaction. Transactions must be resolved in stack order.');
         while (actualTransaction.operations.length) this.undo();
         this.#transaction = actualTransaction.parent ?? actualTransaction;
-        this.advanceGeneration();
+        this.#advanceGeneration();
     }
 
     // undo last mutation or transaction and push into the redo stack
     undo() {
-        const transaction = this.ensureHistory();
+        const transaction = this.#ensureHistory();
         const mutation = transaction.operations.pop();
         if (!mutation) return;
-        this.advanceGeneration();
-        this.undoOperation(mutation);
+        this.#advanceGeneration();
+        this.#undoOperation(mutation);
         this.#redos.unshift(mutation);
     }
-    private undoOperation(mutation: Mutation) {
+    #undoOperation(mutation: Mutation) {
         if ("target" in mutation) {
             (mutation.target as any)[LastChangeGeneration] = this.generation;
         }
@@ -126,7 +130,7 @@ export class Tracker {
                 break;
             case 'transaction':
                 for (let i = mutation.operations.length; i-- > 0;) {
-                    this.undoOperation(mutation.operations[i]);
+                    this.#undoOperation(mutation.operations[i]);
                 }
                 return;
             case 'arrayextend':
@@ -143,14 +147,14 @@ export class Tracker {
 
     // repeat last undone mutation
     redo() {
-        const transaction = this.ensureHistory();
+        const transaction = this.#ensureHistory();
         const mutation = this.#redos.shift();
         if (!mutation) return;
-        this.advanceGeneration();
-        this.redoOperation(mutation);
+        this.#advanceGeneration();
+        this.#redoOperation(mutation);
         transaction.operations.push(mutation);
     }
-    private redoOperation(mutation: Mutation) {
+    #redoOperation(mutation: Mutation) {
         if ("target" in mutation) {
             (mutation.target as any)[LastChangeGeneration] = this.generation;
         }
@@ -164,7 +168,7 @@ export class Tracker {
                 break;
             case 'transaction':
                 for (let i = 0; i < mutation.operations.length; i++) {
-                    this.redoOperation(mutation.operations[i]);
+                    this.#redoOperation(mutation.operations[i]);
                 }
                 return;
             case 'arrayextend':
@@ -186,7 +190,7 @@ export class Tracker {
     }
     
     clearHistory() {
-        const transaction = this.ensureHistory();
+        const transaction = this.#ensureHistory();
         transaction.parent = undefined;
         transaction.operations.length = 0;
         this.clearRedos();
@@ -199,7 +203,7 @@ export class Tracker {
             this.#transaction.operations.push(Object.freeze(mutation));
         }
         this.clearRedos();
-        this.advanceGeneration();
+        this.#advanceGeneration();
         this.setLastChangeGeneration(mutation.target);
         this.#notifySubscribers(mutation);
     }

@@ -151,5 +151,33 @@ test('transaction out of order resolution fails', () => {
     assert.throws(() => tracker.commit(t1));
 });
 
+test('callback deferral', async () => {
+    await new Promise((resolve, reject) => {
+        const [model, tracker] = track({} as any);
+        let callbacks = 0;
+        tracker.subscribe(() => ++callbacks);
+        model.a = 1;
+        model.b = 2;
+
+        // callbacks didn't happen yet
+        assert.equal(callbacks, 0);
+
+        setTimeout(() => {
+            // but now they did
+            assert.equal(callbacks, 2);
+            resolve(undefined);
+        }, 1);
+    });
+});
+
+test('callback immediate', () => {
+    const [model, tracker] = track({} as any, { deferNotifications: false });
+    let callbacks = 0;
+    tracker.subscribe(() => ++callbacks);
+    model.a = 1;
+    model.b = 2;
+
+    assert.equal(callbacks, 2);
+});
 
 test.run();
