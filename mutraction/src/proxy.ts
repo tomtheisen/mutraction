@@ -17,15 +17,12 @@ function isArrayIndex(name: string | symbol): name is string {
     return parseInt(name, 10) < 0x7fff_ffff;
 }
 
-function isArguments(item: any) {
-    https://stackoverflow.com/a/29924715
+function isArguments(item: any): item is IArguments {
+    // https://stackoverflow.com/a/29924715
     return Object.prototype.toString.call(item) === '[object Arguments]';
 }
 
-function makeProxyHandler<TModel extends object>(
-    model: TModel,
-    tracker: Tracker,
-) : ProxyHandler<TModel> {
+function makeProxyHandler<TModel extends object>(model: TModel, tracker: Tracker) : ProxyHandler<TModel> {
     type TKey = (keyof TModel) & Key;
     
     function getOrdinary(target: TModel, name: TKey, receiver: TModel) {
@@ -49,7 +46,7 @@ function makeProxyHandler<TModel extends object>(
                         tracker.commit(autoTransaction);
                     }
                     else {
-                        // don't commit auto transactions in which nothing happened
+                        // don't commit auto transactions in which nothing changed
                         tracker.rollback(autoTransaction);
                     }
                     return result;
