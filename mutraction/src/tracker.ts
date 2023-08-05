@@ -15,6 +15,51 @@ const defaultTrackerOptions = {
     deferNotifications: true,
 };
 
+/*
+ * when committed, transactions are optimized for storage, 
+ * since they will henceforth be atomic
+ *  - unwrap inner transactions
+ *  - collapse adjacent pairs of mutations on the same property
+ *  - remove no-op changes
+ */
+function packTransaction({ operations }: Transaction) {
+    for (let i = 0; i < operations.length; ) {
+        const op = operations[i];
+        if (op.type === "transaction") {
+            operations.splice(i, 1, ...op.operations);
+        }
+        else if (op.type === "change" && Object.is(op.oldValue, op.newValue)) {
+            operations.splice(i, 1);
+        }
+        else if (i > 0) {
+            const lastOp = operations[i - 1];
+            if (lastOp.type === "transaction") {
+                throw Error("Found internal transaction on look-back during packTransaction.");
+            }
+            else if (lastOp.target !== op.target || lastOp.name !== op.name) {
+                ++i;
+            }
+            else if (lastOp.type === "create" && op.type === "change") {
+                operations.splice(i - 1, 2, { ...lastOp, newValue: op.newValue  });
+            }
+            else if (lastOp.type === "create" && op.type === "delete") {
+                operations.splice(--i, 2);
+            }
+            else if (lastOp.type === "change" && op.type === "change") {
+                operations.splice(i - 1, 2, { ...lastOp, newValue: op.newValue  });
+            }
+            else if (lastOp.type === "change" && op.type === "delete") {
+                operations.splice(i - 1, 2, { ...op, oldValue: lastOp.oldValue  });
+            }
+            else if (lastOp.type === "delete" && op.type === "create") {
+                operations.splice(i - 1, 2, { ...op, ...lastOp, type: "change" });
+            }
+            else ++i;
+        }
+        else ++i;
+    }
+}
+
 export type TrackerOptions = Partial<typeof defaultTrackerOptions>;
 
 export class Tracker {
@@ -90,6 +135,7 @@ export class Tracker {
             throw Error('Attempted to commit wrong transaction. Transactions must be resolved in stack order.');
         if (!actualTransaction.parent) throw Error('Cannot commit root transaction');
         const parent = actualTransaction.parent;
+        packTransaction(actualTransaction);
         parent.operations.push(actualTransaction);
         actualTransaction.parent = undefined;
         this.#transaction = parent;
