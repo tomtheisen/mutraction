@@ -39,3 +39,26 @@ model.prop2 = val2;
 ```
 
 The default value for `deferNotifications` is `true`.
+
+### `compactOnCommit`: boolean?
+
+When a transaction is committed, it's retained in the undo history.  Undo and redo operations will treat the transaction atomically.  For memory usage and undo performance considerations, it may be beneficial to simplify redundant contents when transactions are committed.  
+
+In this example, the first transaction would be compacted identically to the second.
+
+```
+model.p = 0;
+tracker.startTransaction();
+model.p = 1;
+model.p = 2;
+tracker.commit();
+```
+
+```
+model.p = 0;
+tracker.startTransaction();
+model.p = 2;
+tracker.commit();
+```
+
+The default value for `compactOnCommit` is `true`.

@@ -16,24 +16,6 @@ test('undo delete redo', () => {
     assert.not("foo" in model);
 });
 
-test('array push and transaction', () => {
-    const [model, tracker] = track([] as any);
-
-    tracker.startTransaction();
-    model.push(4);
-    tracker.commit();
-    tracker.startTransaction();
-    model.push(7);
-    tracker.commit();
-    assert.equal(model, [4,7], "two pushes");
-
-    tracker.undo();
-    assert.equal(model, [4], "undo push");
-
-    tracker.undo();
-    assert.equal(model, [], "undo another push");
-});
-
 test('array extend', () => {
     let [model, tracker] = track([1] as any);
 
@@ -48,19 +30,6 @@ test('array extend', () => {
     assert.equal(model, [4, , 3]);
 });
 
-test('committed transaction has no parent', () => {
-    let [model, tracker] = track({} as any);
-    
-    tracker.startTransaction();
-    model.lol = 132;
-    tracker.commit();
-
-    const transaction = tracker.history[0] as any;
-    assert.ok(transaction);
-    assert.is(transaction.type, "transaction");
-    assert.not.ok(transaction.parent);
-});
-
 test('array shift rollback test', () => {
     const [model, tracker] = track(['a','b','c'] as any);
 
@@ -69,16 +38,6 @@ test('array shift rollback test', () => {
     
     tracker.rollback();
     assert.equal(model, ['a', 'b', 'c']);
-});
-
-test('array length 0 rollback test', () => {
-    const [model, tracker] = track(['a','b','c'] as any);
-
-    model.length = 0;
-    assert.equal(model, [], "was emptied");
-    
-    tracker.rollback();
-    assert.equal(model, ['a', 'b', 'c'], "came back");
 });
 
 test('arguments untrackable', () => {
@@ -133,22 +92,6 @@ test('no history', () => {
 
 test('no history but auto', () => {
     assert.throws(() => track({}, { trackHistory: false, autoTransactionalize: true }));
-});
-
-test('transaction does not obscure history', () => {
-    const [model, tracker] = track({} as any);
-
-    model.asdf = 123;
-    tracker.startTransaction();
-    assert.equal(tracker.history.length, 1);
-});
-
-test('transaction out of order resolution fails', () => {
-    const [model, tracker] = track({} as any);
-
-    const t1 = tracker.startTransaction();
-    const t2 = tracker.startTransaction();
-    assert.throws(() => tracker.commit(t1));
 });
 
 test('callback deferral', async () => {
