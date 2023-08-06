@@ -1,9 +1,10 @@
 import * as React from "react";
-import { tracker, itemsSync } from "./items.js";
+import { useTrackerContext } from "mutraction-react";
 
-export const UndoButton = itemsSync(function UndoButton() {
+export function UndoButton() {
+    const tracker = useTrackerContext();
     const disabled = tracker.history.length === 0;
     return <button disabled={ disabled } onClick={ () => tracker.undo() }>
         Undo
     </button>;
-});
+}

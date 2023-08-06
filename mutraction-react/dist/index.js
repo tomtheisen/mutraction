@@ -8,7 +8,7 @@ var TrackerContext = createContext(void 0);
 function useTrackerContext() {
   const tracker = useContext(TrackerContext);
   if (!tracker)
-    throw Error("syncFromContext requires <TrackerContext.Provider>");
+    throw Error("useTrackerContext requires <TrackerContext.Provider>");
   return tracker;
 }
 var TrackerContextProvider = TrackerContext.Provider;
@@ -101,7 +101,8 @@ function key(obj) {
 // out/src/ChangeHistory.js
 import { describeMutation } from "mutraction";
 import React, { useSyncExternalStore as useSyncExternalStore2 } from "react";
-var ChangeHistory = ({ tracker }) => {
+var ChangeHistory = () => {
+  const tracker = useTrackerContext();
   function subscribe(callback) {
     const subscription = tracker.subscribe(callback);
     return () => subscription.dispose();
@@ -121,8 +122,13 @@ function BoundInput({ bindValue, ...props }) {
 
 // out/src/mutrack.js
 import React3 from "react";
-function Mutrack({ tracker, children }) {
-  return React3.createElement(TrackerContext.Provider, { value: tracker }, React3.createElement(syncFromContext(() => children)));
+function Mutrack({ tracker, component }) {
+  const Synced = syncFromContext(component);
+  return React3.createElement(
+    TrackerContext.Provider,
+    { value: tracker },
+    React3.createElement(Synced, null)
+  );
 }
 export {
   BoundInput,

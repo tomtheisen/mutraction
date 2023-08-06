@@ -1,8 +1,11 @@
-import { Tracker, describeMutation } from 'mutraction';
+import { describeMutation } from 'mutraction';
 import React, { FunctionComponent, useSyncExternalStore } from 'react';
+import { useTrackerContext } from './TrackerContext.js';
 import { key } from './key.js';
 
-export const ChangeHistory: FunctionComponent<{ tracker: Tracker }> = ({ tracker }) => {
+export const ChangeHistory: FunctionComponent = () => {
+    const tracker = useTrackerContext();
+
     function subscribe(callback: () => void) {
         const subscription = tracker.subscribe(callback);
         return () => subscription.dispose();

@@ -1,22 +1,29 @@
 import * as React from "react";
-import { items, tracker, itemsSync } from "./items.js";
+import { model } from "./items.js";
 import { SortItems } from "./SortItems.js";
 import { TodoItem } from "./TodoItem.js";
 import { AddItem } from "./AddItem.js";
-import { key, ChangeHistory } from "mutraction-react";
 import { UndoButton } from "./UndoButton.js";
+import { key, ChangeHistory, Mutrack } from "mutraction-react";
 
-export const App = itemsSync(function App() {
-    return <div>
+function InnerList() {
+    return <ul>
+        { model.items.map(e => <TodoItem item={ e } key={ key(e) } />) }
+    </ul>;
+}
+
+export function App() {
+    return <main>
         <h1>To-do List</h1>
         <SortItems />
         <ul>
-            { items.map(e => <TodoItem item={ e } key={ key(e) } />) }
+            { model.items.map(e => <TodoItem item={ e } key={ key(e) } />) }
         </ul>
+        <InnerList />
         <AddItem />
         <h2>History</h2>
         <UndoButton />
-        <ChangeHistory tracker={ tracker } />
-    </div>
-});
+        <ChangeHistory />
+    </main>;
+}
 

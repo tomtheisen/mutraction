@@ -1,13 +1,15 @@
 import * as React from "react";
 import { TodoItemModel } from "./TodoItemModel.js";
-import { items, itemsSync } from "./items.js";
+import { model } from "./items.js";
 
 function remove(item: TodoItemModel) {
-    const index = items.indexOf(item);
-    items.splice(index, 1);
+    const index = model.items.indexOf(item);
+    model.items.splice(index, 1);
 }
 
-export const TodoItem = itemsSync(function TodoItem({ item }: { item: TodoItemModel }) {
+export function TodoItem({ item }: { item: TodoItemModel }) {
+    console.log("i wonder who's calling me? is someone tracking me?");
+
     const display = item.editing
         ? <span>
             <input value={ item.editingTitle } onChange={ ev => item.editingTitle = ev.target.value } />
@@ -24,4 +26,4 @@ export const TodoItem = itemsSync(function TodoItem({ item }: { item: TodoItemMo
         </span>;
 
     return <li>{ display }</li>;
-});
+}

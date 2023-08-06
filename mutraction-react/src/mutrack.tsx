@@ -5,15 +5,13 @@ import { TrackerContext } from './TrackerContext.js';
 
 type MutrackProps = {
     tracker: Tracker;
-    children: any;
+    component: React.FC;
 };
-export function Mutrack({ tracker, children }: MutrackProps) {
-    // The result of syncFromContext is a component. (higher order)
-    // But you can't use it as a JSX element without assigning it to a capitalized identifier.
-    // So we just use createElement().
+export function Mutrack({ tracker, component }: MutrackProps) {
+    const Synced = syncFromContext(component);
     return (
         <TrackerContext.Provider value={ tracker }>
-            { React.createElement(syncFromContext(() => children)) }
+            <Synced />
         </TrackerContext.Provider>
     );
 }

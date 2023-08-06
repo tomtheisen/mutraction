@@ -15,7 +15,4 @@ function App() {
 }
 
 const root = createRoot(document.getElementById('root')!);
-root.render(
-    <Mutrack tracker={ tracker }>
-        <App />
-    </Mutrack>);
+root.render(<Mutrack tracker={ tracker } component={ App } />);
