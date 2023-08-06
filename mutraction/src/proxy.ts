@@ -1,5 +1,5 @@
 import { Tracker, TrackerOptions } from "./tracker.js";
-import { IsTracked, LastChangeGeneration, RecordDependency, RecordMutation } from "./symbols.js";
+import { TrackerOf, LastChangeGeneration, RecordDependency, RecordMutation } from "./symbols.js";
 import type { ArrayExtend, ArrayShorten, DeleteProperty, Key, ReadonlyDeep, SingleMutation } from "./types.js";
 
 const mutatingArrayMethods 
@@ -26,7 +26,7 @@ function makeProxyHandler<TModel extends object>(model: TModel, tracker: Tracker
     type TKey = (keyof TModel) & Key;
     
     function getOrdinary(target: TModel, name: TKey, receiver: TModel) {
-        if (name === IsTracked) return true;
+        if (name === TrackerOf) return tracker;
         if (name === LastChangeGeneration) return (target as any)[LastChangeGeneration];
 
         tracker[RecordDependency](target, name);
@@ -82,7 +82,7 @@ function makeProxyHandler<TModel extends object>(model: TModel, tracker: Tracker
     // so if the number of completed sets changes between start and end of parent set, then don't record it
     let setsCompleted = 0;
     function setOrdinary(target: TModel, name: TKey, newValue: any, receiver: TModel) {
-        if (typeof newValue === 'object' && !newValue[IsTracked]) {
+        if (typeof newValue === 'object' && !newValue[TrackerOf]) {
             const handler = makeProxyHandler(newValue, tracker);
             newValue = new Proxy(newValue, handler);
         }
@@ -159,7 +159,7 @@ function makeProxyHandler<TModel extends object>(model: TModel, tracker: Tracker
 }
 
 export function isTracked(obj: object) {
-    return typeof obj === "object" && !!(obj as any)[IsTracked];
+    return typeof obj === "object" && !!(obj as any)[TrackerOf];
 }
 
 // turn on change tracking

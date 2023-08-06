@@ -6,16 +6,16 @@ import { track, isTracked } from '../index.js';
 test('shallow prop ref', () => {
     const [model, tracker] = track({ foo: { bar: 1 } });
     
-    const pf = tracker.getPropRef(() => model.foo);
+    const pr = tracker.getPropRef(() => model.foo);
 
-    assert.is(pf.object, model);
-    assert.equal(pf.object, "foo");
+    assert.is(pr.object, model, "propref object is just the model");
+    assert.equal(pr.prop, "foo", "propref prop name is foo");
 
-    let val = pf.value;
-    assert.is(val, model.foo);
+    let val = pr.value;
+    assert.is(val, model.foo, "value of propref is model.foo");
 
     val.value = "qwer";
-    assert.equal(model.foo, "qwer");
+    assert.equal(model.foo, "qwer", "assigned value to propref reflected in model");
 });
 
 test.run();
