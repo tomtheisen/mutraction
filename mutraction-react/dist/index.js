@@ -1,6 +1,6 @@
 // out/src/syncFromTracker.js
 import { track } from "mutraction";
-import { useSyncExternalStore } from "react";
+import { isValidElement, useSyncExternalStore } from "react";
 
 // out/src/TrackerContext.js
 import { createContext, useContext } from "react";
@@ -11,6 +11,7 @@ function useTrackerContext() {
     throw Error("syncFromContext requires <TrackerContext.Provider>");
   return tracker;
 }
+var TrackerContextProvider = TrackerContext.Provider;
 
 // out/src/syncFromTracker.js
 function syncFromTracker(tracker, Component) {
@@ -27,6 +28,50 @@ function syncFromTracker(tracker, Component) {
     }
     useSyncExternalStore(subscribe, () => deps.getLatestChangeGeneration());
     return component;
+  };
+}
+function syncAllComponents(node) {
+  if (typeof node !== "object" || node == null)
+    return node;
+  if (isValidElement(node)) {
+    if (typeof node.type === "string")
+      return node;
+    const nodeTypeIsFunction = typeof node.type === "function";
+    if (nodeTypeIsFunction && "render" in node.type.prototype)
+      console.warn("This looks like a class component. Mutraction sync probably won't work: " + node.type.name);
+    const newNode = { ...node };
+    if (nodeTypeIsFunction) {
+      const originalComponentFunction = node.type;
+      newNode.type = syncFromContext(originalComponentFunction);
+    }
+    if ("children" in node.props) {
+      newNode.props = { ...node.props };
+      newNode.props.children = syncAllComponents(node.props.children);
+      Object.freeze(newNode.props);
+    }
+    return Object.freeze(newNode);
+  } else if (Symbol.iterator in node) {
+    const array = [];
+    for (const e of node)
+      array.push(syncAllComponents(e));
+    return array;
+  } else {
+    return node;
+  }
+}
+function syncFromContext(Component) {
+  return function TrackedComponent(props, context) {
+    const tracker = useTrackerContext();
+    const deps = tracker.startDependencyTrack();
+    const rendered = Component(props, context);
+    deps.endDependencyTrack();
+    function subscribe(callback) {
+      const subscription = tracker.subscribe(callback);
+      return () => subscription.dispose();
+    }
+    useSyncExternalStore(subscribe, () => deps.getLatestChangeGeneration());
+    const result = syncAllComponents(rendered);
+    return result;
   };
 }
 function trackAndSync(model, options) {
@@ -61,10 +106,26 @@ var ChangeHistory = ({ tracker }) => {
   useSyncExternalStore2(subscribe, () => tracker.generation);
   return React.createElement("ol", null, tracker.history.map((m) => React.createElement("li", { key: key(m) }, describeMutation(m))));
 };
+
+// out/src/BoundInput.js
+import React2, { useCallback } from "react";
+function BoundInput({ bindValue, ...props }) {
+  const tracker = useTrackerContext();
+  const ref = tracker.getPropRef(bindValue);
+  const change = useCallback(function change2(ev) {
+    console.log("BoundInput change", { ref, ev });
+    const value = ev.currentTarget.value;
+    ref.current = value;
+  }, [ref]);
+  return React2.createElement("input", { ...props, value: ref.current, onInput: change });
+}
 export {
+  BoundInput,
   ChangeHistory,
   TrackerContext,
+  TrackerContextProvider,
   key,
+  syncFromContext,
   syncFromTracker,
   trackAndSync,
   useTrackerContext

@@ -1,5 +1,5 @@
-import React, { JSX } from "react"
-import { useTrackerContext } from "./TrackerContext";
+import React, { JSX, useCallback } from "react"
+import { useTrackerContext } from "./TrackerContext.js";
 
 type BoundInputProps = {
     bindValue: () => string,
@@ -8,7 +8,12 @@ type BoundInputProps = {
 export function BoundInput({ bindValue, ...props }: BoundInputProps) {
     const tracker = useTrackerContext();
     const ref = tracker.getPropRef(bindValue);
+    const change = useCallback(function change(ev: React.FormEvent<HTMLInputElement>) {
+        console.log("BoundInput change", { ref, ev });
+        const value = ev.currentTarget.value;
+        ref.current = value;
+    }, [ref]);
     return <input { ...props } 
         value={ ref.current } 
-        onInput={ ev => ref.current=ev.currentTarget.value } />;
+        onInput={ change } />;
 }

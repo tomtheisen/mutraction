@@ -5,9 +5,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "npm run build:react && npm run build:todo",
-    "build:react": "npx tsc && npx esbuild --bundle .\\react\\counter.js --sourcemap --outfile=.\\react\\counter_bundle.js",
-    "build:todo": "npx tsc && npx esbuild --bundle .\\react-todo\\todo.js --sourcemap --outfile=.\\react-todo\\todo_bundle.js"
+    "build": "npx tsc && npm run bundle",
+    "bundle": "npm run bundle:react && npm run bundle:todo && npm run bundle:context",
+    "bundle:react": "npx esbuild --bundle .\\react\\counter.js --sourcemap --outfile=.\\react\\counter_bundle.js",
+    "bundle:context": "npx esbuild --bundle .\\react-context\\app.js --sourcemap --outfile=.\\react-context\\app_bundle.js",
+    "bundle:todo": "npx esbuild --bundle .\\react-todo\\todo.js --sourcemap --outfile=.\\react-todo\\todo_bundle.js"
   },
   "author": "",
   "license": "ISC",

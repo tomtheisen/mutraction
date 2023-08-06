@@ -8,3 +8,5 @@ export function useTrackerContext(): Tracker {
     if (!tracker) throw Error("syncFromContext requires <TrackerContext.Provider>");
     return tracker;
 }
+
+export const TrackerContextProvider = TrackerContext.Provider;
