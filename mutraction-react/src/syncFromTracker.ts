@@ -33,7 +33,7 @@ function syncAllComponents(node: React.ReactNode): React.ReactNode {
 
         const nodeTypeIsFunction = typeof node.type === "function";
 
-        if (nodeTypeIsFunction && "render" in node.type.prototype)
+        if (nodeTypeIsFunction && node.type.prototype && "render" in node.type.prototype)
             console.warn("This looks like a class component. Mutraction sync probably won't work: "+ node.type.name);
 
         const newNode = { ...node };
@@ -73,11 +73,17 @@ export function syncFromContext<P extends {}>(Component: React.FC<P>) {
         const rendered: React.ReactNode = Component(props, context);
         deps.endDependencyTrack();
 
-        function subscribe(callback: () => void) {
-            const subscription = tracker.subscribe(callback);
-            return () => subscription.dispose();
+        if (deps.trackedObjects.size > 0) {
+            function subscribe(callback: () => void) {
+                const subscription = tracker.subscribe(callback);
+                return () => subscription.dispose();
+            }
+
+            // Call the police! Conditional hook!
+            // You could make this if unconditional.  
+            // It would just be doing extra work.
+            useSyncExternalStore(subscribe, () => deps.getLatestChangeGeneration());
         }
-        useSyncExternalStore(subscribe, () => deps.getLatestChangeGeneration());
 
         const result = syncAllComponents(rendered);
         return result;
@@ -86,6 +92,7 @@ export function syncFromContext<P extends {}>(Component: React.FC<P>) {
 
 type ComponentWrapper = <P extends {}>(Component: React.FC<P>) => React.FC<P>;
 
+/** @deprecated */
 export function trackAndSync<TModel extends {}>(model: TModel, options?: TrackerOptions)
     : [TModel, ComponentWrapper, Tracker] 
 {

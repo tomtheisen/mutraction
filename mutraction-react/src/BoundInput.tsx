@@ -8,12 +8,10 @@ type BoundInputProps = {
 export function BoundInput({ bindValue, ...props }: BoundInputProps) {
     const tracker = useTrackerContext();
     const ref = tracker.getPropRef(bindValue);
-    const change = useCallback(function change(ev: React.FormEvent<HTMLInputElement>) {
-        console.log("BoundInput change", { ref, ev });
-        const value = ev.currentTarget.value;
-        ref.current = value;
-    }, [ref]);
-    return <input { ...props } 
-        value={ ref.current } 
-        onInput={ change } />;
+    const change = useCallback(
+        (ev: React.FormEvent<HTMLInputElement>) => ref.current = ev.currentTarget.value, 
+        [ref]);
+    
+    // todo: use refs and native events
+    return <input { ...props } value={ ref.current } onInput={ change } />;
 }

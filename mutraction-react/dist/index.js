@@ -37,7 +37,7 @@ function syncAllComponents(node) {
     if (typeof node.type === "string")
       return node;
     const nodeTypeIsFunction = typeof node.type === "function";
-    if (nodeTypeIsFunction && "render" in node.type.prototype)
+    if (nodeTypeIsFunction && node.type.prototype && "render" in node.type.prototype)
       console.warn("This looks like a class component. Mutraction sync probably won't work: " + node.type.name);
     const newNode = { ...node };
     if (nodeTypeIsFunction) {
@@ -65,11 +65,14 @@ function syncFromContext(Component) {
     const deps = tracker.startDependencyTrack();
     const rendered = Component(props, context);
     deps.endDependencyTrack();
-    function subscribe(callback) {
-      const subscription = tracker.subscribe(callback);
-      return () => subscription.dispose();
+    if (deps.trackedObjects.size > 0) {
+      let subscribe2 = function(callback) {
+        const subscription = tracker.subscribe(callback);
+        return () => subscription.dispose();
+      };
+      var subscribe = subscribe2;
+      useSyncExternalStore(subscribe2, () => deps.getLatestChangeGeneration());
     }
-    useSyncExternalStore(subscribe, () => deps.getLatestChangeGeneration());
     const result = syncAllComponents(rendered);
     return result;
   };
@@ -112,16 +115,19 @@ import React2, { useCallback } from "react";
 function BoundInput({ bindValue, ...props }) {
   const tracker = useTrackerContext();
   const ref = tracker.getPropRef(bindValue);
-  const change = useCallback(function change2(ev) {
-    console.log("BoundInput change", { ref, ev });
-    const value = ev.currentTarget.value;
-    ref.current = value;
-  }, [ref]);
+  const change = useCallback((ev) => ref.current = ev.currentTarget.value, [ref]);
   return React2.createElement("input", { ...props, value: ref.current, onInput: change });
+}
+
+// out/src/mutrack.js
+import React3 from "react";
+function Mutrack({ tracker, children }) {
+  return React3.createElement(TrackerContext.Provider, { value: tracker }, React3.createElement(syncFromContext(() => children)));
 }
 export {
   BoundInput,
   ChangeHistory,
+  Mutrack,
   TrackerContext,
   TrackerContextProvider,
   key,
