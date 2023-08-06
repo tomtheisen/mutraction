@@ -1,6 +1,7 @@
 // out/src/symbols.js
 var RecordMutation = Symbol("RecordMutation");
-var IsTracked = Symbol("IsTracked");
+var TrackerOf = Symbol("TrackerOf");
+var ProxyOf = Symbol("ProxyOf");
 var RecordDependency = Symbol("RecordDependency");
 var LastChangeGeneration = Symbol("LastChangeGeneration");
 
@@ -26,42 +27,64 @@ var Dependency = class {
   }
 };
 
-// out/src/tracker.js
-var HistorySentinel = {};
-var defaultTrackerOptions = {
-  trackHistory: true,
-  autoTransactionalize: false,
-  deferNotifications: true
-};
-function packTransaction({ operations }) {
+// out/src/compactTransaction.js
+function compactTransaction({ operations }) {
   for (let i = 0; i < operations.length; ) {
-    const op = operations[i];
-    if (op.type === "transaction") {
-      operations.splice(i, 1, ...op.operations);
-    } else if (op.type === "change" && Object.is(op.oldValue, op.newValue)) {
+    const currOp = operations[i];
+    if (currOp.type === "transaction") {
+      operations.splice(i, 1, ...currOp.operations);
+    } else if (currOp.type === "change" && Object.is(currOp.oldValue, currOp.newValue)) {
       operations.splice(i, 1);
     } else if (i > 0) {
-      const lastOp = operations[i - 1];
-      if (lastOp.type === "transaction") {
-        throw Error("Found internal transaction on look-back during packTransaction.");
-      } else if (lastOp.target !== op.target || lastOp.name !== op.name) {
+      const prevOp = operations[i - 1];
+      if (prevOp.type === "transaction") {
+        throw Error("Internal mutraction error.  Found internal transaction on look-back during packTransaction.");
+      } else if (prevOp.target !== currOp.target || prevOp.name !== currOp.name) {
         ++i;
-      } else if (lastOp.type === "create" && op.type === "change") {
-        operations.splice(i - 1, 2, { ...lastOp, newValue: op.newValue });
-      } else if (lastOp.type === "create" && op.type === "delete") {
+      } else if (prevOp.type === "create" && currOp.type === "change") {
+        operations.splice(--i, 2, { ...prevOp, newValue: currOp.newValue });
+      } else if (prevOp.type === "create" && currOp.type === "delete") {
         operations.splice(--i, 2);
-      } else if (lastOp.type === "change" && op.type === "change") {
-        operations.splice(i - 1, 2, { ...lastOp, newValue: op.newValue });
-      } else if (lastOp.type === "change" && op.type === "delete") {
-        operations.splice(i - 1, 2, { ...op, oldValue: lastOp.oldValue });
-      } else if (lastOp.type === "delete" && op.type === "create") {
-        operations.splice(i - 1, 2, { ...op, ...lastOp, type: "change" });
+      } else if (prevOp.type === "change" && currOp.type === "change") {
+        operations.splice(--i, 2, { ...prevOp, newValue: currOp.newValue });
+      } else if (prevOp.type === "change" && currOp.type === "delete") {
+        operations.splice(--i, 2, { ...currOp, oldValue: prevOp.oldValue });
+      } else if (prevOp.type === "delete" && currOp.type === "create") {
+        operations.splice(--i, 2, { ...currOp, ...prevOp, type: "change" });
       } else
         ++i;
     } else
       ++i;
   }
 }
+
+// out/src/propref.js
+var _PropReference = class PropReference {
+  object;
+  prop;
+  constructor(object, prop) {
+    this.object = object;
+    this.prop = prop;
+  }
+  get current() {
+    return this.object[this.prop];
+  }
+  set current(newValue) {
+    this.object[this.prop] = newValue;
+  }
+};
+function createPropRef(object, prop) {
+  return new _PropReference(object, prop);
+}
+
+// out/src/tracker.js
+var HistorySentinel = {};
+var defaultTrackerOptions = {
+  trackHistory: true,
+  autoTransactionalize: false,
+  deferNotifications: true,
+  compactOnCommit: true
+};
 var Tracker = class {
   #subscribers = /* @__PURE__ */ new Set();
   #transaction;
@@ -70,9 +93,14 @@ var Tracker = class {
   #generation = 0;
   options;
   constructor(options = {}) {
+    if (options.trackHistory === false && options.compactOnCommit == null) {
+      options.compactOnCommit = false;
+    }
     const appliedOptions = { ...defaultTrackerOptions, ...options };
-    if (appliedOptions.autoTransactionalize && !appliedOptions.trackHistory) {
+    if (appliedOptions.autoTransactionalize && !appliedOptions.trackHistory)
       throw Error("Option autoTransactionalize requires option trackHistory");
+    if (appliedOptions.compactOnCommit && !appliedOptions.trackHistory) {
+      throw Error("Option compactOnCommit requires option trackHistory");
     }
     if (appliedOptions.trackHistory) {
       this.#rootTransaction = this.#transaction = { type: "transaction", operations: [] };
@@ -97,12 +125,9 @@ var Tracker = class {
       throw Error("History tracking disabled.");
     return this.#transaction;
   }
-  get tracksHistory() {
-    return !!this.#transaction;
-  }
   get history() {
     this.#ensureHistory();
-    this[RecordDependency](HistorySentinel);
+    this[RecordDependency](HistorySentinel, "history");
     if (!this.#rootTransaction)
       throw Error("History tracking enabled, but no root transaction. Probably mutraction internal error.");
     return this.#rootTransaction.operations;
@@ -129,8 +154,9 @@ var Tracker = class {
       throw Error("Attempted to commit wrong transaction. Transactions must be resolved in stack order.");
     if (!actualTransaction.parent)
       throw Error("Cannot commit root transaction");
+    if (this.options.compactOnCommit)
+      compactTransaction(actualTransaction);
     const parent = actualTransaction.parent;
-    packTransaction(actualTransaction);
     parent.operations.push(actualTransaction);
     actualTransaction.parent = void 0;
     this.#transaction = parent;
@@ -158,32 +184,32 @@ var Tracker = class {
     this.#redos.unshift(mutation);
   }
   #undoOperation(mutation) {
-    if ("target" in mutation) {
-      mutation.target[LastChangeGeneration] = this.generation;
+    if (mutation.type === "transaction") {
+      for (let i = mutation.operations.length; i-- > 0; ) {
+        this.#undoOperation(mutation.operations[i]);
+      }
+    } else {
+      this.setLastChangeGeneration(mutation.target);
+      const targetAny = mutation.target;
+      switch (mutation.type) {
+        case "change":
+        case "delete":
+          targetAny[mutation.name] = mutation.oldValue;
+          break;
+        case "create":
+          delete targetAny[mutation.name];
+          break;
+        case "arrayextend":
+          targetAny.length = mutation.oldLength;
+          break;
+        case "arrayshorten":
+          targetAny.push(...mutation.removed);
+          break;
+        default:
+          mutation;
+      }
+      this.#notifySubscribers(mutation);
     }
-    switch (mutation.type) {
-      case "change":
-      case "delete":
-        mutation.target[mutation.name] = mutation.oldValue;
-        break;
-      case "create":
-        delete mutation.target[mutation.name];
-        break;
-      case "transaction":
-        for (let i = mutation.operations.length; i-- > 0; ) {
-          this.#undoOperation(mutation.operations[i]);
-        }
-        return;
-      case "arrayextend":
-        mutation.target.length = mutation.oldLength;
-        break;
-      case "arrayshorten":
-        mutation.target.push(...mutation.removed);
-        break;
-      default:
-        mutation;
-    }
-    this.#notifySubscribers(mutation);
   }
   // repeat last undone mutation
   redo() {
@@ -196,32 +222,32 @@ var Tracker = class {
     transaction.operations.push(mutation);
   }
   #redoOperation(mutation) {
-    if ("target" in mutation) {
-      mutation.target[LastChangeGeneration] = this.generation;
+    if (mutation.type === "transaction") {
+      for (const operation of mutation.operations) {
+        this.#redoOperation(operation);
+      }
+    } else {
+      this.setLastChangeGeneration(mutation.target);
+      const targetAny = mutation.target;
+      switch (mutation.type) {
+        case "change":
+        case "create":
+          targetAny[mutation.name] = mutation.newValue;
+          break;
+        case "delete":
+          delete targetAny[mutation.name];
+          break;
+        case "arrayextend":
+          targetAny[mutation.newIndex] = mutation.newValue;
+          break;
+        case "arrayshorten":
+          targetAny.length = mutation.newLength;
+          break;
+        default:
+          mutation;
+      }
+      this.#notifySubscribers(mutation);
     }
-    switch (mutation.type) {
-      case "change":
-      case "create":
-        mutation.target[mutation.name] = mutation.newValue;
-        break;
-      case "delete":
-        delete mutation.target[mutation.name];
-        break;
-      case "transaction":
-        for (let i = 0; i < mutation.operations.length; i++) {
-          this.#redoOperation(mutation.operations[i]);
-        }
-        return;
-      case "arrayextend":
-        mutation.target[mutation.newIndex] = mutation.newValue;
-        break;
-      case "arrayshorten":
-        mutation.target.length = mutation.newLength;
-        break;
-      default:
-        mutation;
-    }
-    this.#notifySubscribers(mutation);
   }
   // clear the redo stack  
   // any direct mutation implicitly does this
@@ -271,9 +297,28 @@ var Tracker = class {
       throw Error("Dependency tracker was not active on this tracker");
     return dep;
   }
-  [RecordDependency](target) {
+  [RecordDependency](target, name) {
     for (const dt of this.#dependencyTrackers) {
       dt.addDependency(target);
+    }
+    if (this.#gettingPropRef) {
+      this.#lastPropRef = createPropRef(target[ProxyOf], name);
+    }
+  }
+  #gettingPropRef = false;
+  #lastPropRef = void 0;
+  getPropRef(propGetter) {
+    if (this.#gettingPropRef)
+      throw Error("Cannot be called re-entrantly.");
+    this.#gettingPropRef = true;
+    this.#lastPropRef = void 0;
+    try {
+      propGetter();
+      if (!this.#lastPropRef)
+        throw Error("No tracked properties.  Prop ref detection requires a tracked object.");
+      return this.#lastPropRef;
+    } finally {
+      this.#gettingPropRef = false;
     }
   }
 };
@@ -293,20 +338,29 @@ function isArrayIndex(name) {
   return parseInt(name, 10) < 2147483647;
 }
 function isArguments(item) {
-  https:
-    return Object.prototype.toString.call(item) === "[object Arguments]";
+  return Object.prototype.toString.call(item) === "[object Arguments]";
+}
+function linkProxyToObject(obj, proxy) {
+  Object.defineProperty(obj, ProxyOf, {
+    enumerable: false,
+    writable: true,
+    configurable: false
+  });
+  obj[ProxyOf] = proxy;
 }
 function makeProxyHandler(model, tracker) {
   function getOrdinary(target, name, receiver) {
-    if (name === IsTracked)
-      return true;
+    if (name === TrackerOf)
+      return tracker;
     if (name === LastChangeGeneration)
       return target[LastChangeGeneration];
-    tracker[RecordDependency](target);
+    tracker[RecordDependency](target, name);
     let result = Reflect.get(target, name, receiver);
     if (typeof result === "object" && !isTracked(result)) {
-      const handler = makeProxyHandler(result, tracker);
-      result = target[name] = new Proxy(result, handler);
+      const original = result;
+      const handler = makeProxyHandler(original, tracker);
+      result = target[name] = new Proxy(original, handler);
+      linkProxyToObject(original, result);
     }
     if (typeof result === "function" && tracker.options.autoTransactionalize && name !== "constructor") {
       let proxyWrapped2 = function() {
@@ -347,7 +401,7 @@ function makeProxyHandler(model, tracker) {
   }
   let setsCompleted = 0;
   function setOrdinary(target, name, newValue, receiver) {
-    if (typeof newValue === "object" && !newValue[IsTracked]) {
+    if (typeof newValue === "object" && !newValue[TrackerOf]) {
       const handler = makeProxyHandler(newValue, tracker);
       newValue = new Proxy(newValue, handler);
     }
@@ -410,7 +464,7 @@ function makeProxyHandler(model, tracker) {
   let set = setOrdinary, get = getOrdinary;
   if (Array.isArray(model)) {
     set = setArray;
-    if (tracker.tracksHistory)
+    if (tracker.options.trackHistory)
       get = getArrayTransactionShim;
   }
   if (isArguments(model))
@@ -418,13 +472,14 @@ function makeProxyHandler(model, tracker) {
   return { get, set, deleteProperty };
 }
 function isTracked(obj) {
-  return typeof obj === "object" && !!obj[IsTracked];
+  return typeof obj === "object" && !!obj[TrackerOf];
 }
 function track(model, options) {
   if (isTracked(model))
     throw Error("Object already tracked");
   const tracker = new Tracker(options);
   const proxied = new Proxy(model, makeProxyHandler(model, tracker));
+  linkProxyToObject(model, proxied);
   return [proxied, tracker];
 }
 function trackAsReadonlyDeep(model, options) {

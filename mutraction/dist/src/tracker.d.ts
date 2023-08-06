@@ -1,11 +1,13 @@
 import { RecordDependency, RecordMutation } from "./symbols.js";
 import { Dependency } from "./dependency.js";
-import type { Mutation, SingleMutation, Transaction } from "./types.js";
+import type { Key, Mutation, SingleMutation, Transaction } from "./types.js";
+import { PropReference } from "./propref.js";
 type Subscriber = (mutation: SingleMutation) => void;
 declare const defaultTrackerOptions: {
     trackHistory: boolean;
     autoTransactionalize: boolean;
     deferNotifications: boolean;
+    compactOnCommit: boolean;
 };
 export type TrackerOptions = Partial<typeof defaultTrackerOptions>;
 export declare class Tracker {
@@ -15,7 +17,6 @@ export declare class Tracker {
     subscribe(callback: Subscriber): {
         dispose: () => boolean;
     };
-    get tracksHistory(): boolean;
     get history(): ReadonlyArray<Readonly<Mutation>>;
     get generation(): number;
     startTransaction(name?: string): Transaction;
@@ -30,6 +31,7 @@ export declare class Tracker {
     setLastChangeGeneration(target: object): void;
     startDependencyTrack(): Dependency;
     endDependencyTrack(dep: Dependency): Dependency;
-    [RecordDependency](target: object): void;
+    [RecordDependency](target: object, name: Key): void;
+    getPropRef(propGetter: () => unknown): PropReference;
 }
 export {};
