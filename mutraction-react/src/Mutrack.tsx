@@ -9,9 +9,7 @@ type MutrackProps = {
 };
 export function Mutrack({ tracker, component }: MutrackProps) {
     const Synced = syncFromContext(component);
-    return (
-        <TrackerContext.Provider value={ tracker }>
-            <Synced />
-        </TrackerContext.Provider>
-    );
+
+    // @ts-ignore The type checker is complaining about missing private members that shouldn't be part of the exported type.
+    return <TrackerContext.Provider value={ tracker }><Synced /></TrackerContext.Provider>;
 }
