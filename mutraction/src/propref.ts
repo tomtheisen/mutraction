@@ -12,7 +12,7 @@ export class PropReference<TObject extends object, TKey extends Key & keyof TObj
     get value(): TObject[TKey] { 
         return this.object[this.prop]; 
     }
-    set value(newValue: TObject[TKey]) { 
+    set value(newValue: TObject[TKey]) {
         this.object[this.prop] = newValue; 
     }
 }

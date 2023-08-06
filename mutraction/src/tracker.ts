@@ -1,4 +1,4 @@
-import { LastChangeGeneration, RecordDependency, RecordMutation } from "./symbols.js";
+import { LastChangeGeneration, ProxyOf, RecordDependency, RecordMutation } from "./symbols.js";
 import { Dependency } from "./dependency.js";
 import { compactTransaction } from "./compactTransaction.js";
 import type { Key, Mutation, SingleMutation, Transaction } from "./types.js";
@@ -21,25 +21,6 @@ const defaultTrackerOptions = {
 export type TrackerOptions = Partial<typeof defaultTrackerOptions>;
 
 export class Tracker {
-    #gettingPropRef = false;
-    #lastPropRef?: PropReference<any, Key> = undefined;
-    getPropRef(propGetter: () => unknown): PropReference<any, Key> {
-        if (this.#gettingPropRef)
-            throw Error("Cannot be called re-entrantly.");
-
-        this.#gettingPropRef = true;
-        this.#lastPropRef = undefined;
-        try {
-            propGetter();
-            if (!this.#lastPropRef)
-                throw Error("No tracked properties.  Prop ref detection requires a tracked object.");
-            return this.#lastPropRef;
-        }
-        finally {
-            this.#gettingPropRef = false;
-        }
-    }
-
     #subscribers: Set<Subscriber> = new Set;
     #transaction?: Transaction;
     #rootTransaction?: Transaction;
@@ -267,7 +248,26 @@ export class Tracker {
             dt.addDependency(target);
         }
         if (this.#gettingPropRef) {
-            this.#lastPropRef = new PropReference(target as any, name);
+            this.#lastPropRef = new PropReference((target as any)[ProxyOf], name);
+        }
+    }
+
+    #gettingPropRef = false;
+    #lastPropRef?: PropReference<any, Key> = undefined;
+    getPropRef(propGetter: () => unknown): PropReference<any, Key> {
+        if (this.#gettingPropRef)
+            throw Error("Cannot be called re-entrantly.");
+
+        this.#gettingPropRef = true;
+        this.#lastPropRef = undefined;
+        try {
+            propGetter();
+            if (!this.#lastPropRef)
+                throw Error("No tracked properties.  Prop ref detection requires a tracked object.");
+            return this.#lastPropRef;
+        }
+        finally {
+            this.#gettingPropRef = false;
         }
     }
 }

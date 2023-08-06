@@ -1,5 +1,5 @@
 import { Tracker, TrackerOptions } from "./tracker.js";
-import { TrackerOf, LastChangeGeneration, RecordDependency, RecordMutation } from "./symbols.js";
+import { TrackerOf, LastChangeGeneration, RecordDependency, RecordMutation, ProxyOf } from "./symbols.js";
 import type { ArrayExtend, ArrayShorten, DeleteProperty, Key, ReadonlyDeep, SingleMutation } from "./types.js";
 
 const mutatingArrayMethods 
@@ -22,6 +22,15 @@ function isArguments(item: any): item is IArguments {
     return Object.prototype.toString.call(item) === '[object Arguments]';
 }
 
+function linkProxyToObject(obj: any, proxy: any) {
+    Object.defineProperty(obj, ProxyOf, {
+        enumerable: false,
+        writable: true,
+        configurable: false,
+    });
+    obj[ProxyOf] = proxy;
+}
+
 function makeProxyHandler<TModel extends object>(model: TModel, tracker: Tracker) : ProxyHandler<TModel> {
     type TKey = (keyof TModel) & Key;
     
@@ -33,8 +42,10 @@ function makeProxyHandler<TModel extends object>(model: TModel, tracker: Tracker
 
         let result = Reflect.get(target, name, receiver) as any;
         if (typeof result === 'object' && !isTracked(result)) {
-            const handler = makeProxyHandler(result, tracker);
-            result = target[name] = new Proxy(result, handler);
+            const original = result;
+            const handler = makeProxyHandler(original, tracker);
+            result = target[name] = new Proxy(original, handler);
+            linkProxyToObject(original, result);
         }
         if (typeof result === 'function' && tracker.options.autoTransactionalize && name !== "constructor") {
             const original = result as Function;
@@ -168,6 +179,7 @@ export function track<TModel extends object>(model: TModel, options?: TrackerOpt
     if (isTracked(model)) throw Error('Object already tracked');
     const tracker = new Tracker(options);
     const proxied = new Proxy(model, makeProxyHandler(model, tracker));
+    linkProxyToObject(model, proxied);
     return [proxied, tracker];
 }
 
