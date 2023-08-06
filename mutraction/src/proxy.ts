@@ -29,7 +29,7 @@ function makeProxyHandler<TModel extends object>(model: TModel, tracker: Tracker
         if (name === IsTracked) return true;
         if (name === LastChangeGeneration) return (target as any)[LastChangeGeneration];
 
-        tracker[RecordDependency](target);
+        tracker[RecordDependency](target, name);
 
         let result = Reflect.get(target, name, receiver) as any;
         if (typeof result === 'object' && !isTracked(result)) {
