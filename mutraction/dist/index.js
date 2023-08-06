@@ -73,8 +73,15 @@ var _PropReference = class PropReference {
     this.object[this.prop] = newValue;
   }
 };
-function createPropRef(object, prop) {
-  return new _PropReference(object, prop);
+var propRefRegistry = /* @__PURE__ */ new WeakMap();
+function createOrRetrievePropRef(object, prop) {
+  let objectPropRefs = propRefRegistry.get(object);
+  if (!objectPropRefs)
+    propRefRegistry.set(object, objectPropRefs = /* @__PURE__ */ new Map());
+  let result = objectPropRefs.get(prop);
+  if (!result)
+    objectPropRefs.set(prop, result = new _PropReference(object, prop));
+  return result;
 }
 
 // out/src/tracker.js
@@ -302,11 +309,17 @@ var Tracker = class {
       dt.addDependency(target);
     }
     if (this.#gettingPropRef) {
-      this.#lastPropRef = createPropRef(target[ProxyOf], name);
+      this.#lastPropRef = createOrRetrievePropRef(target[ProxyOf], name);
     }
   }
   #gettingPropRef = false;
   #lastPropRef = void 0;
+  /**
+   * Gets a property reference that refers to a particular property on a particular object.
+   * It can get or set the target property value using the `current` property, so it's a valid React ref.
+   * @param propGetter parameter-less function that gets the target property value e.g. `() => model.settings.logFile`
+   * @returns PropReference for an object property
+   */
   getPropRef(propGetter) {
     if (this.#gettingPropRef)
       throw Error("Cannot be called re-entrantly.");
@@ -531,6 +544,7 @@ function describeMutation(mutation) {
 }
 export {
   Tracker,
+  createOrRetrievePropRef,
   describeMutation,
   isTracked,
   track,

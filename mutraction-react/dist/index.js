@@ -1,8 +1,20 @@
 // out/src/syncFromTracker.js
 import { track } from "mutraction";
 import { useSyncExternalStore } from "react";
+
+// out/src/TrackerContext.js
+import { createContext, useContext } from "react";
+var TrackerContext = createContext(void 0);
+function useTrackerContext() {
+  const tracker = useContext(TrackerContext);
+  if (!tracker)
+    throw Error("syncFromContext requires <TrackerContext.Provider>");
+  return tracker;
+}
+
+// out/src/syncFromTracker.js
 function syncFromTracker(tracker, Component) {
-  const TrackedComponent = function TrackedComponent2(props, context) {
+  return function TrackedComponent(props, context) {
     const deps = tracker.startDependencyTrack();
     const component = Component(props, context);
     deps.endDependencyTrack();
@@ -16,7 +28,6 @@ function syncFromTracker(tracker, Component) {
     useSyncExternalStore(subscribe, () => deps.getLatestChangeGeneration());
     return component;
   };
-  return TrackedComponent;
 }
 function trackAndSync(model, options) {
   const [trackedModel, tracker] = track(model, options);
@@ -41,18 +52,20 @@ function key(obj) {
 
 // out/src/ChangeHistory.js
 import { describeMutation } from "mutraction";
-import * as React from "react";
+import React, { useSyncExternalStore as useSyncExternalStore2 } from "react";
 var ChangeHistory = ({ tracker }) => {
   function subscribe(callback) {
     const subscription = tracker.subscribe(callback);
     return () => subscription.dispose();
   }
-  React.useSyncExternalStore(subscribe, () => tracker.generation);
-  return React.createElement("ol", null, tracker.history.map((change) => React.createElement("li", { key: key(change) }, describeMutation(change))));
+  useSyncExternalStore2(subscribe, () => tracker.generation);
+  return React.createElement("ol", null, tracker.history.map((m) => React.createElement("li", { key: key(m) }, describeMutation(m))));
 };
 export {
   ChangeHistory,
+  TrackerContext,
   key,
   syncFromTracker,
-  trackAndSync
+  trackAndSync,
+  useTrackerContext
 };
