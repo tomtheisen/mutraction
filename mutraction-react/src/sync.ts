@@ -1,28 +1,5 @@
-import { track, Tracker, TrackerOptions } from 'mutraction';
 import { isValidElement, useSyncExternalStore } from 'react';
 import { useTrackerContext } from './TrackerContext.js';
-
-/** @deprecated */
-export function syncFromTracker<P extends {}>(tracker: Tracker, Component: React.FC<P>): React.FC<P> {
-    return function TrackedComponent(props: P, context?: any){
-        const deps = tracker.startDependencyTrack();
-        const component = Component(props, context);
-        deps.endDependencyTrack();
-        if (deps.trackedObjects.size === 0) {
-            console.warn(
-                `No dependencies detected in ${Component.displayName ?? Component.name}. `
-                + `Ensure the component reads a tracked property to enable model synchronization.`);
-        }
-
-        function subscribe(callback: () => void) {
-            const subscription = tracker.subscribe(callback);
-            return () => subscription.dispose();
-        }
-        useSyncExternalStore(subscribe, () => deps.getLatestChangeGeneration());
-
-        return component;
-    }
-}
 
 /** 
  * Transforms a node to add tracking to top and all descendent component nodes.
@@ -44,7 +21,7 @@ function syncAllComponents(node: React.ReactNode): React.ReactNode {
             newNode ??= { ...node };
             // sync for changes
             const originalComponentFunction = node.type as React.FC;
-            newNode.type = syncFromContext(originalComponentFunction);
+            newNode.type = sync(originalComponentFunction);
         }
 
         if ("children" in node.props) {
@@ -67,8 +44,17 @@ function syncAllComponents(node: React.ReactNode): React.ReactNode {
     }
 }
 
-export function syncFromContext<P extends {}>(Component: React.FC<P>) {
-    return function TrackedComponent(props: P, context?: any){
+/**
+ * Higher-order react component.  It retrieves a mutraction Tracker from react context.
+ * Then it uses it to listen for property reads within the whole component tree.
+ * If any of the component dependencies are updated, it's re-rendered via useSyncExternalStore.
+ * Any child components in the element output of this component will be identically wrapped.
+ * This way, an entire component tree will be synchronized.
+ * @param Component is the function component to track
+ * @returns a wrapped tracking component
+ */
+export function sync<P extends {}>(Component: React.FC<P>): React.FC<P> {
+    return function TrackedComponent(props: P, context?: any) {
         const tracker = useTrackerContext();
 
         const deps = tracker.startDependencyTrack();
@@ -84,23 +70,15 @@ export function syncFromContext<P extends {}>(Component: React.FC<P>) {
             // Call the police! Conditional hook!
             // You could make this if unconditional.  
             // It would just be doing extra work.
+            // It's theoretically possible that 
+            //    * something else would cause this to re-render
+            //    * a dependency would be found based on conditional logic of a non-tracked property
+            // If that ever happens, something else would need to be done here.
+            // But I bet it won't.
             useSyncExternalStore(subscribe, () => deps.getLatestChangeGeneration());
         }
 
         const result = syncAllComponents(rendered);
         return result;
     }
-}
-
-type ComponentWrapper = <P extends {}>(Component: React.FC<P>) => React.FC<P>;
-
-/** @deprecated */
-export function trackAndSync<TModel extends {}>(model: TModel, options?: TrackerOptions)
-    : [TModel, ComponentWrapper, Tracker] 
-{
-    const [trackedModel, tracker] = track(model, options);
-    function sync<P extends {}>(Component: React.FC<P>) {
-        return syncFromTracker(tracker, Component);
-    }
-    return [trackedModel, sync, tracker];
 }

@@ -1,5 +1,4 @@
-// out/src/syncFromTracker.js
-import { track } from "mutraction";
+// out/src/sync.js
 import { isValidElement, useSyncExternalStore } from "react";
 
 // out/src/TrackerContext.js
@@ -11,25 +10,8 @@ function useTrackerContext() {
     throw Error("useTrackerContext requires <TrackerContext.Provider>");
   return tracker;
 }
-var TrackerContextProvider = TrackerContext.Provider;
 
-// out/src/syncFromTracker.js
-function syncFromTracker(tracker, Component) {
-  return function TrackedComponent(props, context) {
-    const deps = tracker.startDependencyTrack();
-    const component = Component(props, context);
-    deps.endDependencyTrack();
-    if (deps.trackedObjects.size === 0) {
-      console.warn(`No dependencies detected in ${Component.displayName ?? Component.name}. Ensure the component reads a tracked property to enable model synchronization.`);
-    }
-    function subscribe(callback) {
-      const subscription = tracker.subscribe(callback);
-      return () => subscription.dispose();
-    }
-    useSyncExternalStore(subscribe, () => deps.getLatestChangeGeneration());
-    return component;
-  };
-}
+// out/src/sync.js
 function syncAllComponents(node) {
   if (typeof node !== "object" || node == null)
     return node;
@@ -38,7 +20,7 @@ function syncAllComponents(node) {
     if (typeof node.type === "function") {
       newNode ??= { ...node };
       const originalComponentFunction = node.type;
-      newNode.type = syncFromContext(originalComponentFunction);
+      newNode.type = sync(originalComponentFunction);
     }
     if ("children" in node.props) {
       newNode ??= { ...node };
@@ -56,7 +38,7 @@ function syncAllComponents(node) {
     return node;
   }
 }
-function syncFromContext(Component) {
+function sync(Component) {
   return function TrackedComponent(props, context) {
     const tracker = useTrackerContext();
     const deps = tracker.startDependencyTrack();
@@ -73,13 +55,6 @@ function syncFromContext(Component) {
     const result = syncAllComponents(rendered);
     return result;
   };
-}
-function trackAndSync(model, options) {
-  const [trackedModel, tracker] = track(model, options);
-  function sync(Component) {
-    return syncFromTracker(tracker, Component);
-  }
-  return [trackedModel, sync, tracker];
 }
 
 // out/src/key.js
@@ -117,10 +92,10 @@ function BoundInput({ bindValue, ...props }) {
   return React2.createElement("input", { ...props, value: ref.current, onInput: change });
 }
 
-// out/src/mutrack.js
+// out/src/Mutrack.js
 import React3 from "react";
 function Mutrack({ tracker, component }) {
-  const Synced = syncFromContext(component);
+  const Synced = sync(component);
   return React3.createElement(
     TrackerContext.Provider,
     { value: tracker },
@@ -132,10 +107,7 @@ export {
   ChangeHistory,
   Mutrack,
   TrackerContext,
-  TrackerContextProvider,
   key,
-  syncFromContext,
-  syncFromTracker,
-  trackAndSync,
+  sync,
   useTrackerContext
 };

@@ -17,6 +17,7 @@ const _PropReference = class PropReference<T> {
     }
 }
 
+// export the type without the constuctor
 export type PropReference<T = any> = InstanceType<typeof _PropReference<T>>;
 
 // cache of existing PropReferences
