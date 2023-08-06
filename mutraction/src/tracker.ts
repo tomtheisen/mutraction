@@ -1,5 +1,6 @@
 import { LastChangeGeneration, RecordDependency, RecordMutation } from "./symbols.js";
 import { Dependency } from "./dependency.js";
+import { compactTransaction } from "./compactTransaction.js";
 import type { Key, Mutation, SingleMutation, Transaction } from "./types.js";
 import { PropReference } from "./propref.js";
 
@@ -14,6 +15,7 @@ const defaultTrackerOptions = {
     trackHistory: true,
     autoTransactionalize: false,
     deferNotifications: true,
+    compactOnCommit: true,
 };
 
 export type TrackerOptions = Partial<typeof defaultTrackerOptions>;
@@ -46,10 +48,18 @@ export class Tracker {
     options: Readonly<Required<TrackerOptions>>;
 
     constructor(options: TrackerOptions = {}) {
-        const appliedOptions = { ...defaultTrackerOptions, ...options };
-        if (appliedOptions.autoTransactionalize && !appliedOptions.trackHistory) {
-            throw Error("Option autoTransactionalize requires option trackHistory");
+        if (options.trackHistory === false && options.compactOnCommit == null) {
+            // user specified no history tracking, so turn off compactOnCommit which requires it
+            options.compactOnCommit = false;
         }
+
+        const appliedOptions = { ...defaultTrackerOptions, ...options };
+        if (appliedOptions.autoTransactionalize && !appliedOptions.trackHistory)
+            throw Error("Option autoTransactionalize requires option trackHistory");
+        if (appliedOptions.compactOnCommit && !appliedOptions.trackHistory) {
+            throw Error("Option compactOnCommit requires option trackHistory");
+        }
+
         if (appliedOptions.trackHistory) {
             // create root transaction to enable history tracking
             this.#rootTransaction = this.#transaction = { type: "transaction", operations: [] };
@@ -76,15 +86,15 @@ export class Tracker {
         return this.#transaction;
     }
 
-    get tracksHistory() { return !!this.#transaction; }
-
     get history(): ReadonlyArray<Readonly<Mutation>> {
         this.#ensureHistory();
-        // reading the history can create a dependency too, for use cases 
-        // that depend on the tracker history
+        // reading the history can create a dependency too, not just the tracked model, 
+        // for use cases that depend on the tracker history
         this[RecordDependency](HistorySentinel, "history");
+
         if (!this.#rootTransaction) 
             throw Error("History tracking enabled, but no root transaction. Probably mutraction internal error.");
+
         return this.#rootTransaction.operations; 
     }
 
@@ -106,9 +116,14 @@ export class Tracker {
     // throws if no transactions are active
     commit(transaction?: Transaction) {
         const actualTransaction = this.#ensureHistory();
-        if (transaction && transaction !== actualTransaction) 
+
+        if (transaction && transaction !== actualTransaction)
             throw Error('Attempted to commit wrong transaction. Transactions must be resolved in stack order.');
-        if (!actualTransaction.parent) throw Error('Cannot commit root transaction');
+        if (!actualTransaction.parent)
+            throw Error('Cannot commit root transaction');
+
+        if (this.options.compactOnCommit) compactTransaction(actualTransaction);
+
         const parent = actualTransaction.parent;
         parent.operations.push(actualTransaction);
         actualTransaction.parent = undefined;
@@ -120,8 +135,10 @@ export class Tracker {
     // if no transactions are active, undo all mutations
     rollback(transaction?: Transaction) {
         const actualTransaction = this.#ensureHistory();
-        if (transaction && transaction !== actualTransaction) 
+
+        if (transaction && transaction !== actualTransaction)
             throw Error('Attempted to commit wrong transaction. Transactions must be resolved in stack order.');
+
         while (actualTransaction.operations.length) this.undo();
         this.#transaction = actualTransaction.parent ?? actualTransaction;
         this.#advanceGeneration();
@@ -137,32 +154,24 @@ export class Tracker {
         this.#redos.unshift(mutation);
     }
     #undoOperation(mutation: Mutation) {
-        if ("target" in mutation) {
-            (mutation.target as any)[LastChangeGeneration] = this.generation;
+        if (mutation.type === "transaction") {
+            for (let i = mutation.operations.length; i-- > 0;) {
+                this.#undoOperation(mutation.operations[i]);
+            }
         }
-        switch (mutation.type) {
-            case 'change':
-            case 'delete':
-                (mutation.target as any)[mutation.name] = mutation.oldValue;
-                break;
-            case 'create':
-                delete (mutation.target as any)[mutation.name];
-                break;
-            case 'transaction':
-                for (let i = mutation.operations.length; i-- > 0;) {
-                    this.#undoOperation(mutation.operations[i]);
-                }
-                return;
-            case 'arrayextend':
-                (mutation.target as any).length = mutation.oldLength;
-                break;
-            case 'arrayshorten':
-                (mutation.target as any).push(...mutation.removed);
-                break;
-            default:
-                mutation satisfies never;
+        else {
+            this.setLastChangeGeneration(mutation.target);
+            const targetAny = mutation.target as any;
+            switch (mutation.type) {
+                case 'change':
+                case 'delete': targetAny[mutation.name] = mutation.oldValue; break;
+                case 'create': delete targetAny[mutation.name]; break;
+                case 'arrayextend': targetAny.length = mutation.oldLength; break;
+                case 'arrayshorten': targetAny.push(...mutation.removed); break;
+                default: mutation satisfies never;
+            }
+            this.#notifySubscribers(mutation);
         }
-        this.#notifySubscribers(mutation);
     }
 
     // repeat last undone mutation
@@ -175,32 +184,24 @@ export class Tracker {
         transaction.operations.push(mutation);
     }
     #redoOperation(mutation: Mutation) {
-        if ("target" in mutation) {
-            (mutation.target as any)[LastChangeGeneration] = this.generation;
+        if (mutation.type === "transaction") {
+            for (const operation of mutation.operations) {
+                this.#redoOperation(operation);
+            }
         }
-        switch (mutation.type) {
-            case 'change':
-            case 'create':
-                (mutation.target as any)[mutation.name] = mutation.newValue;
-                break;
-            case 'delete':
-                delete (mutation.target as any)[mutation.name];
-                break;
-            case 'transaction':
-                for (let i = 0; i < mutation.operations.length; i++) {
-                    this.#redoOperation(mutation.operations[i]);
-                }
-                return;
-            case 'arrayextend':
-                (mutation.target as any)[mutation.newIndex] = mutation.newValue;
-                break;
-            case 'arrayshorten':
-                (mutation.target as any).length = mutation.newLength;
-                break;
-            default:
-                mutation satisfies never;
+        else {
+            this.setLastChangeGeneration(mutation.target);
+            const targetAny = mutation.target as any;
+            switch (mutation.type) {
+                case 'change':
+                case 'create': targetAny[mutation.name] = mutation.newValue; break;
+                case 'delete': delete targetAny[mutation.name]; break;
+                case 'arrayextend': targetAny[mutation.newIndex] = mutation.newValue; break;
+                case 'arrayshorten': targetAny.length = mutation.newLength; break;
+                default: mutation satisfies never;
+            }
+            this.#notifySubscribers(mutation);
         }
-        this.#notifySubscribers(mutation);
     }
 
     // clear the redo stack  

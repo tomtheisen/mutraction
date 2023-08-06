@@ -105,18 +105,3 @@ const hist2 = tracker.history.length;
 // wrap them in transactions if you want clean undo
 console.log(hist2 - hist1); // 3
 
-/*
- * limitations
- */
-function beWeird() {
-    try {
-        character.wildcard = arguments;
-    }
-    catch (ex) {
-        console.log(ex); // Error: Tracking of exotic arguments objects not supported
-    }
-}
-beWeird();
-
-// also named module exports and integer-indexed exotic objects 
-// like UInt8Array aren't supported
