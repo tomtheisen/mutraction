@@ -1,18 +1,16 @@
 import { Tracker, describeMutation } from 'mutraction';
-import * as React from 'react';
+import React, { FunctionComponent, useSyncExternalStore } from 'react';
 import { key } from './key.js';
 
-export const ChangeHistory: React.FC<{ tracker: Tracker }> = ({ tracker }) => {
+export const ChangeHistory: FunctionComponent<{ tracker: Tracker }> = ({ tracker }) => {
     function subscribe(callback: () => void) {
         const subscription = tracker.subscribe(callback);
         return () => subscription.dispose();
     }
-    React.useSyncExternalStore(subscribe, () => tracker.generation);
+    useSyncExternalStore(subscribe, () => tracker.generation);
 
-    return <ol>
-        {
-            tracker.history.map(change => 
-                <li key={ key(change) }>{ describeMutation(change) }</li>)
-        }
-    </ol>
+    return <ol>{
+        tracker.history.map(m => 
+            <li key={ key(m) }>{ describeMutation(m) }</li>)
+    }</ol>
 };

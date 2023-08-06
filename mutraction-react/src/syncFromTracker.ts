@@ -1,8 +1,9 @@
 import { track, Tracker, TrackerOptions } from 'mutraction';
-import { useSyncExternalStore } from 'react';  
+import { useSyncExternalStore } from 'react';
+import { useTrackerContext } from './TrackerContext.js';
 
-export function syncFromTracker<P extends {}>(tracker: Tracker, Component: React.FC<P>) {
-    const TrackedComponent: React.FC<P> = function TrackedComponent(props: P, context?: any){
+export function syncFromTracker<P extends {}>(tracker: Tracker, Component: React.FC<P>): React.FC<P> {
+    return function TrackedComponent(props: P, context?: any){
         const deps = tracker.startDependencyTrack();
         const component = Component(props, context);
         deps.endDependencyTrack();
@@ -20,7 +21,13 @@ export function syncFromTracker<P extends {}>(tracker: Tracker, Component: React
 
         return component;
     }
-    return TrackedComponent;
+}
+
+export function syncFromContext<P extends {}>(Component: React.FC<P>) {
+    return function TrackedComponent(props: P, context?: any){
+        const tracker = useTrackerContext();
+        return syncFromTracker(tracker, Component)(props, context);
+    }
 }
 
 type ComponentWrapper = <P extends {}>(Component: React.FC<P>) => React.FC<P>;

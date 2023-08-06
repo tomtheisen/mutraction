@@ -32,6 +32,6 @@ export declare class Tracker {
     startDependencyTrack(): Dependency;
     endDependencyTrack(dep: Dependency): Dependency;
     [RecordDependency](target: object, name: Key): void;
-    getPropRef(propGetter: () => unknown): PropReference;
+    getPropRef<T>(propGetter: () => T): PropReference<T>;
 }
 export {};

@@ -2,7 +2,7 @@ import { LastChangeGeneration, ProxyOf, RecordDependency, RecordMutation } from 
 import { Dependency } from "./dependency.js";
 import { compactTransaction } from "./compactTransaction.js";
 import type { Key, Mutation, SingleMutation, Transaction } from "./types.js";
-import { PropReference, createPropRef } from "./propref.js";
+import { PropReference, createOrRetrievePropRef } from "./propref.js";
 
 // When found in a dependency list, the presence of this object indicates
 // that the tracker history itself is a dependency.  Any change to the
@@ -248,12 +248,18 @@ export class Tracker {
             dt.addDependency(target);
         }
         if (this.#gettingPropRef) {
-            this.#lastPropRef = createPropRef((target as any)[ProxyOf], name);
+            this.#lastPropRef = createOrRetrievePropRef((target as any)[ProxyOf], name);
         }
     }
 
     #gettingPropRef = false;
     #lastPropRef?: PropReference = undefined;
+    /**
+     * Gets a property reference that refers to a particular property on a particular object.
+     * It can get or set the target property value using the `current` property, so it's a valid React ref.
+     * @param propGetter parameter-less function that gets the target property value e.g. `() => model.settings.logFile`
+     * @returns PropReference for an object property
+     */
     getPropRef<T>(propGetter: () => T): PropReference<T> {
         if (this.#gettingPropRef)
             throw Error("Cannot be called re-entrantly.");
