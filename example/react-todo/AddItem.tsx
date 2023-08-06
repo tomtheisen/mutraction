@@ -1,5 +1,5 @@
 import * as React from "react";
-import { model  } from "./items.js";
+import { items } from "./items.js";
 import { TodoItemModel } from "./TodoItemModel.js";
 
 export function AddItem() {
@@ -8,7 +8,7 @@ export function AddItem() {
 
     function doAdd(ev: React.SyntheticEvent) {
         setTitle("");
-        model.items.push(new TodoItemModel(title));
+        items.push(new TodoItemModel(title));
         ev.preventDefault();
     }
 

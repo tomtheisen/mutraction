@@ -1,8 +1,8 @@
 import * as React from "react";
-import { model } from "./items.js";
+import { items } from "./items.js";
 
 function moveFinishedToBottom() {
-    model.items.sort((a, b) => Number(a.done) - Number(b.done));
+    items.sort((a, b) => Number(a.done) - Number(b.done));
 }
 
 export function SortItems() {

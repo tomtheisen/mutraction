@@ -24,35 +24,37 @@ export function syncFromTracker<P extends {}>(tracker: Tracker, Component: React
     }
 }
 
-/** Transforms a node to add tracking to top and all descendent component nodes */
+/** 
+ * Transforms a node to add tracking to top and all descendent component nodes.
+ * React elements are all frozen, so we need to clone them to change them.
+ * If no changes are necessary, the original node is returned.
+ */
 function syncAllComponents(node: React.ReactNode): React.ReactNode {
     if (typeof node !== "object" || node == null) return node;
 
     if (isValidElement(node)) {
-        if (typeof node.type === "string") return node; // it's a host component
+        // TODO: detect class components.  Either support them or warn.
 
-        const nodeTypeIsFunction = typeof node.type === "function";
-
-        if (nodeTypeIsFunction && node.type.prototype && "render" in node.type.prototype)
-            console.warn("This looks like a class component. Mutraction sync probably won't work: "+ node.type.name);
-
-        const newNode = { ...node };
+        // the new node, if necessary
+        let newNode: React.ReactNode | undefined = undefined;
 
         // Don't apply sync to special react things like fragments, providers, suspense, etc.
         // Their children still need to be synced though.
-        if (nodeTypeIsFunction) {
+        if (typeof node.type === "function") {
+            newNode ??= { ...node };
             // sync for changes
             const originalComponentFunction = node.type as React.FC;
             newNode.type = syncFromContext(originalComponentFunction);
         }
 
         if ("children" in node.props) {
+            newNode ??= { ...node };
             newNode.props = { ...node.props };
             newNode.props.children = syncAllComponents(node.props.children);
             Object.freeze(newNode.props);
         }
 
-        return Object.freeze(newNode);
+        return newNode ? Object.freeze(newNode) : node;
     }
     else if (Symbol.iterator in node) {
         const array = [];

@@ -5,13 +5,11 @@ import { TodoItemModel } from "./TodoItemModel.js";
 const options = { autoTransactionalize: true };
 
 function modelFactory() {
-    return {
-        items: [
-            new TodoItemModel("Get some groceries"),
-            new TodoItemModel("Feed the cat"),
-            new TodoItemModel("Track some mutations"),
-        ]
-    };
+    return [
+        new TodoItemModel("Get some groceries"),
+        new TodoItemModel("Feed the cat"),
+        new TodoItemModel("Track some mutations"),
+    ];
 }
 
-export const [model, tracker] = track(modelFactory(), options);
+export const [items, tracker] = track(modelFactory(), options);

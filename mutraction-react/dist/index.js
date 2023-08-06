@@ -34,22 +34,19 @@ function syncAllComponents(node) {
   if (typeof node !== "object" || node == null)
     return node;
   if (isValidElement(node)) {
-    if (typeof node.type === "string")
-      return node;
-    const nodeTypeIsFunction = typeof node.type === "function";
-    if (nodeTypeIsFunction && node.type.prototype && "render" in node.type.prototype)
-      console.warn("This looks like a class component. Mutraction sync probably won't work: " + node.type.name);
-    const newNode = { ...node };
-    if (nodeTypeIsFunction) {
+    let newNode = void 0;
+    if (typeof node.type === "function") {
+      newNode ??= { ...node };
       const originalComponentFunction = node.type;
       newNode.type = syncFromContext(originalComponentFunction);
     }
     if ("children" in node.props) {
+      newNode ??= { ...node };
       newNode.props = { ...node.props };
       newNode.props.children = syncAllComponents(node.props.children);
       Object.freeze(newNode.props);
     }
-    return Object.freeze(newNode);
+    return newNode ? Object.freeze(newNode) : node;
   } else if (Symbol.iterator in node) {
     const array = [];
     for (const e of node)

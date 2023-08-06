@@ -1,10 +1,10 @@
 import * as React from "react";
 import { TodoItemModel } from "./TodoItemModel.js";
-import { model } from "./items.js";
+import { items } from "./items.js";
 
 function remove(item: TodoItemModel) {
-    const index = model.items.indexOf(item);
-    model.items.splice(index, 1);
+    const index = items.indexOf(item);
+    items.splice(index, 1);
 }
 
 export function TodoItem({ item }: { item: TodoItemModel }) {
