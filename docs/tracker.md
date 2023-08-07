@@ -90,3 +90,15 @@ This commits all active transactions and then clears the undo and redo queues.
 ### `startDependencyTrack()`
 
 This returns a [`Dependency`](./dependency.md) that will monitor all the property gets in the object graph.
+
+### `getPropRef(callback)`
+
+This gets a [`PropReference`](./propreference.md) that refers to a particular property on a particular object.  It's similar to a property descriptor, although it has a different implementation.  Multiple request for the same property will always yield a reference identical result.
+
+#### Arguments
+
+* `callback` is a function that retrieves the *value* of the property.  For instance `() => model.foo.bar` will result in the `"bar"` property on the `model.foo` object.  The callback will be invoked.
+
+#### Return value
+
+The tracking proxy will remember the last get operation during the callback.  It will be converted into a [`PropReference`](./propreference.md) and returned.
