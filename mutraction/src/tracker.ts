@@ -9,7 +9,7 @@ import { PropReference, createOrRetrievePropRef } from "./propref.js";
 // model, including undo and redo constitutes a change in the dependency.
 const HistorySentinel = {};
 
-type Subscriber = (mutation: SingleMutation) => void;
+type Subscriber = (mutation: SingleMutation | undefined) => void;
 
 const defaultTrackerOptions = {
     trackHistory: true,
@@ -53,7 +53,7 @@ export class Tracker {
         return { dispose: () => this.#subscribers.delete(callback) };
     }
 
-    #notifySubscribers(mutation: SingleMutation) {
+    #notifySubscribers(mutation: SingleMutation | undefined) {
         if (this.options.deferNotifications) {
             for (const sub of this.#subscribers) queueMicrotask(() => sub(mutation));
         }
@@ -120,9 +120,13 @@ export class Tracker {
         if (transaction && transaction !== actualTransaction)
             throw Error('Attempted to commit wrong transaction. Transactions must be resolved in stack order.');
 
-        while (actualTransaction.operations.length) this.undo();
+        let didSomething = false;
+        while (actualTransaction.operations.length) {
+            this.undo();
+            didSomething = true;
+        }
         this.#transaction = actualTransaction.parent ?? actualTransaction;
-        this.#advanceGeneration();
+        if (didSomething) this.#advanceGeneration();
     }
 
     // undo last mutation or transaction and push into the redo stack
@@ -196,6 +200,8 @@ export class Tracker {
         transaction.parent = undefined;
         transaction.operations.length = 0;
         this.clearRedos();
+        this.#advanceGeneration(); // history can be a dependency
+        this.#notifySubscribers(undefined);
     }
 
     // record a mutation, if you have the secret key

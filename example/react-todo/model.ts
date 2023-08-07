@@ -15,4 +15,8 @@ function modelFactory() {
     };
 }
 
-export const [model, tracker] = track(modelFactory(), options);
+export const [ model, tracker ] = track(modelFactory(), options);
+
+export function modelReset() {
+    Object.assign(model, modelFactory());
+}

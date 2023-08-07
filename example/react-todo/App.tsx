@@ -3,7 +3,7 @@ import { model } from "./model.js";
 import { SortItems } from "./SortItems.js";
 import { TodoItem } from "./TodoItem.js";
 import { AddItem } from "./AddItem.js";
-import { UndoButton } from "./UndoButton.js";
+import { TimeTravel } from "./TimeTravel.js";
 import { key, ChangeHistory } from "mutraction-react";
 
 export function App() {
@@ -15,7 +15,7 @@ export function App() {
         </ul>
         <AddItem />
         <h2>History</h2>
-        <UndoButton />
+        <TimeTravel />
         <ChangeHistory />
     </main>;
 }

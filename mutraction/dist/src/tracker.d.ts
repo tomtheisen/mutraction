@@ -2,7 +2,7 @@ import { RecordDependency, RecordMutation } from "./symbols.js";
 import { Dependency } from "./dependency.js";
 import type { Key, Mutation, SingleMutation, Transaction } from "./types.js";
 import { PropReference } from "./propref.js";
-type Subscriber = (mutation: SingleMutation) => void;
+type Subscriber = (mutation: SingleMutation | undefined) => void;
 declare const defaultTrackerOptions: {
     trackHistory: boolean;
     autoTransactionalize: boolean;

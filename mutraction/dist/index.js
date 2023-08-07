@@ -175,10 +175,14 @@ var Tracker = class {
     const actualTransaction = this.#ensureHistory();
     if (transaction && transaction !== actualTransaction)
       throw Error("Attempted to commit wrong transaction. Transactions must be resolved in stack order.");
-    while (actualTransaction.operations.length)
+    let didSomething = false;
+    while (actualTransaction.operations.length) {
       this.undo();
+      didSomething = true;
+    }
     this.#transaction = actualTransaction.parent ?? actualTransaction;
-    this.#advanceGeneration();
+    if (didSomething)
+      this.#advanceGeneration();
   }
   // undo last mutation or transaction and push into the redo stack
   undo() {
@@ -266,6 +270,8 @@ var Tracker = class {
     transaction.parent = void 0;
     transaction.operations.length = 0;
     this.clearRedos();
+    this.#advanceGeneration();
+    this.#notifySubscribers(void 0);
   }
   // record a mutation, if you have the secret key
   [RecordMutation](mutation) {
