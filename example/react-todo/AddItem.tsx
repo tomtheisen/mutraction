@@ -3,7 +3,7 @@ import { items } from "./items.js";
 import { TodoItemModel } from "./TodoItemModel.js";
 
 export function AddItem() {
-    // you can still use other hooks, such as the infamous `useState`
+    // you can still use other hooks, such as the notorious `useState`
     const [title, setTitle] = React.useState("");
 
     function doAdd(ev: React.SyntheticEvent) {

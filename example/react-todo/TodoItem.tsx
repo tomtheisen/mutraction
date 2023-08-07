@@ -1,6 +1,7 @@
 import * as React from "react";
 import { TodoItemModel } from "./TodoItemModel.js";
 import { items } from "./items.js";
+import { BoundInput } from "mutraction-react";
 
 function remove(item: TodoItemModel) {
     const index = items.indexOf(item);
@@ -8,13 +9,11 @@ function remove(item: TodoItemModel) {
 }
 
 export function TodoItem({ item }: { item: TodoItemModel }) {
-    console.log("i wonder who's calling me? is someone tracking me?");
-
     const display = item.editing
         ? <span>
-            <input value={ item.editingTitle } onChange={ ev => item.editingTitle = ev.target.value } />
+            <BoundInput bindValue={ () => item.editingTitle } />
             <button title="Apply" className="small" onClick={ () => item.saveTitle() }>✅</button>
-            <button title="Cancel" className="small" onClick= {() => item.cancel() }>❌</button>
+            <button title="Cancel" className="small" onClick={ () => item.cancel() }>❌</button>
         </span>
         : <span>
             <button title="Delete" className="small" onClick={ () => remove(item) }>❌</button>

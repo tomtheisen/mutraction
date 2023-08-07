@@ -38,23 +38,32 @@ function syncAllComponents(node) {
     return node;
   }
 }
+var syncedComponentRegistry = /* @__PURE__ */ new WeakMap();
 function sync(Component) {
-  return function TrackedComponent(props, context) {
-    const tracker = useTrackerContext();
-    const deps = tracker.startDependencyTrack();
-    const rendered = Component(props, context);
-    deps.endDependencyTrack();
-    if (deps.trackedObjects.size > 0) {
-      let subscribe2 = function(callback) {
-        const subscription = tracker.subscribe(callback);
-        return () => subscription.dispose();
-      };
-      var subscribe = subscribe2;
-      useSyncExternalStore(subscribe2, () => deps.getLatestChangeGeneration());
+  const synced = syncedComponentRegistry.get(Component);
+  if (synced)
+    return synced;
+  const name = Component.name ? "Tracked:" + Component.name : "TrackedComponent";
+  const namer = {
+    [name]: function(props, context) {
+      const tracker = useTrackerContext();
+      const deps = tracker.startDependencyTrack();
+      const rendered = Component(props, context);
+      deps.endDependencyTrack();
+      if (deps.trackedObjects.size > 0) {
+        let subscribe2 = function(callback) {
+          const subscription = tracker.subscribe(callback);
+          return () => subscription.dispose();
+        };
+        var subscribe = subscribe2;
+        useSyncExternalStore(subscribe2, () => deps.getLatestChangeGeneration());
+      }
+      const result = syncAllComponents(rendered);
+      return result;
     }
-    const result = syncAllComponents(rendered);
-    return result;
   };
+  syncedComponentRegistry.set(Component, namer[name]);
+  return namer[name];
 }
 
 // out/src/key.js

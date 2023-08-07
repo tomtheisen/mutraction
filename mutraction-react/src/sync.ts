@@ -44,6 +44,10 @@ function syncAllComponents(node: React.ReactNode): React.ReactNode {
     }
 }
 
+// maps from un-tracked to tracked components
+// Reference equality is necessary for reconciliation, so we keep only one of each
+const syncedComponentRegistry: WeakMap<React.FC<any>, React.FC<any>> = new WeakMap;
+
 /**
  * Higher-order react component.  It retrieves a mutraction Tracker from react context.
  * Then it uses it to listen for property reads within the whole component tree.
@@ -54,31 +58,42 @@ function syncAllComponents(node: React.ReactNode): React.ReactNode {
  * @returns a wrapped tracking component
  */
 export function sync<P extends {}>(Component: React.FC<P>): React.FC<P> {
-    return function TrackedComponent(props: P, context?: any) {
-        const tracker = useTrackerContext();
+    const synced = syncedComponentRegistry.get(Component);
+    if (synced) return synced;
 
-        const deps = tracker.startDependencyTrack();
-        const rendered: React.ReactNode = Component(props, context);
-        deps.endDependencyTrack();
-
-        if (deps.trackedObjects.size > 0) {
-            function subscribe(callback: () => void) {
-                const subscription = tracker.subscribe(callback);
-                return () => subscription.dispose();
+    const name = Component.name ? "Tracked:" + Component.name : "TrackedComponent";
+    // this object gives the function a .name property
+    const namer = {
+        [name]: function(props: P, context?: any) {
+            const tracker = useTrackerContext();
+    
+            const deps = tracker.startDependencyTrack();
+            const rendered: React.ReactNode = Component(props, context);
+            deps.endDependencyTrack();
+    
+            if (deps.trackedObjects.size > 0) {
+                function subscribe(callback: () => void) {
+                    const subscription = tracker.subscribe(callback);
+                    return () => subscription.dispose();
+                }
+    
+                // Call the police! Conditional hook!
+                // You could make this if unconditional.  
+                // It would just be doing extra work.
+                // It's theoretically possible that 
+                //    * something else would cause this to re-render
+                //    * a dependency would be found based on conditional logic of a non-tracked property
+                // If that ever happens, something else would need to be done here.
+                // But I bet it won't.
+                useSyncExternalStore(subscribe, () => deps.getLatestChangeGeneration());
             }
-
-            // Call the police! Conditional hook!
-            // You could make this if unconditional.  
-            // It would just be doing extra work.
-            // It's theoretically possible that 
-            //    * something else would cause this to re-render
-            //    * a dependency would be found based on conditional logic of a non-tracked property
-            // If that ever happens, something else would need to be done here.
-            // But I bet it won't.
-            useSyncExternalStore(subscribe, () => deps.getLatestChangeGeneration());
+    
+            const result = syncAllComponents(rendered);
+            return result;
         }
+    };
 
-        const result = syncAllComponents(rendered);
-        return result;
-    }
+    syncedComponentRegistry.set(Component, namer[name]);
+
+    return namer[name];
 }
