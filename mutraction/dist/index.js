@@ -89,7 +89,7 @@ var HistorySentinel = {};
 var defaultTrackerOptions = {
   trackHistory: true,
   autoTransactionalize: false,
-  deferNotifications: true,
+  deferNotifications: false,
   compactOnCommit: true
 };
 var Tracker = class {

@@ -14,7 +14,7 @@ type Subscriber = (mutation: SingleMutation) => void;
 const defaultTrackerOptions = {
     trackHistory: true,
     autoTransactionalize: false,
-    deferNotifications: true,
+    deferNotifications: false,
     compactOnCommit: true,
 };
 
