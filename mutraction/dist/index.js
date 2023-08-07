@@ -167,6 +167,10 @@ var Tracker = class {
     parent.operations.push(actualTransaction);
     actualTransaction.parent = void 0;
     this.#transaction = parent;
+    if (this.#transaction.parent == null) {
+      this.#advanceGeneration();
+      this.#notifySubscribers(void 0);
+    }
   }
   // undo all operations done since the beginning of the most recent trasaction
   // remove it from the transaction stack

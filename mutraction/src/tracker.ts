@@ -109,6 +109,12 @@ export class Tracker {
         parent.operations.push(actualTransaction);
         actualTransaction.parent = undefined;
         this.#transaction = parent;
+
+        if (this.#transaction.parent == null) {
+            // top level transaction, notify any history dependency
+            this.#advanceGeneration();
+            this.#notifySubscribers(undefined);
+        }
     }
 
     // undo all operations done since the beginning of the most recent trasaction
