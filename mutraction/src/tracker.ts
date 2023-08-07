@@ -200,10 +200,9 @@ export class Tracker {
 
     // record a mutation, if you have the secret key
     [RecordMutation](mutation: SingleMutation) {
-        if (this.#transaction) {
-            // history tracking is enabled
-            this.#transaction.operations.push(Object.freeze(mutation));
-        }
+        // if history tracking is enabled
+        this.#transaction?.operations.push(Object.freeze(mutation));
+
         this.clearRedos();
         this.#advanceGeneration();
         this.setLastChangeGeneration(mutation.target);

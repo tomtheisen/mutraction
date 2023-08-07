@@ -269,9 +269,7 @@ var Tracker = class {
   }
   // record a mutation, if you have the secret key
   [RecordMutation](mutation) {
-    if (this.#transaction) {
-      this.#transaction.operations.push(Object.freeze(mutation));
-    }
+    this.#transaction?.operations.push(Object.freeze(mutation));
     this.clearRedos();
     this.#advanceGeneration();
     this.setLastChangeGeneration(mutation.target);

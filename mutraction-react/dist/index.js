@@ -113,9 +113,9 @@ function BoundTextarea({ bindValue, ...props }) {
   return React2.createElement("textarea", { ...props, value: ref.current, onInput: change });
 }
 
-// out/src/Mutrack.js
+// out/src/SyncTree.js
 import React3 from "react";
-function Mutrack({ tracker, component }) {
+function SyncTree({ tracker, component }) {
   const Synced = sync(component);
   return React3.createElement(
     TrackerContext.Provider,
@@ -128,7 +128,7 @@ export {
   BoundInput,
   BoundTextarea,
   ChangeHistory,
-  Mutrack,
+  SyncTree,
   TrackerContext,
   key,
   sync,

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';
 import { track } from 'mutraction';
-import { BoundInput, Mutrack } from 'mutraction-react';
+import { BoundInput, SyncTree } from 'mutraction-react';
 
 const [model, tracker] = track({ 
     first: "Donald", 
@@ -20,4 +20,4 @@ function App() {
 };
 
 const root = createRoot(document.getElementById('root')!);
-root.render(<Mutrack tracker={ tracker } component={ App } />);
+root.render(<SyncTree tracker={ tracker } component={ App } />);
