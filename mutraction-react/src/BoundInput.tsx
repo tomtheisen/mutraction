@@ -1,4 +1,4 @@
-import React, { JSX, useCallback } from "react"
+import React, { JSX, useCallback, useEffect, useRef } from "react"
 import { useTrackerContext } from "./TrackerContext.js";
 
 type BoundInputProps = 
@@ -12,7 +12,6 @@ export function BoundInput({ bindValue, ...props }: BoundInputProps) {
         (ev: React.FormEvent<HTMLInputElement>) => ref.current = ev.currentTarget.value, 
         [ref]);
     
-    // todo: use refs and native events
     return <input { ...props } value={ ref.current } onInput={ change } />;
 }
 
@@ -27,6 +26,20 @@ type BoundCheckboxProps =
         (ev: React.FormEvent<HTMLInputElement>) => ref.current = ev.currentTarget.checked, 
         [ref]);
     
-    // todo: use refs and native events
     return <input type="checkbox" { ...props } checked={ ref.current } onChange={ change } />;
 }
+
+type BoundTextareaProps = 
+    { bindValue: () => string }
+    & Omit<JSX.IntrinsicElements["textarea"], "value" | "onInput">;
+
+export function BoundTextarea({ bindValue, ...props }: BoundTextareaProps) {
+    const tracker = useTrackerContext();
+    const ref = tracker.getPropRef(bindValue);
+    const change = useCallback(
+        (ev: React.FormEvent<HTMLTextAreaElement>) => ref.current = ev.currentTarget.value, 
+        [ref]);
+    
+    return <textarea { ...props } value={ ref.current } onInput={ change } />;
+}
+

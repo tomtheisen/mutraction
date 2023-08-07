@@ -1,21 +1,19 @@
 import * as React from "react";
-import { items } from "./items.js";
+import { model } from "./model.js";
 import { TodoItemModel } from "./TodoItemModel.js";
+import { BoundInput } from "mutraction-react";
 
 export function AddItem() {
-    // you can still use other hooks, such as the notorious `useState`
-    const [title, setTitle] = React.useState("");
-
     function doAdd(ev: React.SyntheticEvent) {
-        setTitle("");
-        items.push(new TodoItemModel(title));
+        model.items.push(new TodoItemModel(model.newName));
+        model.newName = ""
         ev.preventDefault();
     }
 
     return <form onSubmit={ doAdd }>
         <label>
             New item:
-            <input value={ title } onChange={ ev => setTitle(ev.target.value) } />
+            <BoundInput bindValue={() => model.newName} />
         </label>
         <button onClick={ doAdd }>Add</button>
     </form>

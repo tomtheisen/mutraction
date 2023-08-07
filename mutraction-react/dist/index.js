@@ -106,6 +106,12 @@ function BoundCheckbox({ bindChecked, ...props }) {
   const change = useCallback((ev) => ref.current = ev.currentTarget.checked, [ref]);
   return React2.createElement("input", { type: "checkbox", ...props, checked: ref.current, onChange: change });
 }
+function BoundTextarea({ bindValue, ...props }) {
+  const tracker = useTrackerContext();
+  const ref = tracker.getPropRef(bindValue);
+  const change = useCallback((ev) => ref.current = ev.currentTarget.value, [ref]);
+  return React2.createElement("textarea", { ...props, value: ref.current, onInput: change });
+}
 
 // out/src/Mutrack.js
 import React3 from "react";
@@ -120,6 +126,7 @@ function Mutrack({ tracker, component }) {
 export {
   BoundCheckbox,
   BoundInput,
+  BoundTextarea,
   ChangeHistory,
   Mutrack,
   TrackerContext,

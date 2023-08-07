@@ -1,11 +1,11 @@
 import * as React from "react";
 import { TodoItemModel } from "./TodoItemModel.js";
-import { items } from "./items.js";
+import { model } from "./model.js";
 import { BoundInput, BoundCheckbox } from "mutraction-react";
 
 function remove(item: TodoItemModel) {
-    const index = items.indexOf(item);
-    items.splice(index, 1);
+    const index = model.items.indexOf(item);
+    model.items.splice(index, 1);
 }
 
 export function TodoItem({ item }: { item: TodoItemModel }) {

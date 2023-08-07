@@ -35,6 +35,8 @@ export declare class Tracker {
     /**
      * Gets a property reference that refers to a particular property on a particular object.
      * It can get or set the target property value using the `current` property, so it's a valid React ref.
+     * If there's an existing PropRef matching the arguments, it will be returned.
+     * A new one will be created only if necessary.
      * @param propGetter parameter-less function that gets the target property value e.g. `() => model.settings.logFile`
      * @returns PropReference for an object property
      */
