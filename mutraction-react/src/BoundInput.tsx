@@ -8,10 +8,7 @@ type BoundInputProps =
 export function BoundInput({ bindValue, ...props }: BoundInputProps) {
     const tracker = useTrackerContext();
     const ref = tracker.getPropRef(bindValue);
-    const change = useCallback(
-        (ev: React.FormEvent<HTMLInputElement>) => ref.current = ev.currentTarget.value, 
-        [ref]);
-    
+    const change = (ev: React.FormEvent<HTMLInputElement>) => ref.current = ev.currentTarget.value;
     return <input { ...props } value={ ref.current } onInput={ change } />;
 }
 
@@ -22,10 +19,7 @@ type BoundCheckboxProps =
     export function BoundCheckbox({ bindChecked, ...props }: BoundCheckboxProps) {
     const tracker = useTrackerContext();
     const ref = tracker.getPropRef(bindChecked);
-    const change = useCallback(
-        (ev: React.FormEvent<HTMLInputElement>) => ref.current = ev.currentTarget.checked, 
-        [ref]);
-    
+    const change = (ev: React.FormEvent<HTMLInputElement>) => ref.current = ev.currentTarget.checked;
     return <input type="checkbox" { ...props } checked={ ref.current } onChange={ change } />;
 }
 
@@ -36,10 +30,7 @@ type BoundTextareaProps =
 export function BoundTextarea({ bindValue, ...props }: BoundTextareaProps) {
     const tracker = useTrackerContext();
     const ref = tracker.getPropRef(bindValue);
-    const change = useCallback(
-        (ev: React.FormEvent<HTMLTextAreaElement>) => ref.current = ev.currentTarget.value, 
-        [ref]);
-    
+    const change = (ev: React.FormEvent<HTMLTextAreaElement>) => ref.current = ev.currentTarget.value;
     return <textarea { ...props } value={ ref.current } onInput={ change } />;
 }
 

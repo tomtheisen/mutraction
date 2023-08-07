@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useTrackerContext } from "mutraction-react";
-import { model, modelReset, tracker } from "./model.js";
+import { model, modelReset } from "./model.js";
 
 const localKey = "mutraction:todo"
 

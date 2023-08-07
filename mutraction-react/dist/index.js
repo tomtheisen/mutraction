@@ -93,23 +93,23 @@ var ChangeHistory = () => {
 };
 
 // out/src/BoundInput.js
-import React2, { useCallback } from "react";
+import React2 from "react";
 function BoundInput({ bindValue, ...props }) {
   const tracker = useTrackerContext();
   const ref = tracker.getPropRef(bindValue);
-  const change = useCallback((ev) => ref.current = ev.currentTarget.value, [ref]);
+  const change = (ev) => ref.current = ev.currentTarget.value;
   return React2.createElement("input", { ...props, value: ref.current, onInput: change });
 }
 function BoundCheckbox({ bindChecked, ...props }) {
   const tracker = useTrackerContext();
   const ref = tracker.getPropRef(bindChecked);
-  const change = useCallback((ev) => ref.current = ev.currentTarget.checked, [ref]);
+  const change = (ev) => ref.current = ev.currentTarget.checked;
   return React2.createElement("input", { type: "checkbox", ...props, checked: ref.current, onChange: change });
 }
 function BoundTextarea({ bindValue, ...props }) {
   const tracker = useTrackerContext();
   const ref = tracker.getPropRef(bindValue);
-  const change = useCallback((ev) => ref.current = ev.currentTarget.value, [ref]);
+  const change = (ev) => ref.current = ev.currentTarget.value;
   return React2.createElement("textarea", { ...props, value: ref.current, onInput: change });
 }
 
