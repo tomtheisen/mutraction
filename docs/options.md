@@ -38,7 +38,7 @@ model.prop2 = val2;
 // subscribers are notified for both changes later
 ```
 
-The default value for `deferNotifications` is `true`.
+The default value for `deferNotifications` is `false`.
 
 ### `compactOnCommit`: boolean?
 

@@ -40,28 +40,21 @@ I wanted to make an undo/time-travel feature without immutability.  I like immut
 If you have to.  There's a react integration called `mutraction-react` on npm.  It works like this.  You can also [try it in a sandbox](https://codesandbox.io/s/mutraction-react-demo-9yfylw?file=/src/index.js).
 
 ```tsx
-// state lives outside the component
-const [model, sync] = trackAndSync({count: 0});
+// state can live outside components
+const [model, tracker] = track({ count: 0 });
 
-function increase() { 
-    ++model.count; // look at this, literally ++
+function App() {
+    // look at this, literally ++ in react
+    return <>
+        <button onClick={ () => ++model.count }>+1</button>
+        <p>Click count: { model.count }</p>
+    </>;
 }
 
-const CountDisplay = sync(
-    () => <p>Click count: { model.count }</p>);
-
-const ClickButton = sync(
-    () => <button onClick={ increase }>+1</button>);
-
-const App = sync(function App() {
-    return <>
-        <ClickButton />
-        <CountDisplay />
-    </>;
-});
-
 const root = createRoot(document.getElementById('root')!);
-root.render(<App />);
+// Here's where the magic happens. SyncTree wires up all 
+// of its descendants to listen for changes from the tracker.
+root.render(<SyncTree tracker={ tracker } component={ App } />);
 ```
 
 ## Does it really work like that?
