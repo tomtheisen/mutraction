@@ -14,8 +14,9 @@ export function App() {
             { model.items.map(e => <TodoItem item={ e } key={ key(e) } />) }
         </ul>
         <AddItem />
-        <h2>History</h2>
+        <hr />
         <TimeTravel />
+        <h2>History</h2>
         <ChangeHistory />
     </main>;
 }

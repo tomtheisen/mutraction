@@ -5,7 +5,7 @@
     "type": "git",
     "url": "git+https://github.com/tomtheisen/mutraction.git"
   },
-  "version": "0.12.0",
+  "version": "0.12.1",
   "description": "Transactional reactive state management based on simple mutation.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
