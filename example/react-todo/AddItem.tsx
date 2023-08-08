@@ -14,6 +14,6 @@ export function AddItem() {
             New item:
             <BoundInput bindValue={() => model.newName} />
         </label>
-        <button onClick={ doAdd }>Add</button>
+        <button onClick={ doAdd } disabled={ model.newName === "" } >Add</button>
     </form>
 }
