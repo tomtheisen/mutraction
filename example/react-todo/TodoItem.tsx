@@ -26,7 +26,7 @@ export function TodoItem({ item }: { item: TodoItem }) {
     console.log(isTracked(item));
     const display = item.editing
         ? <span>
-            <BoundInput bindValue={ () => item.editingTitle ?? ""} />
+            <BoundInput bindValue={ () => item.editingTitle } />
             <button title="Apply"  className="small" onClick={ () => saveTitle(item)    }>✅</button>
             <button title="Cancel" className="small" onClick={ () => cancel(item)       }>❌</button>
         </span>
@@ -34,7 +34,7 @@ export function TodoItem({ item }: { item: TodoItem }) {
             <button title="Delete" className="small" onClick={ () => remove(item)       }>❌</button>
             <button title="Edit"   className="small" onClick={ () => startEditing(item) }>✏️</button>
             <label>
-                <BoundCheckbox bindChecked={ () => !!item.done } />
+                <BoundCheckbox bindChecked={ () => item.done } />
                 <span className={ item.done ? "done" : "" }>{ item.title }</span>
             </label>
         </span>;
