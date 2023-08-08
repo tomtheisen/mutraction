@@ -1,25 +1,40 @@
 import * as React from "react";
-import { TodoItemModel } from "./TodoItemModel.js";
-import { model } from "./model.js";
+import { model, TodoItem } from "./model.js";
 import { BoundInput, BoundCheckbox } from "mutraction-react";
+import { isTracked } from "mutraction";
 
-function remove(item: TodoItemModel) {
+function remove(item: TodoItem) {
     const index = model.items.indexOf(item);
     model.items.splice(index, 1);
 }
 
-export function TodoItem({ item }: { item: TodoItemModel }) {
+function startEditing(item: TodoItem) {
+    item.editing = true;
+    item.editingTitle = item.title;
+}
+
+function saveTitle(item: TodoItem) {
+    item.editing = false;
+    item.title = item.editingTitle ?? "";
+}
+
+function cancel(item: TodoItem) {
+    item.editing = false;
+}
+
+export function TodoItem({ item }: { item: TodoItem }) {
+    console.log(isTracked(item));
     const display = item.editing
         ? <span>
-            <BoundInput bindValue={ () => item.editingTitle } />
-            <button title="Apply"  className="small" onClick={ () => item.saveTitle()    }>✅</button>
-            <button title="Cancel" className="small" onClick={ () => item.cancel()       }>❌</button>
+            <BoundInput bindValue={ () => item.editingTitle ?? ""} />
+            <button title="Apply"  className="small" onClick={ () => saveTitle(item)    }>✅</button>
+            <button title="Cancel" className="small" onClick={ () => cancel(item)       }>❌</button>
         </span>
         : <span>
-            <button title="Delete" className="small" onClick={ () => remove(item)        }>❌</button>
-            <button title="Edit"   className="small" onClick={ () => item.startEditing() }>✏️</button>
+            <button title="Delete" className="small" onClick={ () => remove(item)       }>❌</button>
+            <button title="Edit"   className="small" onClick={ () => startEditing(item) }>✏️</button>
             <label>
-                <BoundCheckbox bindChecked={ () => item.done } />
+                <BoundCheckbox bindChecked={ () => !!item.done } />
                 <span className={ item.done ? "done" : "" }>{ item.title }</span>
             </label>
         </span>;

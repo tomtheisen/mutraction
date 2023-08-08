@@ -1,5 +1,11 @@
 import { track } from "mutraction";
-import { TodoItemModel } from "./TodoItemModel.js";
+
+export type TodoItem = {
+    title: string;
+    editingTitle?: string;
+    editing?: boolean;
+    done?: boolean;
+}
 
 // automatially turn method calls into transactions
 const options = { autoTransactionalize: true };
@@ -8,10 +14,10 @@ function modelFactory() {
     return {
         newName: "",
         items: [
-            new TodoItemModel("Get some groceries"),
-            new TodoItemModel("Feed the cat"),
-            new TodoItemModel("Track some mutations"),
-        ],
+            { title: "Get some groceries" },
+            { title: "Feed the cat" },
+            { title: "Track some mutations" },
+        ] as TodoItem[],
     };
 }
 

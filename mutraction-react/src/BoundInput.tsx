@@ -2,7 +2,7 @@ import React, { JSX, useCallback, useEffect, useRef } from "react"
 import { useTrackerContext } from "./TrackerContext.js";
 
 type BoundInputProps = 
-    { bindValue: () => string }
+    { bindValue: () => string | undefined }
     & Omit<JSX.IntrinsicElements["input"], "value" | "onInput">;
 
 export function BoundInput({ bindValue, ...props }: BoundInputProps) {
@@ -13,7 +13,7 @@ export function BoundInput({ bindValue, ...props }: BoundInputProps) {
 }
 
 type BoundCheckboxProps = 
-    { bindChecked: () => boolean }
+    { bindChecked: () => boolean | undefined}
     & Omit<JSX.IntrinsicElements["input"], "value" | "onChange" | "type">;
 
     export function BoundCheckbox({ bindChecked, ...props }: BoundCheckboxProps) {
@@ -24,7 +24,7 @@ type BoundCheckboxProps =
 }
 
 type BoundTextareaProps = 
-    { bindValue: () => string }
+    { bindValue: () => string | undefined }
     & Omit<JSX.IntrinsicElements["textarea"], "value" | "onInput">;
 
 export function BoundTextarea({ bindValue, ...props }: BoundTextareaProps) {
