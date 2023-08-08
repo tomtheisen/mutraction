@@ -5,6 +5,7 @@ import { TodoItem } from "./TodoItem.js";
 import { AddItem } from "./AddItem.js";
 import { TimeTravel } from "./TimeTravel.js";
 import { key, ChangeHistory } from "mutraction-react";
+import { ModelVisualizer } from "./ModelVisualizer.js";
 
 export function App() {
     return <main>
@@ -16,8 +17,16 @@ export function App() {
         <AddItem />
         <hr />
         <TimeTravel />
-        <h2>History</h2>
-        <ChangeHistory />
+        <div id="inspect">
+            <div>
+                <h2>Raw Model</h2>
+                <ModelVisualizer value={ model } />
+            </div>
+            <div>
+                <h2>History</h2>
+                <ChangeHistory />
+            </div>
+        </div>
     </main>;
 }
 

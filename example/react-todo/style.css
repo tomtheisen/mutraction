@@ -17,3 +17,12 @@ button, input, textarea {
 .small {
     font-size: 70%;
 }
+
+#inspect {
+    display: flex;
+}
+
+#inspect > * {
+    flex-grow: 1;
+    flex-basis: 0;
+}
