@@ -2,26 +2,28 @@ import { track } from "mutraction";
 
 export type TodoItem = {
     title: string;
-    editingTitle?: string;
-    editing?: boolean;
-    done?: boolean;
+    editingTitle: string;
+    editing: boolean;
+    done: boolean;
 }
 
-// automatially turn method calls into transactions
-const options = { autoTransactionalize: true };
+export function makeTodoItem(title: string): TodoItem {
+    return { title, done: false, editing: false, editingTitle: "" };
+}
 
 function modelFactory() {
     return {
         newName: "",
         items: [
-            { title: "Get some groceries" },
-            { title: "Feed the cat" },
-            { title: "Track some mutations" },
-        ] as TodoItem[],
+            makeTodoItem("Get some groceries"),
+            makeTodoItem("Feed the cat"),
+            makeTodoItem("Track some mutations"),
+        ],
     };
 }
 
-export const [ model, tracker ] = track(modelFactory(), options);
+// automatially turn method calls into transactions
+export const [ model, tracker ] = track(modelFactory(), { autoTransactionalize: true });
 
 export function modelReset() {
     Object.assign(model, modelFactory());

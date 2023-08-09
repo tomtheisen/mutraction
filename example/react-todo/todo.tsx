@@ -6,4 +6,7 @@ import { tracker } from "./model.js";
 
 
 const root = createRoot(document.getElementById('root')!);
-root.render(<SyncTree tracker={ tracker } component={ App } />);
+root.render(
+    <React.StrictMode>
+        <SyncTree tracker={ tracker } component={ App } />
+    </React.StrictMode>);

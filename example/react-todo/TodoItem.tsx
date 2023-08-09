@@ -23,7 +23,6 @@ function cancel(item: TodoItem) {
 }
 
 export function TodoItem({ item }: { item: TodoItem }) {
-    console.log(isTracked(item));
     const display = item.editing
         ? <span>
             <BoundInput bindValue={ () => item.editingTitle } />

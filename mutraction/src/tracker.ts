@@ -280,9 +280,16 @@ export class Tracker {
         this.#gettingPropRef = true;
         this.#lastPropRef = undefined;
         try {
-            propGetter();
+            const actualValue = propGetter();
             if (!this.#lastPropRef)
                 throw Error("No tracked properties.  Prop ref detection requires a tracked object.");
+                        
+            const propRefCurrent = (this.#lastPropRef as PropReference).current;
+            if (!Object.is(actualValue, propRefCurrent))
+                console.error(
+                    "The last operation of the callback must be a property get.\n"+
+                    "`(foo || bar).quux` is allowed, but `foo.bar + 1` is not");
+
             return this.#lastPropRef;
         }
         finally {
