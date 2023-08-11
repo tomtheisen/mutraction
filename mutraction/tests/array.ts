@@ -25,14 +25,14 @@ test('array atomicity', () => {
 });
 
 test('array detection', () => {
-    const [arr, tracker] = track([]);
+    const [arr] = track([]);
 
     assert.ok(isTracked(arr));
     assert.ok(Array.isArray(arr));
 });
 
 test('no history arrays', () => {
-    const [arr, tracker] = track([1], { trackHistory: false });
+    const [arr] = track([1], { trackHistory: false });
 
     arr.push(2);
 
@@ -41,7 +41,7 @@ test('no history arrays', () => {
 });
 
 test('array lengthen', () => {
-    const [arr, tracker] = track([]);
+    const [arr] = track([]);
 
     arr.length = 10;
     assert.equal(arr.length, 10);

@@ -1,4 +1,4 @@
-# `isTracked`
+# `isTracked()`
 
 This tests whether an object has a [tracker](./tracker.md) attached.
 

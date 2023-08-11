@@ -7,6 +7,7 @@ This is the basic state tracking package.  You can use it on its own.  It's `mut
 * **[`track()`](./track.md)** - start here 
 * [`trackAsReadOnlyDeep()`](./trackAsReadOnlyDeep.md)
 * [`isTracked()`](./istracked.md)
+* [`effect()`](./effect.md)
 * [`Tracker`](./tracker.md)
 * [`Dependency`](./dependency.md)
 

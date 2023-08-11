@@ -29,6 +29,24 @@ test('dependencies update after effect runs', () => {
 
     model.cond2 = true;
     assert.ok(target);
-})
+});
+
+test('effect dispose', () => {
+    const [model, tracker] = track({a:999} as any);
+
+    let runs = 0;
+    const fx = effect(tracker, () => (model.a, ++runs));
+    assert.equal(runs, 1);
+
+    model.a++;
+    assert.equal(runs, 2);
+
+    model.a++;
+    assert.equal(runs, 3);
+
+    fx.dispose();
+    model.a++;
+    assert.equal(runs, 3);
+});
 
 test.run();

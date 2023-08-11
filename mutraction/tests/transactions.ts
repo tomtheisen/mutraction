@@ -1,7 +1,7 @@
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
-import { track, trackAsReadonlyDeep, isTracked } from '../index.js';
+import { track } from '../index.js';
 
 test('array push and transaction', () => {
     const [model, tracker] = track([] as any);
@@ -53,11 +53,12 @@ test('transaction does not obscure history', () => {
 });
 
 test('transaction out of order resolution fails', () => {
-    const [model, tracker] = track({} as any);
+    const [, tracker] = track({} as any);
 
     const t1 = tracker.startTransaction();
     const t2 = tracker.startTransaction();
     assert.throws(() => tracker.commit(t1));
+    tracker.commit(t2);
 });
 
 test('auto rollback on throw', () => {

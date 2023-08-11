@@ -1,7 +1,7 @@
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
-import { track, isTracked } from '../index.js';
+import { track } from '../index.js';
 
 test('undo delete redo', () => {
     const [model, tracker] = track({ foo: "bar", x: 123 } as any);
@@ -41,7 +41,7 @@ test('array shift rollback test', () => {
 });
 
 test('arguments untrackable', () => {
-    const [model, tracker] = track({whatever: 'x'} as any);
+    const [model] = track({whatever: 'x'} as any);
 
     assert.throws(function() { model.some = arguments; });
 });
