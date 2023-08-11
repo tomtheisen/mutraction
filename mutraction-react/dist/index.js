@@ -115,8 +115,11 @@ function BoundTextarea({ bindValue, ...props }) {
 
 // out/src/SyncTree.js
 import React3 from "react";
-function SyncTree({ tracker, component }) {
-  const Synced = sync(component);
+function SyncTree({ tracker, component, children }) {
+  component ??= children;
+  if (typeof component !== "function")
+    throw Error("SyncTree requires either a 'component' prop or a single child that is a function component");
+  const Synced = sync(component ?? children);
   return React3.createElement(
     TrackerContext.Provider,
     { value: tracker },
