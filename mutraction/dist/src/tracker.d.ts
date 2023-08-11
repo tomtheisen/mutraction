@@ -1,6 +1,6 @@
 import { RecordDependency, RecordMutation } from "./symbols.js";
 import { DependencyList } from "./dependency.js";
-import type { Key, Mutation, SingleMutation, Transaction } from "./types.js";
+import type { Mutation, SingleMutation, Transaction } from "./types.js";
 import { PropReference } from "./propref.js";
 type Subscriber = (mutation: SingleMutation | undefined) => void;
 declare const defaultTrackerOptions: {
@@ -29,7 +29,7 @@ export declare class Tracker {
     [RecordMutation](mutation: SingleMutation): void;
     startDependencyTrack(): DependencyList;
     endDependencyTrack(dep: DependencyList): DependencyList;
-    [RecordDependency](target: object, name: Key): void;
+    [RecordDependency](propRef: PropReference): void;
     /**
      * Gets a property reference that refers to a particular property on a particular object.
      * It can get or set the target property value using the `current` property, so it's a valid React ref.

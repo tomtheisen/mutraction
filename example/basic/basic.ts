@@ -60,7 +60,7 @@ const dep = tracker.startDependencyTrack();
 dep.endDependencyTrack();
 
 // (these are `character` and `character.aptitudes`)
-console.log(dep.trackedObjects.size); // 2 
+console.log(dep.trackedProperties.size); // 2 
 
 // dependency versioning
 const gen1 = dep.getLatestChangeGeneration();
