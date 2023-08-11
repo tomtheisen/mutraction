@@ -71,7 +71,7 @@ export function sync<P extends {}>(Component: React.FC<P>): React.FC<P> {
             const rendered: React.ReactNode = Component(props, context);
             deps.endDependencyTrack();
     
-            if (deps.trackedObjects.size > 0) {
+            if (deps.trackedProperties.size > 0) {
                 function subscribe(callback: () => void) {
                     const subscription = tracker.subscribe(callback);
                     return () => subscription.dispose();

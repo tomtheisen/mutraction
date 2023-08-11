@@ -1,9 +1,11 @@
+import { PropReference } from "./propref.js";
 import { Tracker } from "./tracker.js";
-export declare class Dependency {
+import { Key } from "./types.js";
+export declare class DependencyList {
     #private;
-    trackedObjects: Set<object>;
+    trackedProperties: Set<PropReference<any>>;
     constructor(tracker: Tracker);
-    addDependency(target: object): void;
+    addDependency(target: object, name: Key): void;
     endDependencyTrack(): void;
     getLatestChangeGeneration(): number;
 }

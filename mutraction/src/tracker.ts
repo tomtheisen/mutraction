@@ -1,13 +1,8 @@
-import { LastChangeGeneration, ProxyOf, RecordDependency, RecordMutation } from "./symbols.js";
-import { Dependency } from "./dependency.js";
+import { RecordDependency, RecordMutation } from "./symbols.js";
+import { DependencyList } from "./dependency.js";
 import { compactTransaction } from "./compactTransaction.js";
-import type { Key, Mutation, SingleMutation, Transaction } from "./types.js";
-import { PropReference, createOrRetrievePropRef } from "./propref.js";
-
-// When found in a dependency list, the presence of this object indicates
-// that the tracker history itself is a dependency.  Any change to the
-// model, including undo and redo constitutes a change in the dependency.
-const HistorySentinel = {};
+import type { Mutation, SingleMutation, Transaction } from "./types.js";
+import { PropReference, SetGeneration, createOrRetrievePropRef } from "./propref.js";
 
 type Subscriber = (mutation: SingleMutation | undefined) => void;
 
@@ -69,9 +64,12 @@ export class Tracker {
 
     get history(): ReadonlyArray<Readonly<Mutation>> {
         this.#ensureHistory();
+
         // reading the history can create a dependency too, not just the tracked model, 
         // for use cases that depend on the tracker history
-        this[RecordDependency](HistorySentinel, "history");
+        for (const dt of this.#dependencyTrackers) {
+            dt.trackAllChanges();
+        }
 
         if (!this.#rootTransaction) 
             throw Error("History tracking enabled, but no root transaction. Probably mutraction internal error.");
@@ -151,7 +149,7 @@ export class Tracker {
             }
         }
         else {
-            this.setLastChangeGeneration(mutation.target);
+            this.#setLastChangeGeneration(mutation);
             const targetAny = mutation.target as any;
             switch (mutation.type) {
                 case 'change':
@@ -181,7 +179,7 @@ export class Tracker {
             }
         }
         else {
-            this.setLastChangeGeneration(mutation.target);
+            this.#setLastChangeGeneration(mutation);
             const targetAny = mutation.target as any;
             switch (mutation.type) {
                 case 'change':
@@ -217,49 +215,34 @@ export class Tracker {
 
         this.clearRedos();
         this.#advanceGeneration();
-        this.setLastChangeGeneration(mutation.target);
+        this.#setLastChangeGeneration(mutation);
         this.#notifySubscribers(mutation);
     }
 
-    getLastChangeGeneration(target: object) {
-        // The history itself is a dependency.  Therefore, every change to the model
-        // affects this dependency.  So return the tracker's current generation.
-        if (target === HistorySentinel) return this.generation;
-
-        return (target as any)[LastChangeGeneration] ?? 0;
+    #setLastChangeGeneration(mutation: SingleMutation) {
+        createOrRetrievePropRef(mutation.target, mutation.name)[SetGeneration](this.generation);
     }
 
-    setLastChangeGeneration(target: object) {
-        if (!Object.hasOwn(target, LastChangeGeneration)) {
-            Object.defineProperty(target, LastChangeGeneration, {
-                enumerable: false,
-                writable: true,
-                configurable: false,
-            });
-        }
-        (target as any)[LastChangeGeneration] = this.generation;
-    }
+    #dependencyTrackers: Set<DependencyList> = new Set;
 
-    #dependencyTrackers: Set<Dependency> = new Set;
-
-    startDependencyTrack(): Dependency {
-        let deps = new Dependency(this);
+    startDependencyTrack(): DependencyList {
+        let deps = new DependencyList(this);
         this.#dependencyTrackers.add(deps);
         return deps;
     }
 
-    endDependencyTrack(dep: Dependency): Dependency {
+    endDependencyTrack(dep: DependencyList): DependencyList {
         const wasTracking = this.#dependencyTrackers.delete(dep);
         if (!wasTracking) throw Error('Dependency tracker was not active on this tracker');
         return dep;
     }
 
-    [RecordDependency](target: object, name: Key) {
+    [RecordDependency](propRef: PropReference) {
         for (const dt of this.#dependencyTrackers) {
-            dt.addDependency(target);
+            dt.addDependency(propRef);
         }
         if (this.#gettingPropRef) {
-            this.#lastPropRef = createOrRetrievePropRef((target as any)[ProxyOf], name);
+            this.#lastPropRef = propRef;
         }
     }
 

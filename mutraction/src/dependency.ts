@@ -1,25 +1,33 @@
+import { PropReference } from "./propref.js";
 import { Tracker } from "./tracker.js";
 
-export class Dependency {
-    trackedObjects = new Set<object>;
+export class DependencyList {
+    trackedProperties = new Set<PropReference>;
     #tracker: Tracker;
+    #tracksAllChanges = false;
 
     constructor(tracker: Tracker) {
         this.#tracker = tracker;
     }
 
-    addDependency(target: object) {
-        this.trackedObjects.add(target);
+    addDependency(propRef: PropReference) {
+        this.trackedProperties.add(propRef);
     }
 
     endDependencyTrack() {
         this.#tracker.endDependencyTrack(this);
     }
 
+    /** Indicates that this dependency list is dependent on *all* tracked changes */
+    trackAllChanges() {
+        this.#tracksAllChanges = true;
+    }
+
     getLatestChangeGeneration(): number {
+        if (this.#tracksAllChanges) return this.#tracker.generation;
         let result = 0;
-        for (let obj of this.trackedObjects) {
-            result = Math.max(result, this.#tracker.getLastChangeGeneration(obj));
+        for (let propRef of this.trackedProperties) {
+            result = Math.max(result, propRef.generation);
         }
         return  result;
     }

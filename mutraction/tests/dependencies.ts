@@ -2,23 +2,33 @@ import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
 import { track, isTracked } from '../index.js';
+import { DependencyList } from '../src/dependency.js';
+
+function assertDependencies(dep: DependencyList, expected: [obj: object, prop: string][]) {
+    assert.equal(dep.trackedProperties.size, expected.length, "Unexpected dependency size");
+
+    for (const act of dep.trackedProperties) {
+        assert.ok(
+            expected.some(exp => act.object === exp[0] && act.prop === exp[1]),
+            "Unexpected dependency prop: " + String(act.prop));
+    } 
+}
 
 test('track inner dep', () => {
     const [model, tracker] = track({ foo: "bar", inner: { leaf1: 4, leaf2: 45 } } as any);
 
     let dt1 = tracker.startDependencyTrack();
     model.foo;
-    assert.equal(dt1.trackedObjects, new Set([model]));
+    assertDependencies(dt1, [[model,"foo"]]);
 
     let dt2 = tracker.startDependencyTrack();
     model.inner.leaf1;
     model.inner.leaf2;
-    tracker.endDependencyTrack(dt2);
-    assert.equal(dt2.trackedObjects, new Set([model, model.inner]));
+    dt2.endDependencyTrack();
+    assertDependencies(dt2, [[model,"inner"], [model.inner,"leaf1"], [model.inner,"leaf2"]]);
 
-    tracker.endDependencyTrack(dt1);
-
-    assert.throws(() => tracker.endDependencyTrack(dt1));
+    dt1.endDependencyTrack();
+    assert.throws(() => dt1.endDependencyTrack());
 });
 
 test('inner change does not increase outer dependency generation', () => {
@@ -26,19 +36,19 @@ test('inner change does not increase outer dependency generation', () => {
 
     let dt1 = tracker.startDependencyTrack();
     let foo = model.foo;
-    tracker.endDependencyTrack(dt1);
-    assert.equal(dt1.trackedObjects, new Set([model]), "tracker 1 contents");
+    dt1.endDependencyTrack();
+    assertDependencies(dt1, [[model, "foo"]]);
     assert.ok(isTracked(foo), "inner object is tracked");
 
     let dt2 = tracker.startDependencyTrack();
     foo.leaf1;
-    tracker.endDependencyTrack(dt2);
-    assert.equal(dt2.trackedObjects, new Set([foo]), "tracker 2 contents");
+    dt2.endDependencyTrack();
+    assertDependencies(dt2,[[foo, "leaf1"]]);
 
     const g1_1 = dt1.getLatestChangeGeneration();
     const g2_1 = dt2.getLatestChangeGeneration();
 
-    model.cram = "berries";
+    model.foo = model.foo;
 
     const g1_2 = dt1.getLatestChangeGeneration();
     const g2_2 = dt2.getLatestChangeGeneration();
@@ -46,7 +56,8 @@ test('inner change does not increase outer dependency generation', () => {
     assert.ok(g1_1 < g1_2, "first tracker generation changed");
     assert.ok(g2_1 === g2_2, "second tracker generation did not change");
 
-    foo.brindel = "squizzblaster";
+    foo.leaf1 = "squizzblaster";
+    model.crumpets = "fuzzy";
 
     const g1_3 = dt1.getLatestChangeGeneration();
     const g2_3 = dt2.getLatestChangeGeneration();

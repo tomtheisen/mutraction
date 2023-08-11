@@ -50,7 +50,7 @@ function sync(Component) {
       const deps = tracker.startDependencyTrack();
       const rendered = Component(props, context);
       deps.endDependencyTrack();
-      if (deps.trackedObjects.size > 0) {
+      if (deps.trackedProperties.size > 0) {
         let subscribe2 = function(callback) {
           const subscription = tracker.subscribe(callback);
           return () => subscription.dispose();

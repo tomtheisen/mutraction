@@ -1,6 +1,7 @@
 import { Tracker, TrackerOptions } from "./tracker.js";
-import { TrackerOf, LastChangeGeneration, RecordDependency, RecordMutation, ProxyOf } from "./symbols.js";
+import { TrackerOf, RecordDependency, RecordMutation, ProxyOf, GetOriginal } from "./symbols.js";
 import type { ArrayExtend, ArrayShorten, DeleteProperty, Key, ReadonlyDeep, SingleMutation } from "./types.js";
+import { createOrRetrievePropRef } from "./propref.js";
 
 const mutatingArrayMethods 
     = ["copyWithin","fill","pop","push","reverse","shift","sort","splice","unshift"];
@@ -36,9 +37,9 @@ function makeProxyHandler<TModel extends object>(model: TModel, tracker: Tracker
     
     function getOrdinary(target: TModel, name: TKey, receiver: TModel) {
         if (name === TrackerOf) return tracker;
-        if (name === LastChangeGeneration) return (target as any)[LastChangeGeneration];
+        if (name === GetOriginal) return target;
 
-        tracker[RecordDependency](target, name);
+        tracker[RecordDependency](createOrRetrievePropRef(target, name));
 
         let result = Reflect.get(target, name, receiver) as any;
         if (typeof result === 'object' && !isTracked(result)) {

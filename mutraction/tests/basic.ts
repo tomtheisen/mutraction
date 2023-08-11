@@ -96,7 +96,7 @@ test('no history but auto', () => {
 
 test('callback deferral', async () => {
     await new Promise((resolve, reject) => {
-        const [model, tracker] = track({} as any);
+        const [model, tracker] = track({} as any, { deferNotifications: true });
         let callbacks = 0;
         tracker.subscribe(() => ++callbacks);
         model.a = 1;

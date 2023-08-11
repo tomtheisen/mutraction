@@ -1,5 +1,5 @@
 import { RecordDependency, RecordMutation } from "./symbols.js";
-import { Dependency } from "./dependency.js";
+import { DependencyList } from "./dependency.js";
 import type { Key, Mutation, SingleMutation, Transaction } from "./types.js";
 import { PropReference } from "./propref.js";
 type Subscriber = (mutation: SingleMutation | undefined) => void;
@@ -27,10 +27,8 @@ export declare class Tracker {
     clearRedos(): void;
     clearHistory(): void;
     [RecordMutation](mutation: SingleMutation): void;
-    getLastChangeGeneration(target: object): any;
-    setLastChangeGeneration(target: object): void;
-    startDependencyTrack(): Dependency;
-    endDependencyTrack(dep: Dependency): Dependency;
+    startDependencyTrack(): DependencyList;
+    endDependencyTrack(dep: DependencyList): DependencyList;
     [RecordDependency](target: object, name: Key): void;
     /**
      * Gets a property reference that refers to a particular property on a particular object.
