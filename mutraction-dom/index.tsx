@@ -76,7 +76,7 @@ const b = <div tabIndex={model.tab}>{model.val}</div>;
 //*/
 
 
-document.getElementById("root")?.appendChild(d);
+document.getElementById("root")?.replaceChildren(d);
 
 let x = 0;
 setInterval(() => {
