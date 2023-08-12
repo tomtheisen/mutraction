@@ -1,14 +1,3 @@
-export namespace JSX {
-    interface StandardElement {
-        ref?: string;   // used to assign this element to the component's
-        class?: string; // who needs className?  we also use setAttribute, which takes "class"
-    }
-
-    export type IntrinsicElements = {
-        [key in keyof HTMLElementTagNameMap]: StandardElement & Partial<HTMLElementTagNameMap[key]>;
-    }
-}
-
 import * as BabelCoreNamespace from '@babel/core';
 import type * as BT from '@babel/types';
 import type { PluginObj } from '@babel/core';

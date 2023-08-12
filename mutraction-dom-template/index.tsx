@@ -1,4 +1,4 @@
-import {} from "mutraction-dom";
+import {  } from "mutraction-dom";
 
 const div = <div></div>;
 
