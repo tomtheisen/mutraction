@@ -84,16 +84,42 @@ function jsxAttrVal2Prop(attrVal:
     }
 }
 
+type MuContext = {
+    elementFnName: string;
+    childFnName: string;
+}
+let ctx: MuContext | undefined = undefined;
+
 const mutractPlugin: PluginObj = {
     visitor: {
+        Program: {
+            enter(path) {
+                path.node.sourceType = "module";
+                const elementFnName = path.scope.generateUid("mutraction_element");
+                const childFnName = path.scope.generateUid("mutraction_child");
+                ctx = { elementFnName, childFnName };
+
+                path.node.body.unshift(
+                    t.importDeclaration(
+                        [
+                            t.importSpecifier(t.identifier(elementFnName), t.identifier("element")),
+                            t.importSpecifier(t.identifier(childFnName), t.identifier("child")),
+                        ],
+                        t.stringLiteral("mutraction-dom")
+                    )
+                );
+            },
+            exit(path) {
+                ctx = undefined;
+            }
+        },
         JSXElement(path) {
-            let name = path.node.openingElement.name;
+            const { name } = path.node.openingElement;
 
             if (name.type === "JSXNamespacedName")
                 throw path.buildCodeFrameError("This JSX element type is not supported");
 
             const props = path.node.openingElement.attributes.map(jsxProp);
-
 
             try {
                 if (name.type === "JSXIdentifier" && /^[a-z]/.test(name.name)) {
