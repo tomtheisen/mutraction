@@ -43,7 +43,7 @@ function child(getter) {
   return node;
 }
 
-// out/mutract-jsx.js
+// out/compile-jsx.js
 import * as BabelCoreNamespace from "@babel/core";
 var t = BabelCoreNamespace.types;
 function jsxChild(child2) {
@@ -143,12 +143,12 @@ var mutractPlugin = {
     }
   }
 };
-function mutract_jsx_default(_) {
+function compile_jsx_default(_) {
   return mutractPlugin;
 }
 
 // out/index.js
-var out_default = mutract_jsx_default;
+var out_default = compile_jsx_default;
 export {
   child,
   out_default as default,
