@@ -530,11 +530,15 @@
   // out/index.jsx
   function element(name, attrGetters, ...children) {
     const el = document.createElement(name);
+    let blank = void 0;
     for (let [name2, attrGetter] of Object.entries(attrGetters ?? {})) {
-      effect(tracker, () => el[name2] = attrGetter());
+      if (name2 === "if") {
+      } else {
+        effect(tracker, () => el[name2] = attrGetter());
+      }
     }
     el.append(...children);
-    return el;
+    return blank ?? el;
   }
   function child(getter) {
     const result = getter();
@@ -548,8 +552,8 @@
     });
     return node;
   }
-  var [model, tracker] = track({ val: "hello", tab: 5 });
-  var d = element("div", { tabIndex: () => model.tab }, child(() => model.val), element("p", {}, "lorem"));
+  var [model, tracker] = track({ val: "hello", tab: 5, show: false });
+  var d = element("div", { tabIndex: () => model.tab }, child(() => model.val), child(() => element("p", { if: () => model.show }, "lorem")), child(() => element("p", { if: () => false }, "never")));
   document.getElementById("root")?.appendChild(d);
   var x = 0;
   setInterval(() => {
@@ -558,4 +562,5 @@
   setInterval(() => {
     model.tab++;
   }, 250);
+  setInterval(() => model.show = !model.show, 1e3);
 })();

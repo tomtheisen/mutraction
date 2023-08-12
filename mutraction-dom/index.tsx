@@ -1,17 +1,36 @@
 import { track, effect, Tracker } from 'mutraction';
 
+type ElementProps<E extends keyof HTMLElementTagNameMap> = {
+    [K in keyof HTMLElementTagNameMap[E]]?: () => HTMLElementTagNameMap[E][K];
+} & {
+    if?: () => boolean;
+}; 
+
 // function element(name: string, attrs: Record<string, () => string|number|boolean>, ...children: ChildNode[]): HTMLElement;
 function element<E extends keyof HTMLElementTagNameMap>(
     name: E, 
-    attrGetters: { [K in keyof HTMLElementTagNameMap[E]]?: () => HTMLElementTagNameMap[E][K] }, 
+    attrGetters: ElementProps<E>, 
     ...children: (Node | string)[]
 ): HTMLElementTagNameMap[E] {
     const el = document.createElement(name);
+    let blank: Text | undefined = undefined;
     for (let [name, attrGetter] of Object.entries(attrGetters ?? {})) {
-        effect(tracker, () => (el as any)[name] = attrGetter());
+        if (name === "if") {
+            // effect(tracker, () => {
+            //     if (attrGetter()) {
+            //         blank?.replaceWith(el);
+            //     }
+            //     else {
+            //         el.replaceWith(blank ??= document.createTextNode(""));
+            //     }
+            // });
+        }
+        else {
+            effect(tracker, () => (el as any)[name] = attrGetter());
+        }
     }
     el.append(...children);
-    return el;
+    return blank ?? el;
 }
 
 function child(getter: () => number | string | bigint | null | undefined | HTMLElement): ChildNode {
@@ -26,11 +45,12 @@ function child(getter: () => number | string | bigint | null | undefined | HTMLE
     return node;
 }
 
-const [model, tracker] = track({ val: "hello", tab: 5 });
+const [model, tracker] = track({ val: "hello", tab: 5, show: false });
 
 const d = element("div", { tabIndex: () => model.tab },
     child(() => model.val),
-    element("p", {}, "lorem")
+    child(() => element("p", { if: () => model.show }, "lorem")),
+    child(() => element("p", { if: () => false }, "never"))
 );
 
 /*
@@ -49,3 +69,4 @@ setInterval(() => {
     model.tab++;
 }, 250);
 
+setInterval(() => model.show = !model.show, 1000);
