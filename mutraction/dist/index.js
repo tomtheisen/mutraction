@@ -565,12 +565,18 @@ function describeMutation(mutation) {
 }
 
 // out/src/effect.js
+var emptyEffect = { dispose: () => {
+} };
 function effect(tracker, sideEffect, options = {}) {
   let dep = tracker.startDependencyTrack();
   sideEffect();
   dep.endDependencyTrack();
-  if (dep.trackedProperties.size === 0 && !options.suppressUntrackedWarning)
-    console.warn("effect() callback has no dependencies on any tracked properties.  It will not fire again.");
+  if (dep.trackedProperties.size === 0) {
+    if (!options.suppressUntrackedWarning) {
+      console.warn("effect() callback has no dependencies on any tracked properties.  It will not fire again.");
+    }
+    return emptyEffect;
+  }
   let latestGen = dep.getLatestChangeGeneration();
   function modelChangedForEffect() {
     const depgen = dep.getLatestChangeGeneration();

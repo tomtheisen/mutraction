@@ -14,9 +14,8 @@
     "dist/src"
   ],
   "scripts": {
-    "transform": "npx tsc && ..\\node_modules\\.bin\\babel .\\src.js",
     "build": "npm run clean && npx tsc && npm run bundle && npm run types && npm run cleanout",
-    "bundle": "npx esbuild .\\out\\index.jsx --bundle --outfile=.\\dist\\index.js",
+    "bundle": "npx esbuild .\\out\\index.js --bundle --format=esm --outfile=.\\dist\\index.js --external:@babel/core --external:@babel/types --external:mutraction",
     "types": "npx tsc -p tsconfig.types.json",
     "test": "npx tsc && npx uvu out/tests -i \"[.]d[.]ts$\"",
     "clean": "del /Q /S dist && del /Q /S out",
