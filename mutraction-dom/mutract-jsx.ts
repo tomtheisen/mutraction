@@ -15,8 +15,12 @@ export default function({ types: t }: Babel): PluginObj {
             },
             JSXElement(path) {
                 // path.insertBefore(t.commentBlock("xformed")));
+                // console.log(path.node);
+                const node = path.node as any;
+                if (node.tjt_parenthesized) return;
+                node.tjt_parenthesized = true;
                 path.replaceWith(t.parenthesizedExpression(path.node));
-                path.stop();
+                // path.stop();
             }
         }
     };
