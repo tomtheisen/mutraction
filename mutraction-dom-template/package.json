@@ -1,0 +1,16 @@
+{
+  "name": "mutraction-dom-template",
+  "type":"module",
+  "version": "0.13.0",
+  "description": "template for a starter mutraction-dom project",
+  "main": "index.js",
+  "scripts": {
+    "build": "npx tsc"
+  },
+  "author": "Tom Theisen",
+  "license": "MIT",
+  "devDependencies": {
+    "mutraction-dom": "^0.13.0",
+    "typescript": "^5.1.6"
+  }
+}

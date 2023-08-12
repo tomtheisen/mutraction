@@ -1,5 +1,7 @@
 import { track, effect, Tracker } from 'mutraction';
 
+let tracker: Tracker = null!; // TODO
+
 type AttributeType<E extends keyof HTMLElementTagNameMap, K extends keyof HTMLElementTagNameMap[E]> = 
     K extends "style" ? Partial<CSSStyleDeclaration> :
     K extends "classList" ? Record<string, boolean> :
@@ -15,7 +17,7 @@ type ElementProps<E extends keyof HTMLElementTagNameMap> = {
 const suppress = { suppressUntrackedWarning: true } as const;
 
 // function element(name: string, attrs: Record<string, () => string|number|boolean>, ...children: ChildNode[]): HTMLElement;
-function element<E extends keyof HTMLElementTagNameMap>(
+export function element<E extends keyof HTMLElementTagNameMap>(
     name: E, 
     attrGetters: ElementProps<E>, 
     ...children: (Node | string)[]
@@ -46,7 +48,7 @@ function element<E extends keyof HTMLElementTagNameMap>(
     return blank ?? el;
 }
 
-function child(getter: () => number | string | bigint | null | undefined | HTMLElement | Text): ChildNode {
+export function child(getter: () => number | string | bigint | null | undefined | HTMLElement | Text): ChildNode {
     const result = getter();
     if (result instanceof HTMLElement) return result;
     if (result instanceof Text) return result;
@@ -58,33 +60,3 @@ function child(getter: () => number | string | bigint | null | undefined | HTMLE
     }, suppress);
     return node;
 }
-
-const [model, tracker] = track({ val: "hello", tab: 5, show: false });
-
-const d = element("div", { tabIndex: () => model.tab },
-    child(() => model.val),
-    child(() => element("p", {}, "just something")),
-    child(() => element("p", { classList: () => ({ stinky: model.show }) }, "touch of class")),
-    element("p", { style: () => ({ outline: "green solid 2px" }) }, "just something unwrapped once"),
-    child(() => element("p", { if: () => model.show }, "intermittently")),
-    child(() => element("p", { if: () => false }, "never")),
-    ""
-);
-
-/*
-const b = <div tabIndex={model.tab}>{model.val}</div>;
-//*/
-
-
-document.getElementById("root")?.replaceChildren(d);
-
-let x = 0;
-setInterval(() => {
-    model.val = ++x + "";
-}, 100);
-
-setInterval(() => {
-    model.tab++;
-}, 250);
-
-setInterval(() => model.show = !model.show, 1000);

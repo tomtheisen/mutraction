@@ -4,6 +4,7 @@
     "mutraction",
     "mutraction-react",
     "mutraction-dom",
+    "mutraction-dom-template",
     "example"
   ]
 }

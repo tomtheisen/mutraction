@@ -1,0 +1,3 @@
+const div = <div></div>;
+
+console.log("asdf");
