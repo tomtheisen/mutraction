@@ -90,34 +90,40 @@ const mutractPlugin: PluginObj = {
             let name = path.node.openingElement.name;
 
             if (name.type === "JSXNamespacedName")
-                throw Error("This JSX element type is not supported");
+                throw path.buildCodeFrameError("This JSX element type is not supported");
 
             const props = path.node.openingElement.attributes.map(jsxProp);
 
-            if (name.type === "JSXIdentifier" && /^[a-z]/.test(name.name)) {
-                // treat as DOM element
-                const jsxChildren: BT.Expression[] = [];
-                for (const child of path.node.children) {
-                    const compiled = jsxChild(child);
-                    if (compiled) jsxChildren.push(compiled);
+
+            try {
+                if (name.type === "JSXIdentifier" && /^[a-z]/.test(name.name)) {
+                    // treat as DOM element
+                    const jsxChildren: BT.Expression[] = [];
+                    for (const child of path.node.children) {
+                        const compiled = jsxChild(child);
+                        if (compiled) jsxChildren.push(compiled);
+                    }
+    
+                    path.replaceWith(t.callExpression(
+                        t.identifier("element"), 
+                        [
+                            t.stringLiteral(name.name),
+                            t.objectExpression(props),
+                            ...jsxChildren
+                        ]
+                    ));
+                    return;
                 }
-
+    
+                // it's a component, these things practically render themselves
                 path.replaceWith(t.callExpression(
-                    t.identifier("element"), 
-                    [
-                        t.stringLiteral(name.name),
-                        t.objectExpression(props),
-                        ...jsxChildren
-                    ]
+                    jsxId2Id(name),
+                    [ t.objectExpression(props) ]
                 ));
-                return;
+            } 
+            catch (err) {
+                path.buildCodeFrameError(err instanceof Error ? err.message : String(err));
             }
-
-            // it's a component, these things practically render themselves
-            path.replaceWith(t.callExpression(
-                jsxId2Id(name),
-                [ t.objectExpression(props) ]
-            ));
         }
     }
 };
