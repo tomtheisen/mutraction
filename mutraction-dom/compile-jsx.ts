@@ -95,8 +95,8 @@ const mutractPlugin: PluginObj = {
         Program: {
             enter(path) {
                 path.node.sourceType = "module";
-                const elementFnName = path.scope.generateUid("mutraction_element");
-                const childFnName = path.scope.generateUid("mutraction_child");
+                const elementFnName = path.scope.generateUid("mu_element");
+                const childFnName = path.scope.generateUid("mu_child");
                 ctx = { elementFnName, childFnName };
 
                 path.node.body.unshift(
