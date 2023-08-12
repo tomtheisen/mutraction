@@ -3,6 +3,7 @@
   "workspaces": [
     "mutraction",
     "mutraction-react",
+    "mutraction-dom",
     "example"
   ]
 }

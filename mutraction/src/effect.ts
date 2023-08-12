@@ -1,5 +1,7 @@
 import { Tracker } from "./tracker.js";
 
+const emptyEffect = { dispose: () => {} };
+
 type EffectOptions = {
     suppressUntrackedWarning?: boolean;
 }
@@ -8,8 +10,12 @@ export function effect(tracker: Tracker, sideEffect: () => void, options: Effect
     sideEffect();
     dep.endDependencyTrack();
 
-    if (dep.trackedProperties.size === 0 && !options.suppressUntrackedWarning)
-        console.warn("effect() callback has no dependencies on any tracked properties.  It will not fire again.");
+    if (dep.trackedProperties.size === 0) {
+        if(!options.suppressUntrackedWarning) {
+            console.warn("effect() callback has no dependencies on any tracked properties.  It will not fire again.");
+        }
+        return emptyEffect;
+    }
 
     let latestGen = dep.getLatestChangeGeneration();
     function modelChangedForEffect() {
