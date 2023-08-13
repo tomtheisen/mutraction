@@ -5,9 +5,10 @@
   "description": "template for a starter mutraction-dom project",
   "main": "index.js",
   "scripts": {
-    "build": "npx tsc && npm run transform && npm run bundle",
+    "build": "npx tsc && npm run transform && npm run bundle && npm run cleanout",
     "transform": "npx babel out -d out2",
-    "bundle": "npx esbuild out2\\index.js --bundle --format=esm --outfile=dist\\index.js"
+    "bundle": "npx esbuild out2\\index.js --bundle --format=esm --outfile=dist\\index.js",
+    "cleanout": "rd /Q /S out && rd /Q /S out2"
   },
   "author": "Tom Theisen",
   "license": "MIT",
