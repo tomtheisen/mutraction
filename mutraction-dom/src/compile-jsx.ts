@@ -27,16 +27,14 @@ function jsxChild(child:
         if (child.expression.type === "JSXEmptyExpression") return null;
         return t.callExpression(
             t.identifier(ctx!.childFnName), 
-            [ 
-                t.arrowFunctionExpression([], child.expression)
-            ]
+            [ t.arrowFunctionExpression([], child.expression) ]
         );
     }
     else if (type === "JSXFragment") {
-        return t.stringLiteral("NIE fragment")
+        return child;
     }
     else if (type === "JSXSpreadChild") {
-        return t.stringLiteral("NIE spread child")
+        return t.stringLiteral("NIE spread child");
     }
     throw Error("Unsupported child type " + type);
 }
@@ -161,8 +159,7 @@ const mutractPlugin: PluginObj = {
                     ]
                 );
             }
-            else {
-                // it's a component, these things practically render themselves
+            else { // JSXMemberExpression or upper-case function component
                 renderFunc = t.callExpression(
                     jsxId2Id(name),
                     [ t.objectExpression(props) ]
@@ -184,6 +181,46 @@ const mutractPlugin: PluginObj = {
             else {
                 path.replaceWith(renderFunc);
             }
+        },
+        JSXFragment(path) {
+            if (!ctx) throw Error("Unable to find program start to add imports");
+
+            const jsxChildren: BT.Expression[] = [];
+            for (const child of path.node.children) {
+                const compiled = jsxChild(child);
+                if (compiled) jsxChildren.push(compiled);
+            }
+
+            // path.scope.addGlobal(t.identifier("document"));
+            const fragId = path.scope.generateDeclaredUidIdentifier("frag");
+            path.replaceExpressionWithStatements([
+                // frag = document.createDocumentFragment()
+                t.expressionStatement(
+                    t.assignmentExpression(
+                        "=",
+                        fragId,
+                        t.callExpression(
+                            t.memberExpression(
+                                t.identifier("document"),
+                                t.identifier("createDocumentFragment")
+                            ),
+                            []
+                        )
+                    )
+                ),
+                // frag.append(...)
+                t.expressionStatement(
+                    t.callExpression(
+                        t.memberExpression(
+                            fragId,
+                            t.identifier("append")
+                        ),
+                        jsxChildren
+                    )
+                ),
+                // frag
+                t.expressionStatement(fragId),
+            ]);
         }
     }
 };
