@@ -5,9 +5,9 @@ const emptyEffect = { dispose: () => {} };
 type EffectOptions = {
     suppressUntrackedWarning?: boolean;
 }
-export function effect(tracker: Tracker, sideEffect: () => void, options: EffectOptions = {}) {
+export function effect(tracker: Tracker, sideEffect: () => (void | (() => void)), options: EffectOptions = {}) {
     let dep = tracker.startDependencyTrack();
-    sideEffect();
+    let lastResult = sideEffect();
     dep.endDependencyTrack();
 
     if (dep.trackedProperties.size === 0) {
@@ -19,12 +19,13 @@ export function effect(tracker: Tracker, sideEffect: () => void, options: Effect
 
     let latestGen = dep.getLatestChangeGeneration();
     function modelChangedForEffect() {
+        lastResult?.();
         const depgen = dep.getLatestChangeGeneration();
         if (depgen === latestGen) return;
         latestGen = depgen;
         
         dep = tracker.startDependencyTrack();
-        sideEffect();
+        lastResult = sideEffect();
         dep.endDependencyTrack();
     }
     

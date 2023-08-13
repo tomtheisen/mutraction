@@ -8,7 +8,8 @@
     "build": "npx tsc && npm run transform && npm run bundle && npm run cleanout",
     "transform": "npx babel out -d out2",
     "bundle": "npx esbuild out2\\index.js --bundle --format=esm --outfile=dist\\index.js",
-    "cleanout": "rd /Q /S out && rd /Q /S out2"
+    "cleanout": "rd /Q /S out && rd /Q /S out2",
+    "cleanout": "echo no clean"
   },
   "author": "Tom Theisen",
   "license": "MIT",
