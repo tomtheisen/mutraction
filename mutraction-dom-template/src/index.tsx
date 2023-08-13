@@ -10,6 +10,7 @@ const p = <p>lorem and stuff</p>;
 function FuncComp({}) {
     return <>
         <p>Hello from FuncComp</p>
+        <p>The message is: {model.message}</p>
     </>;
 }
 
@@ -19,6 +20,7 @@ const div = (
         <input value={ model.message } oninput={(ev) => model.message = (ev.target as any).value } />
         { p }
         <FuncComp />
+        <p if={ model.message.length > 10 }>Long message alert</p>
     </main>
 );
 

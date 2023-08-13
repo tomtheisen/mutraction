@@ -626,12 +626,14 @@ effect(tracker2, () => {
 var p = element("p", {}, "lorem and stuff");
 function FuncComp({}) {
   var _frag;
-  return _frag = document.createDocumentFragment(), _frag.append(element("p", {}, "Hello from FuncComp")), _frag;
+  return _frag = document.createDocumentFragment(), _frag.append(element("p", {}, "Hello from FuncComp"), element("p", {}, "The message is:", child(() => model.message))), _frag;
 }
 var div = [setTracker(tracker2), element("main", {}, element("div", {}, child(() => model.message)), element("input", {
   value: () => model.message,
   oninput: () => (ev) => model.message = ev.target.value
-}), child(() => p), FuncComp({})), clearTracker()][1];
+}), child(() => p), FuncComp({}), element("p", {
+  if: () => model.message.length > 10
+}, "Long message alert")), clearTracker()][1];
 var root = document.getElementById("root");
 root.replaceChildren(div);
 model.message = "something else";
