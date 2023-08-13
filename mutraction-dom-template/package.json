@@ -5,8 +5,9 @@
   "description": "template for a starter mutraction-dom project",
   "main": "index.js",
   "scripts": {
-    "build": "npx tsc",
-    "transform": "npx tsc && npx babel out -d out2"
+    "build": "npx tsc && npm run transform && npm run bundle",
+    "transform": "npx babel out -d out2",
+    "bundle": "npx esbuild out2\\index.js --bundle --format=esm --outfile=dist\\index.js"
   },
   "author": "Tom Theisen",
   "license": "MIT",
