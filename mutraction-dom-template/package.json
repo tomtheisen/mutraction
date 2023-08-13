@@ -19,5 +19,8 @@
     "esbuild": "^0.19.1",
     "mutraction-dom": "^0.13.0",
     "typescript": "^5.1.6"
+  },
+  "dependencies": {
+    "mutraction": "^0.13.0"
   }
 }

@@ -1,6 +1,9 @@
+import type { Tracker } from "mutraction";
+
 export namespace JSX {
     interface StandardElement {
-        if?: () => boolean;
+        if?: boolean;
+        tracker?: Tracker;
     }
 
     export type IntrinsicElements = {
