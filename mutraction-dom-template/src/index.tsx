@@ -1,7 +1,7 @@
 import { message } from "./message.js";
 import { effect, track } from "mutraction";
 
-const [model, tracker] = track({ message });
+const [model, tracker] = track({ message, arr: [1,2,3] });
 
 effect(tracker, () => { console.log(model.message) });
 
@@ -21,6 +21,8 @@ const div = (
         { p }
         <FuncComp />
         <p if={ model.message.length > 10 }>Long message alert</p>
+        {model.arr}
+        <button onclick={()=>model.arr.push(model.arr.length + 1)}>push</button>
     </main>
 );
 
