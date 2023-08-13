@@ -1,13 +1,13 @@
-import * as BabelCoreNamespace from '@babel/core';
+import * as B from '@babel/core';
 import type * as BT from '@babel/types';
 import type { PluginObj } from '@babel/core';
 import { track } from 'mutraction';
 
-export type Babel = typeof BabelCoreNamespace;
+export type Babel = typeof B;
 export type BabelTypes = typeof BT;
 
-const t = BabelCoreNamespace.types;
-function jsxChild(child: 
+const t = B.types;
+function jsxChild(ctx: MuContext, child: 
     BT.JSXText | 
     BT.JSXExpressionContainer | 
     BT.JSXSpreadChild | 
@@ -26,7 +26,7 @@ function jsxChild(child:
     else if (type === "JSXExpressionContainer") {
         if (child.expression.type === "JSXEmptyExpression") return null;
         return t.callExpression(
-            t.identifier(ctx!.childFnName), 
+            t.identifier(ctx.childFnName), 
             [ t.arrowFunctionExpression([], child.expression) ]
         );
     }
@@ -73,37 +73,53 @@ type MuContext = {
     setTrackerFnName: string;
     clearTrackerFnName: string;
 }
-let ctx: MuContext | undefined = undefined;
+
+function isProgram(path: B.NodePath | null): path is B.NodePath<BT.Program> {
+    return path?.node.type === "Program";
+}
+
+let _ctx: MuContext | undefined = undefined;
+function clearImports() {
+    _ctx = undefined;
+}
+function ensureImportsCreated(path: B.NodePath) {
+    const programPath = path.findParent(isProgram);
+    if (!isProgram(programPath)) 
+        throw Error ("Can't create imports outside of a program.");
+
+    if (_ctx) return _ctx;
+
+    programPath.node.sourceType = "module";
+    const elementFnName = programPath.scope.generateUid("mu_element");
+    const childFnName = programPath.scope.generateUid("mu_child");
+    const setTrackerFnName = programPath.scope.generateUid("mu_setTracker");
+    const clearTrackerFnName = programPath.scope.generateUid("mu_clearTracker");
+
+    programPath.node.body.unshift(
+        t.importDeclaration(
+            [
+                t.importSpecifier(t.identifier(elementFnName), t.identifier("element")),
+                t.importSpecifier(t.identifier(childFnName), t.identifier("child")),
+                t.importSpecifier(t.identifier(setTrackerFnName), t.identifier("setTracker")),
+                t.importSpecifier(t.identifier(clearTrackerFnName), t.identifier("clearTracker")),
+            ],
+            t.stringLiteral("mutraction-dom")
+        )
+    );
+
+    return _ctx = { elementFnName, childFnName, setTrackerFnName, clearTrackerFnName };
+}
 
 const mutractPlugin: PluginObj = {
     visitor: {
         Program: {
-            enter(path) {
-                path.node.sourceType = "module";
-                const elementFnName = path.scope.generateUid("mu_element");
-                const childFnName = path.scope.generateUid("mu_child");
-                const setTrackerFnName = path.scope.generateUid("mu_setTracker");
-                const clearTrackerFnName = path.scope.generateUid("mu_clearTracker");
-                ctx = { elementFnName, childFnName, setTrackerFnName, clearTrackerFnName };
-
-                path.node.body.unshift(
-                    t.importDeclaration(
-                        [
-                            t.importSpecifier(t.identifier(elementFnName), t.identifier("element")),
-                            t.importSpecifier(t.identifier(childFnName), t.identifier("child")),
-                            t.importSpecifier(t.identifier(setTrackerFnName), t.identifier("setTracker")),
-                            t.importSpecifier(t.identifier(clearTrackerFnName), t.identifier("clearTracker")),
-                        ],
-                        t.stringLiteral("mutraction-dom")
-                    )
-                );
-            },
+            enter(path) { },
             exit(path) {
-                ctx = undefined;
+                clearImports();
             }
         },
         JSXElement(path) {
-            if (!ctx) throw Error("Unable to find program start to add imports");
+            const ctx = ensureImportsCreated(path);
 
             const { name } = path.node.openingElement;
 
@@ -146,12 +162,12 @@ const mutractPlugin: PluginObj = {
                 // treat as DOM element
                 const jsxChildren: BT.Expression[] = [];
                 for (const child of path.node.children) {
-                    const compiled = jsxChild(child);
+                    const compiled = jsxChild(ctx, child);
                     if (compiled) jsxChildren.push(compiled);
                 }
 
                 renderFunc = t.callExpression(
-                    t.identifier(ctx!.elementFnName), 
+                    t.identifier(ctx.elementFnName), 
                     [
                         t.stringLiteral(name.name),
                         t.objectExpression(props),
@@ -183,11 +199,11 @@ const mutractPlugin: PluginObj = {
             }
         },
         JSXFragment(path) {
-            if (!ctx) throw Error("Unable to find program start to add imports");
+            const ctx = ensureImportsCreated(path);
 
             const jsxChildren: BT.Expression[] = [];
             for (const child of path.node.children) {
-                const compiled = jsxChild(child);
+                const compiled = jsxChild(ctx, child);
                 if (compiled) jsxChildren.push(compiled);
             }
 

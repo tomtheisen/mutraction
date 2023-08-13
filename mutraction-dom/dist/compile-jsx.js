@@ -1,6 +1,6 @@
-import * as BabelCoreNamespace from '@babel/core';
-const t = BabelCoreNamespace.types;
-function jsxChild(child) {
+import * as B from '@babel/core';
+const t = B.types;
+function jsxChild(ctx, child) {
     const type = child.type;
     if (type === "JSXText") {
         const value = child.value.trim();
@@ -46,31 +46,42 @@ function jsxAttrVal2Prop(attrVal) {
         return attrVal; // process later / TODO?
     }
 }
-let ctx = undefined;
+function isProgram(path) {
+    return path?.node.type === "Program";
+}
+let _ctx = undefined;
+function clearImports() {
+    _ctx = undefined;
+}
+function ensureImportsCreated(path) {
+    const programPath = path.findParent(isProgram);
+    if (!isProgram(programPath))
+        throw Error("Can't create imports outside of a program.");
+    if (_ctx)
+        return _ctx;
+    programPath.node.sourceType = "module";
+    const elementFnName = programPath.scope.generateUid("mu_element");
+    const childFnName = programPath.scope.generateUid("mu_child");
+    const setTrackerFnName = programPath.scope.generateUid("mu_setTracker");
+    const clearTrackerFnName = programPath.scope.generateUid("mu_clearTracker");
+    programPath.node.body.unshift(t.importDeclaration([
+        t.importSpecifier(t.identifier(elementFnName), t.identifier("element")),
+        t.importSpecifier(t.identifier(childFnName), t.identifier("child")),
+        t.importSpecifier(t.identifier(setTrackerFnName), t.identifier("setTracker")),
+        t.importSpecifier(t.identifier(clearTrackerFnName), t.identifier("clearTracker")),
+    ], t.stringLiteral("mutraction-dom")));
+    return _ctx = { elementFnName, childFnName, setTrackerFnName, clearTrackerFnName };
+}
 const mutractPlugin = {
     visitor: {
         Program: {
-            enter(path) {
-                path.node.sourceType = "module";
-                const elementFnName = path.scope.generateUid("mu_element");
-                const childFnName = path.scope.generateUid("mu_child");
-                const setTrackerFnName = path.scope.generateUid("mu_setTracker");
-                const clearTrackerFnName = path.scope.generateUid("mu_clearTracker");
-                ctx = { elementFnName, childFnName, setTrackerFnName, clearTrackerFnName };
-                path.node.body.unshift(t.importDeclaration([
-                    t.importSpecifier(t.identifier(elementFnName), t.identifier("element")),
-                    t.importSpecifier(t.identifier(childFnName), t.identifier("child")),
-                    t.importSpecifier(t.identifier(setTrackerFnName), t.identifier("setTracker")),
-                    t.importSpecifier(t.identifier(clearTrackerFnName), t.identifier("clearTracker")),
-                ], t.stringLiteral("mutraction-dom")));
-            },
+            enter(path) { },
             exit(path) {
-                ctx = undefined;
+                clearImports();
             }
         },
         JSXElement(path) {
-            if (!ctx)
-                throw Error("Unable to find program start to add imports");
+            const ctx = ensureImportsCreated(path);
             const { name } = path.node.openingElement;
             if (name.type === "JSXNamespacedName")
                 throw path.buildCodeFrameError("This JSX element type is not supported");
@@ -103,7 +114,7 @@ const mutractPlugin = {
                 // treat as DOM element
                 const jsxChildren = [];
                 for (const child of path.node.children) {
-                    const compiled = jsxChild(child);
+                    const compiled = jsxChild(ctx, child);
                     if (compiled)
                         jsxChildren.push(compiled);
                 }
@@ -129,11 +140,10 @@ const mutractPlugin = {
             }
         },
         JSXFragment(path) {
-            if (!ctx)
-                throw Error("Unable to find program start to add imports");
+            const ctx = ensureImportsCreated(path);
             const jsxChildren = [];
             for (const child of path.node.children) {
-                const compiled = jsxChild(child);
+                const compiled = jsxChild(ctx, child);
                 if (compiled)
                     jsxChildren.push(compiled);
             }
