@@ -1,5 +1,6 @@
 import { message } from "./message.js";
 import { effect, track } from "mutraction";
+import type { JSX } from "mutraction-dom/jsx-runtime";
 
 const [model, tracker] = track({ message, arr: [1,2,3] });
 
@@ -14,17 +15,22 @@ function FuncComp({}) {
     </>;
 }
 
-const div = (
-    <main tracker={tracker}>
+const div 
+: JSX.MutractionElement["main"]
+= (
+    <main mu:tracker={tracker}>
         <div>{ model.message }</div>
         <input value={ model.message } oninput={(ev) => model.message = (ev.target as any).value } />
         { p }
         <FuncComp />
-        <p if={ model.message.length > 10 }>Long message alert</p>
-        {model.arr}
+        <p mu:if={ model.message.length > 10 }>Long message alert</p>
         <button onclick={()=>model.arr.push(model.arr.length + 1)}>push</button>
     </main>
 );
+
+// { model.arr }
+// { "asdf" }
+
 
 const root = document.getElementById("root")!;
 root.replaceChildren(div);

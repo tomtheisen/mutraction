@@ -110,6 +110,10 @@ function ensureImportsCreated(path: B.NodePath) {
     return _ctx = { elementFnName, childFnName, setTrackerFnName, clearTrackerFnName };
 }
 
+function isMutractionNamespace(ns: BT.JSXIdentifier): boolean {
+    return ns.name === "mu" || ns.name ==="µ";
+}
+
 const mutractPlugin: PluginObj = {
     visitor: {
         Program: {
@@ -124,33 +128,68 @@ const mutractPlugin: PluginObj = {
             const { name } = path.node.openingElement;
 
             if (name.type === "JSXNamespacedName")
-                throw path.buildCodeFrameError("This JSX element type is not supported");
+                throw path.buildCodeFrameError("JSXNamespacedName JSX element type is not supported");
 
             let trackerExpression: BT.Expression | undefined = undefined;
 
             // build props and look for tracker attribute
-            const props: (BT.ObjectProperty | BT.SpreadElement)[] = [];
+            const propsForRuntime: (BT.ObjectProperty | BT.SpreadElement)[] = [];
             for (const attr of path.node.openingElement.attributes) {
                 switch (attr.type) {
                     case 'JSXAttribute':
-                        if (attr.name.type === 'JSXNamespacedName') 
-                            throw Error("Unsupported namespace in JSX attribute");
-                        
-                        if (attr.name.name === "tracker" 
-                            && attr.value?.type === "JSXExpressionContainer" 
-                            && attr.value.expression.type !== "JSXEmptyExpression"
-                        ) {
-                            trackerExpression = attr.value.expression;
-                        }
-                        else {
-                            props.push(t.objectProperty(
-                                t.identifier(attr.name.name),
-                                jsxAttrVal2Prop(attr.value)));
+                        switch (attr.name.type) {
+                            case 'JSXNamespacedName':
+                                const { name, value } = attr;
+
+                                if (!isMutractionNamespace(name.namespace))
+                                    throw Error(`Unsupported namespace ${ name.namespace.name } in JSX attribute`);
+                                
+                                switch (name.name.name) { // lol babel
+                                    case "tracker":
+                                        if (value?.type !== "JSXExpressionContainer") 
+                                            throw Error(`Expression value expected for '${ name.name.name }'`);
+
+                                        if (value.expression.type === "JSXEmptyExpression")
+                                            break;
+
+                                        trackerExpression = value.expression;
+                                        break;
+
+                                    case "if":
+                                        if (value?.type !== "JSXExpressionContainer") 
+                                        throw Error(`Expression value expected for '${ name.name.name }'`);
+
+                                        if (value.expression.type === "JSXEmptyExpression")
+                                            break;
+
+                                        propsForRuntime.push(
+                                            t.objectProperty(
+                                                t.stringLiteral("mu:" + name.name.name),
+                                                jsxAttrVal2Prop(value)
+                                            )
+                                        );
+                                        break;
+
+                                    default:
+                                        throw Error(`Unsupported mutraction JSX attribute ${ name.name.name }`);
+                                }
+                                break;
+
+                            case 'JSXIdentifier':
+                                propsForRuntime.push(
+                                    t.objectProperty(
+                                        t.identifier(attr.name.name),
+                                        jsxAttrVal2Prop(attr.value)
+                                    )
+                                );
+                                break;
                         }
                         break;
+
                     case 'JSXSpreadAttribute':
-                        props.push(t.spreadElement(attr.argument));
+                        propsForRuntime.push(t.spreadElement(attr.argument)); // TODO: probably doesn't work
                         break;
+
                     default:
                         throw Error('Unsupported attribute type.');
                 }
@@ -170,7 +209,7 @@ const mutractPlugin: PluginObj = {
                     t.identifier(ctx.elementFnName), 
                     [
                         t.stringLiteral(name.name),
-                        t.objectExpression(props),
+                        t.objectExpression(propsForRuntime),
                         ...jsxChildren
                     ]
                 );
@@ -178,7 +217,7 @@ const mutractPlugin: PluginObj = {
             else { // JSXMemberExpression or upper-case function component
                 renderFunc = t.callExpression(
                     jsxId2Id(name),
-                    [ t.objectExpression(props) ]
+                    [ t.objectExpression(propsForRuntime) ]
                 );
             }
 

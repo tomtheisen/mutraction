@@ -1,12 +1,18 @@
 import type { Tracker } from "mutraction";
 
+type Elements = HTMLElementTagNameMap;
+
 export namespace JSX {
-    interface StandardElement {
-        if?: boolean;
-        tracker?: Tracker;
-    }
+    export type MutractionElement = {
+        [ElementType in keyof Elements]: {
+            [PropType in keyof Elements[ElementType]]?: Elements[ElementType][PropType];
+        } & {
+            "mu:if"?: boolean;
+            "mu:tracker"?: Tracker;
+        };
+    };
 
     export type IntrinsicElements = {
-        [key in keyof HTMLElementTagNameMap]: StandardElement & Partial<HTMLElementTagNameMap[key]>;
+        [key in keyof Elements]: MutractionElement[key];
     }
 }

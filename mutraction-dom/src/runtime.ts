@@ -42,7 +42,7 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 
     for (let [name, attrGetter] of Object.entries(attrGetters ?? {})) {
         switch (name) {
-            case "if":
+            case "mu:if":
                 if (tracker) {
                     effect(tracker, () => {
                         if (attrGetter()) blank?.replaceWith(el);
@@ -53,6 +53,7 @@ export function element<E extends keyof HTMLElementTagNameMap>(
                     if (!attrGetter()) blank = document.createTextNode("");
                 }
                 break;
+
             case "style":
                 if (tracker) {
                     effect(tracker, () => Object.assign(el.style, attrGetter()), suppress);
@@ -61,6 +62,7 @@ export function element<E extends keyof HTMLElementTagNameMap>(
                     Object.assign(el.style, attrGetter());
                 }
                 break;
+
             case "classList":
                 if (tracker) {
                     effect(tracker, () => {
