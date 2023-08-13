@@ -1,19 +1,20 @@
 // out/runtime.js
 import { effect } from "mutraction";
 var tracker = void 0;
+function setTracker(newTracker) {
+  if (tracker)
+    throw Error("Nested dom tracking is not supported. Apply the tracker attribute at the top level of your application.");
+  tracker = newTracker;
+}
+function clearTracker() {
+  if (!tracker)
+    throw Error("No tracker to clear");
+  tracker = void 0;
+}
 var suppress = { suppressUntrackedWarning: true };
 function element(name, attrGetters, ...children) {
   const el = document.createElement(name);
   let blank = void 0;
-  let isTopTracker = false;
-  if (attrGetters.tracker) {
-    if (tracker)
-      console.error("Nested tracker attributes are not supported. Apply the tracker attribute at the top level of your application.");
-    else {
-      isTopTracker = true;
-      tracker = attrGetters.tracker();
-    }
-  }
   for (let [name2, attrGetter] of Object.entries(attrGetters ?? {})) {
     switch (name2) {
       case "if":
@@ -59,8 +60,6 @@ function element(name, attrGetters, ...children) {
     }
   }
   el.append(...children);
-  if (isTopTracker)
-    tracker = void 0;
   return blank ?? el;
 }
 function child(getter) {
@@ -83,5 +82,7 @@ function child(getter) {
 }
 export {
   child,
-  element
+  clearTracker,
+  element,
+  setTracker
 };

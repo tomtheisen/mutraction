@@ -1,1 +1,1 @@
-export { element, child } from './runtime.js';
+export { element, child, setTracker, clearTracker } from './runtime.js';

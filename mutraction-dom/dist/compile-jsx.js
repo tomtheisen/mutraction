@@ -31,18 +31,6 @@ function jsxId2Id(name) {
         return t.identifier(name.name);
     return t.memberExpression(jsxId2Id(name.object), t.identifier(name.property.name));
 }
-function jsxProp(attr) {
-    const type = attr.type;
-    if (type === 'JSXAttribute') {
-        if (attr.name.type === 'JSXNamespacedName')
-            throw Error("Unsupported namespace in JSX attribute");
-        return t.objectProperty(t.identifier(attr.name.name), jsxAttrVal2Prop(attr.value));
-    }
-    else if (type === 'JSXSpreadAttribute') {
-        return t.spreadElement(attr.argument);
-    }
-    throw Error('Unsupported attribute type: ' + type);
-}
 function jsxAttrVal2Prop(attrVal) {
     // bare attribute e.b. <input disabled />
     if (!attrVal)
@@ -68,10 +56,14 @@ const mutractPlugin = {
                 path.node.sourceType = "module";
                 const elementFnName = path.scope.generateUid("mu_element");
                 const childFnName = path.scope.generateUid("mu_child");
-                ctx = { elementFnName, childFnName };
+                const setTrackerFnName = path.scope.generateUid("mu_setTracker");
+                const clearTrackerFnName = path.scope.generateUid("mu_clearTracker");
+                ctx = { elementFnName, childFnName, setTrackerFnName, clearTrackerFnName };
                 path.node.body.unshift(t.importDeclaration([
                     t.importSpecifier(t.identifier(elementFnName), t.identifier("element")),
                     t.importSpecifier(t.identifier(childFnName), t.identifier("child")),
+                    t.importSpecifier(t.identifier(setTrackerFnName), t.identifier("setTracker")),
+                    t.importSpecifier(t.identifier(clearTrackerFnName), t.identifier("clearTracker")),
                 ], t.stringLiteral("mutraction-dom")));
             },
             exit(path) {
@@ -79,31 +71,64 @@ const mutractPlugin = {
             }
         },
         JSXElement(path) {
+            if (!ctx)
+                throw Error("Unable to find program start to add imports");
             const { name } = path.node.openingElement;
             if (name.type === "JSXNamespacedName")
                 throw path.buildCodeFrameError("This JSX element type is not supported");
-            const props = path.node.openingElement.attributes.map(jsxProp);
-            try {
-                if (name.type === "JSXIdentifier" && /^[a-z]/.test(name.name)) {
-                    // treat as DOM element
-                    const jsxChildren = [];
-                    for (const child of path.node.children) {
-                        const compiled = jsxChild(child);
-                        if (compiled)
-                            jsxChildren.push(compiled);
-                    }
-                    path.replaceWith(t.callExpression(t.identifier(ctx.elementFnName), [
-                        t.stringLiteral(name.name),
-                        t.objectExpression(props),
-                        ...jsxChildren
-                    ]));
-                    return;
+            let trackerExpression = undefined;
+            // build props and look for tracker attribute
+            const props = [];
+            for (const attr of path.node.openingElement.attributes) {
+                switch (attr.type) {
+                    case 'JSXAttribute':
+                        if (attr.name.type === 'JSXNamespacedName')
+                            throw Error("Unsupported namespace in JSX attribute");
+                        if (attr.name.name === "tracker"
+                            && attr.value?.type === "JSXExpressionContainer"
+                            && attr.value.expression.type !== "JSXEmptyExpression") {
+                            trackerExpression = attr.value.expression;
+                        }
+                        else {
+                            props.push(t.objectProperty(t.identifier(attr.name.name), jsxAttrVal2Prop(attr.value)));
+                        }
+                        break;
+                    case 'JSXSpreadAttribute':
+                        props.push(t.spreadElement(attr.argument));
+                        break;
+                    default:
+                        throw Error('Unsupported attribute type.');
                 }
-                // it's a component, these things practically render themselves
-                path.replaceWith(t.callExpression(jsxId2Id(name), [t.objectExpression(props)]));
             }
-            catch (err) {
-                path.buildCodeFrameError(err instanceof Error ? err.message : String(err));
+            let renderFunc = undefined;
+            if (name.type === "JSXIdentifier" && /^[a-z]/.test(name.name)) {
+                // treat as DOM element
+                const jsxChildren = [];
+                for (const child of path.node.children) {
+                    const compiled = jsxChild(child);
+                    if (compiled)
+                        jsxChildren.push(compiled);
+                }
+                renderFunc = t.callExpression(t.identifier(ctx.elementFnName), [
+                    t.stringLiteral(name.name),
+                    t.objectExpression(props),
+                    ...jsxChildren
+                ]);
+            }
+            else {
+                // it's a component, these things practically render themselves
+                renderFunc = t.callExpression(jsxId2Id(name), [t.objectExpression(props)]);
+            }
+            if (trackerExpression) {
+                const trackedRoot = t.memberExpression(t.arrayExpression([
+                    t.callExpression(t.identifier(ctx.setTrackerFnName), [trackerExpression]),
+                    renderFunc,
+                    t.callExpression(t.identifier(ctx.clearTrackerFnName), [])
+                ]), t.numericLiteral(1), true /* computed */);
+                path.replaceWith(trackedRoot);
+            }
+            else {
+                path.replaceWith(renderFunc);
             }
         }
     }

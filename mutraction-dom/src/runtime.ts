@@ -2,6 +2,19 @@ import { effect, Tracker } from 'mutraction';
 
 let tracker: Tracker | undefined = undefined;
 
+export function setTracker(newTracker: Tracker) {
+    if (tracker)
+        throw Error("Nested dom tracking is not supported. "
+            + "Apply the tracker attribute at the top level of your application.");
+    tracker = newTracker;
+}
+
+export function clearTracker() {
+    if (!tracker)
+        throw Error("No tracker to clear");
+    tracker = undefined;
+}
+
 type AttributeType<E extends keyof HTMLElementTagNameMap, K extends keyof HTMLElementTagNameMap[E]> = 
     K extends "style" ? Partial<CSSStyleDeclaration> :
     K extends "classList" ? Record<string, boolean> :
@@ -10,7 +23,6 @@ type AttributeType<E extends keyof HTMLElementTagNameMap, K extends keyof HTMLEl
 // the jsx transformer wraps all the attributes in thunks
 type StandardAttributes = {
     if?: () => boolean;
-    tracker?: () => Tracker;
 };
 type ElementProps<E extends keyof HTMLElementTagNameMap> = {
     [K in keyof HTMLElementTagNameMap[E]]?:
@@ -27,16 +39,6 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 ): HTMLElementTagNameMap[E] | Text {
     const el = document.createElement(name);
     let blank: Text | undefined = undefined;
-
-    let isTopTracker = false;
-    if (attrGetters.tracker) {
-        if (tracker) console.error("Nested tracker attributes are not supported. "
-            + "Apply the tracker attribute at the top level of your application.");
-        else {
-            isTopTracker = true;
-            tracker = attrGetters.tracker();
-        }
-    }
 
     for (let [name, attrGetter] of Object.entries(attrGetters ?? {})) {
         switch (name) {
@@ -82,8 +84,6 @@ export function element<E extends keyof HTMLElementTagNameMap>(
         }
     }
     el.append(...children);
-
-    if (isTopTracker) tracker = undefined;
 
     return blank ?? el;
 }

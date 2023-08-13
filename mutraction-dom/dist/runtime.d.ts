@@ -1,8 +1,9 @@
 import { Tracker } from 'mutraction';
+export declare function setTracker(newTracker: Tracker): void;
+export declare function clearTracker(): void;
 type AttributeType<E extends keyof HTMLElementTagNameMap, K extends keyof HTMLElementTagNameMap[E]> = K extends "style" ? Partial<CSSStyleDeclaration> : K extends "classList" ? Record<string, boolean> : HTMLElementTagNameMap[E][K];
 type StandardAttributes = {
     if?: () => boolean;
-    tracker?: () => Tracker;
 };
 type ElementProps<E extends keyof HTMLElementTagNameMap> = {
     [K in keyof HTMLElementTagNameMap[E]]?: () => AttributeType<E, K>;
