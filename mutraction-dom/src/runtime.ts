@@ -15,7 +15,7 @@ export function clearTracker() {
     tracker = undefined;
 }
 
-export function ForEach<Model, Output extends Node>(array: Model[], map: (e: Model) => Output): Node {
+export function ForEach<Model, Output extends ChildNode>(array: Model[], map: (e: Model) => Output): Node {
     const result = document.createDocumentFragment();
     const startMarker = document.createTextNode(""), endMarker = document.createTextNode("");
     result.append(startMarker);
@@ -23,7 +23,7 @@ export function ForEach<Model, Output extends Node>(array: Model[], map: (e: Mod
     startMarker.parentNode?.childNodes.entries
 
     const dep = tracker?.startDependencyTrack();
-    const outputMap = dep ? new WeakMap<object, Node>() : undefined;
+    const outputMap = dep ? new WeakMap<object, Output>() : undefined;
     // TODO once reconcile is working i think there's no need for this
     for (const e of array) {
         const node = map(e);
@@ -38,14 +38,34 @@ export function ForEach<Model, Output extends Node>(array: Model[], map: (e: Mod
         effect(tracker, () => {
             // reconcile TODO
             const parent = startMarker.parentNode;
-            for (let i = 0, c = startMarker.nextSibling; i < array.length; i++, c = c && c.nextSibling) {
-                if (!c)
+            for (let i = 0, currentEl = startMarker.nextSibling; i < array.length; i++, currentEl = currentEl && currentEl.nextSibling) {
+                if (!currentEl)
                     throw Error("ForEach: end marker has gotten lost following start marker");
 
                 const e = array[i];
-                if (typeof e === "object") {
-                    outputMap.get(e); //wtf am i doinng
+                let correctEl: Output | undefined;
+                if (typeof e === "object" && e !== null) {
+                    correctEl = outputMap?.get(e);
+                    if (!correctEl) {
+                        correctEl = map(e);
+                        outputMap?.set(e, correctEl);
+                    }
+
+                    if (Object.is(currentEl, correctEl)) continue;
+
+                    if (correctEl.parentElement) {
+                        correctEl.parentElement.removeChild(correctEl);
+                    }
                 }
+                else {
+                    correctEl = map(e);
+                }
+
+                if (!currentEl.parentNode)
+                    throw Error("Internal error: ForEach target element detached from parent node");
+
+                currentEl.parentNode.insertBefore(correctEl, currentEl);
+                currentEl = correctEl;
             }
         });
     }
