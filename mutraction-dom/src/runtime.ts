@@ -17,9 +17,37 @@ export function clearTracker() {
 
 export function ForEach<Model, Output extends Node>(array: Model[], map: (e: Model) => Output): Node {
     const result = document.createDocumentFragment();
+    const startMarker = document.createTextNode(""), endMarker = document.createTextNode("");
+    result.append(startMarker);
 
+    startMarker.parentNode?.childNodes.entries
+
+    const dep = tracker?.startDependencyTrack();
+    const outputMap = dep ? new WeakMap<object, Node>() : undefined;
+    // TODO once reconcile is working i think there's no need for this
     for (const e of array) {
-        result.append(map(e));
+        const node = map(e);
+        if (e && typeof e === "object") outputMap?.set(e, node);
+        result.append(node);
+    }
+    dep?.endDependencyTrack();
+
+    result.append(endMarker);
+
+    if (tracker) {
+        effect(tracker, () => {
+            // reconcile TODO
+            const parent = startMarker.parentNode;
+            for (let i = 0, c = startMarker.nextSibling; i < array.length; i++, c = c && c.nextSibling) {
+                if (!c)
+                    throw Error("ForEach: end marker has gotten lost following start marker");
+
+                const e = array[i];
+                if (typeof e === "object") {
+                    outputMap.get(e); //wtf am i doinng
+                }
+            }
+        });
     }
 
     return result;
