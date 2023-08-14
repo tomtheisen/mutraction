@@ -1,6 +1,7 @@
 import { message } from "./message.js";
 import { effect, track } from "mutraction";
 // import type { JSX } from "mutraction-dom/jsx-runtime";
+import { ForEach } from "mutraction-dom";
 
 const [model, tracker] = track({ message, arr: [1,2,3] });
 
@@ -25,6 +26,10 @@ const div = (
         { "asdf" }
         <p mu:if={ model.message.length > 10 }>Long message alert</p>
         <button onclick={()=>model.arr.push(model.arr.length + 1)}>push</button>
+
+        <ol>
+            { ForEach(model.arr, e=><li>{e}</li>) }
+        </ol>
     </main>
 );
 

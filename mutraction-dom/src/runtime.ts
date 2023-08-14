@@ -15,6 +15,16 @@ export function clearTracker() {
     tracker = undefined;
 }
 
+export function ForEach<Model, Output extends Node>(array: Model[], map: (e: Model) => Output): Node {
+    const result = document.createDocumentFragment();
+
+    for (const e of array) {
+        result.append(map(e));
+    }
+
+    return result;
+}
+
 type AttributeType<E extends keyof HTMLElementTagNameMap, K extends keyof HTMLElementTagNameMap[E]> = 
     K extends "style" ? Partial<CSSStyleDeclaration> :
     K extends "classList" ? Record<string, boolean> :
@@ -92,8 +102,7 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 
 export function child(getter: () => number | string | bigint | null | undefined | HTMLElement | Text): ChildNode {
     const result = getter();
-    if (result instanceof HTMLElement) return result;
-    if (result instanceof Text) return result;
+    if (result instanceof Node) return result;
     
     if (tracker) {
         let node = document.createTextNode("");
