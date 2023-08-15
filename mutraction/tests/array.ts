@@ -1,7 +1,7 @@
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
-import { track, trackAsReadonlyDeep, isTracked } from '../index.js';
+import { track, trackAsReadonlyDeep, isTracked, effect } from '../index.js';
 
 test('array sort undo', () => {
     const [arr, tracker] = track(["a","c","b"]);
@@ -45,7 +45,7 @@ test('array lengthen', () => {
 
     arr.length = 10;
     assert.equal(arr.length, 10);
-})
+});
 
 test('action log recipe', () => {
     const [model, tracker] = trackAsReadonlyDeep(
@@ -57,6 +57,17 @@ test('action log recipe', () => {
         JSON.stringify(tracker.history),
         `[{"type":"transaction","operations":[{"type":"arrayextend","target":[1,2,3,5],"name":"3","oldLength":3,"newIndex":3,"newValue":5}],"transactionName":"add"}]`
     );
+});
+
+test('array pop length visible in effect', () => {
+    const[model, tracker] = track([1,2,3]);
+
+    let length = 0;
+    effect(tracker, () => { length = model.length; });
+
+    model.pop();
+
+    assert.equal(length, 2);
 });
 
 test.run();

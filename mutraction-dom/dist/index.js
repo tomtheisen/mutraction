@@ -1,5 +1,51 @@
 // out/runtime.js
 import { effect } from "mutraction";
+
+// out/ElementSpan.js
+var ElementSpan = class {
+  startMarker = document.createTextNode("");
+  endMarker = document.createTextNode("");
+  constructor(...node) {
+    const frag = document.createDocumentFragment();
+    frag.append(this.startMarker, ...node, this.endMarker);
+  }
+  removeAsFragment() {
+    if (this.startMarker.parentNode instanceof DocumentFragment) {
+      return this.startMarker.parentNode;
+    }
+    const nodes = [];
+    for (let walk = this.startMarker; ; walk = walk?.nextSibling) {
+      if (walk == null)
+        throw Error("End marker not found as subsequent document sibling as start marker");
+      nodes.push(walk);
+      if (Object.is(walk, this.endMarker))
+        break;
+    }
+    const result = document.createDocumentFragment();
+    result.append(...nodes);
+    return result;
+  }
+  clear() {
+    while (!Object.is(this.startMarker.nextSibling, this.endMarker)) {
+      if (this.startMarker.nextSibling == null)
+        throw Error("End marker not found as subsequent document sibling as start marker");
+      this.startMarker.nextSibling.remove();
+    }
+  }
+  replaceWith(...nodes) {
+    this.clear();
+    this.append(...nodes);
+  }
+  append(...nodes) {
+    const frag = document.createDocumentFragment();
+    frag.append(...nodes);
+    if (!this.endMarker.parentNode)
+      throw Error("End marker of ElementSpan has no parent");
+    this.endMarker.parentNode.insertBefore(frag, this.endMarker);
+  }
+};
+
+// out/runtime.js
 var tracker = void 0;
 function setTracker(newTracker) {
   if (tracker)
@@ -11,14 +57,30 @@ function clearTracker() {
     throw Error("No tracker to clear");
   tracker = void 0;
 }
-function ForEach(array, map) {
-  const result = document.createDocumentFragment();
-  for (const e of array) {
-    result.append(map(e));
-  }
-  return result;
+function effectOrDo(sideEffect) {
+  if (tracker)
+    effect(tracker, sideEffect, { suppressUntrackedWarning: true });
+  else
+    sideEffect();
 }
-var suppress = { suppressUntrackedWarning: true };
+function ForEach(array, map) {
+  const result = new ElementSpan();
+  const containers = [];
+  effectOrDo(() => {
+    for (let i = containers.length; i < array.length; i++) {
+      const container = new ElementSpan();
+      containers.push(container);
+      effectOrDo(() => {
+        container.replaceWith(map(array[i]));
+      });
+      result.append(container.removeAsFragment());
+    }
+    while (containers.length > array.length) {
+      containers.pop().removeAsFragment();
+    }
+  });
+  return result.removeAsFragment();
+}
 function element(name, attrGetters, ...children) {
   const el = document.createElement(name);
   let blank = void 0;
@@ -31,38 +93,28 @@ function element(name, attrGetters, ...children) {
               blank?.replaceWith(el);
             else
               el.replaceWith(blank ??= document.createTextNode(""));
-          }, suppress);
+          }, { suppressUntrackedWarning: true });
         } else {
           if (!attrGetter())
             blank = document.createTextNode("");
         }
         break;
       case "style":
-        if (tracker) {
-          effect(tracker, () => Object.assign(el.style, attrGetter()), suppress);
-        } else {
+        effectOrDo(() => {
           Object.assign(el.style, attrGetter());
-        }
+        });
         break;
       case "classList":
-        if (tracker) {
-          effect(tracker, () => {
-            const classMap = attrGetter();
-            for (const e of Object.entries(classMap))
-              el.classList.toggle(...e);
-          }, suppress);
-        } else {
+        effectOrDo(() => {
           const classMap = attrGetter();
           for (const e of Object.entries(classMap))
             el.classList.toggle(...e);
-        }
+        });
         break;
       default:
-        if (tracker) {
-          effect(tracker, () => el[name2] = attrGetter(), suppress);
-        } else {
+        effectOrDo(() => {
           el[name2] = attrGetter();
-        }
+        });
         break;
     }
   }
@@ -79,7 +131,7 @@ function child(getter) {
       const newNode = document.createTextNode(String(getter() ?? ""));
       node.replaceWith(newNode);
       node = newNode;
-    }, suppress);
+    }, { suppressUntrackedWarning: true });
     return node;
   } else {
     return document.createTextNode(String(getter() ?? ""));

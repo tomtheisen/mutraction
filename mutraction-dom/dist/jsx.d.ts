@@ -1,10 +1,5 @@
 import type { Tracker } from "mutraction";
 
-// type ForEach<Model, Output extends Node> = {
-//     in: Model[];
-//     children: (model: Model) => Output;
-// }
-
 export namespace JSX {
     export type Element = Node;
 
@@ -18,10 +13,5 @@ export namespace JSX {
 
     export type IntrinsicElements = {
         [key in keyof HTMLElementTagNameMap]: MutractionElement<key>;
-    } & {
-        "mu:ForEach": {
-            in: unknown[];
-            children: (e: any) => Node;
-        }
     };
 }

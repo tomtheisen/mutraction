@@ -129,9 +129,10 @@ function makeProxyHandler<TModel extends object>(model: TModel, tracker: Tracker
                 const shorten: ArrayShorten = {
                     type: "arrayshorten", target, name, oldLength, newLength, removed
                 };
+                const wasSet = Reflect.set(target, name, newValue, receiver);
                 tracker[RecordMutation](shorten);
                 ++setsCompleted;
-                return Reflect.set(target, name, newValue, receiver);
+                return wasSet;
             }
         }
         
@@ -142,9 +143,10 @@ function makeProxyHandler<TModel extends object>(model: TModel, tracker: Tracker
                 const extension: ArrayExtend = { 
                     type: "arrayextend", target, name, oldLength: target.length, newIndex: index, newValue
                 };
+                const wasSet = Reflect.set(target, name, newValue, receiver);
                 tracker[RecordMutation](extension);
                 ++setsCompleted;
-                return Reflect.set(target, name, newValue, receiver);
+                return wasSet;
             }
         }
 

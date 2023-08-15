@@ -144,9 +144,7 @@ var Tracker = class {
   }
   get history() {
     this.#ensureHistory();
-    for (const dt of this.#dependencyTrackers) {
-      dt.trackAllChanges();
-    }
+    this.#dependencyTrackers[0]?.trackAllChanges();
     if (!this.#rootTransaction)
       throw Error("History tracking enabled, but no root transaction. Probably mutraction internal error.");
     return this.#rootTransaction.operations;
@@ -157,7 +155,7 @@ var Tracker = class {
   #advanceGeneration() {
     ++this.#generation;
   }
-  // add another transaction to the stack
+  /** add another transaction to the stack  */
   startTransaction(name) {
     const transaction = this.#ensureHistory();
     this.#transaction = { type: "transaction", parent: transaction, operations: [] };
@@ -165,8 +163,9 @@ var Tracker = class {
       this.#transaction.transactionName = name;
     return this.#transaction;
   }
-  // resolve and close the most recent transaction
-  // throws if no transactions are active
+  /** resolve and close the most recent transaction
+    * throws if no transactions are active
+    */
   commit(transaction) {
     const actualTransaction = this.#ensureHistory();
     if (transaction && transaction !== actualTransaction)
@@ -184,9 +183,10 @@ var Tracker = class {
       this.#notifySubscribers(void 0);
     }
   }
-  // undo all operations done since the beginning of the most recent trasaction
-  // remove it from the transaction stack
-  // if no transactions are active, undo all mutations
+  /** undo all operations done since the beginning of the most recent trasaction
+   * remove it from the transaction stack
+   * if no transactions are active, undo all mutations
+   */
   rollback(transaction) {
     const actualTransaction = this.#ensureHistory();
     if (transaction && transaction !== actualTransaction)
@@ -200,7 +200,7 @@ var Tracker = class {
     if (didSomething)
       this.#advanceGeneration();
   }
-  // undo last mutation or transaction and push into the redo stack
+  /** undo last mutation or transaction and push into the redo stack  */
   undo() {
     const transaction = this.#ensureHistory();
     const mutation = transaction.operations.pop();
@@ -238,7 +238,7 @@ var Tracker = class {
       this.#notifySubscribers(mutation);
     }
   }
-  // repeat last undone mutation
+  /** repeat last undone mutation  */
   redo() {
     const transaction = this.#ensureHistory();
     const mutation = this.#redos.shift();
@@ -276,7 +276,7 @@ var Tracker = class {
       this.#notifySubscribers(mutation);
     }
   }
-  // clear the redo stack  
+  /** clear the redo stack */
   // any direct mutation implicitly does this
   clearRedos() {
     this.#redos.length = 0;
@@ -289,7 +289,7 @@ var Tracker = class {
     this.#advanceGeneration();
     this.#notifySubscribers(void 0);
   }
-  // record a mutation, if you have the secret key
+  /** record a mutation, if you have the secret key  */
   [RecordMutation](mutation) {
     this.#transaction?.operations.push(Object.freeze(mutation));
     this.clearRedos();
@@ -300,22 +300,20 @@ var Tracker = class {
   #setLastChangeGeneration(mutation) {
     createOrRetrievePropRef(mutation.target, mutation.name)[SetGeneration](this.generation);
   }
-  #dependencyTrackers = /* @__PURE__ */ new Set();
+  #dependencyTrackers = [];
   startDependencyTrack() {
     let deps = new DependencyList(this);
-    this.#dependencyTrackers.add(deps);
+    this.#dependencyTrackers.unshift(deps);
     return deps;
   }
   endDependencyTrack(dep) {
-    const wasTracking = this.#dependencyTrackers.delete(dep);
-    if (!wasTracking)
-      throw Error("Dependency tracker was not active on this tracker");
+    if (this.#dependencyTrackers[0] !== dep)
+      throw Error("Specified dependency list is not top of stack");
+    this.#dependencyTrackers.shift();
     return dep;
   }
   [RecordDependency](propRef) {
-    for (const dt of this.#dependencyTrackers) {
-      dt.addDependency(propRef);
-    }
+    this.#dependencyTrackers[0]?.addDependency(propRef);
     if (this.#gettingPropRef) {
       this.#lastPropRef = propRef;
     }
@@ -432,7 +430,7 @@ function makeProxyHandler(model2, tracker3) {
     const mutation = name in target ? { type: "change", target, name, oldValue: model2[name], newValue } : { type: "create", target, name, newValue };
     const initialSets = setsCompleted;
     const wasSet = Reflect.set(target, name, newValue, receiver);
-    if (initialSets == setsCompleted) {
+    if (initialSets == setsCompleted && wasSet) {
       tracker3[RecordMutation](mutation);
     }
     ++setsCompleted;
@@ -457,9 +455,10 @@ function makeProxyHandler(model2, tracker3) {
           newLength,
           removed
         };
+        const wasSet = Reflect.set(target, name, newValue, receiver);
         tracker3[RecordMutation](shorten);
         ++setsCompleted;
-        return Reflect.set(target, name, newValue, receiver);
+        return wasSet;
       }
     }
     if (isArrayIndex(name)) {
@@ -473,9 +472,10 @@ function makeProxyHandler(model2, tracker3) {
           newIndex: index,
           newValue
         };
+        const wasSet = Reflect.set(target, name, newValue, receiver);
         tracker3[RecordMutation](extension);
         ++setsCompleted;
-        return Reflect.set(target, name, newValue, receiver);
+        return wasSet;
       }
     }
     return setOrdinary(target, name, newValue, receiver);
@@ -510,7 +510,7 @@ var emptyEffect = { dispose: () => {
 } };
 function effect(tracker3, sideEffect, options = {}) {
   let dep = tracker3.startDependencyTrack();
-  sideEffect();
+  let lastResult = sideEffect();
   dep.endDependencyTrack();
   if (dep.trackedProperties.size === 0) {
     if (!options.suppressUntrackedWarning) {
@@ -520,18 +520,61 @@ function effect(tracker3, sideEffect, options = {}) {
   }
   let latestGen = dep.getLatestChangeGeneration();
   function modelChangedForEffect() {
+    lastResult?.();
     const depgen = dep.getLatestChangeGeneration();
     if (depgen === latestGen)
       return;
     latestGen = depgen;
     dep = tracker3.startDependencyTrack();
-    sideEffect();
+    lastResult = sideEffect();
     dep.endDependencyTrack();
   }
   return tracker3.subscribe(modelChangedForEffect);
 }
 
 // ../mutraction-dom/dist/index.js
+var ElementSpan = class {
+  startMarker = document.createTextNode("");
+  endMarker = document.createTextNode("");
+  constructor(...node) {
+    const frag = document.createDocumentFragment();
+    frag.append(this.startMarker, ...node, this.endMarker);
+  }
+  removeAsFragment() {
+    if (this.startMarker.parentNode instanceof DocumentFragment) {
+      return this.startMarker.parentNode;
+    }
+    const nodes = [];
+    for (let walk = this.startMarker; ; walk = walk?.nextSibling) {
+      if (walk == null)
+        throw Error("End marker not found as subsequent document sibling as start marker");
+      nodes.push(walk);
+      if (Object.is(walk, this.endMarker))
+        break;
+    }
+    const result = document.createDocumentFragment();
+    result.append(...nodes);
+    return result;
+  }
+  clear() {
+    while (!Object.is(this.startMarker.nextSibling, this.endMarker)) {
+      if (this.startMarker.nextSibling == null)
+        throw Error("End marker not found as subsequent document sibling as start marker");
+      this.startMarker.nextSibling.remove();
+    }
+  }
+  replaceWith(...nodes) {
+    this.clear();
+    this.append(...nodes);
+  }
+  append(...nodes) {
+    const frag = document.createDocumentFragment();
+    frag.append(...nodes);
+    if (!this.endMarker.parentNode)
+      throw Error("End marker of ElementSpan has no parent");
+    this.endMarker.parentNode.insertBefore(frag, this.endMarker);
+  }
+};
 var tracker = void 0;
 function setTracker(newTracker) {
   if (tracker)
@@ -543,14 +586,30 @@ function clearTracker() {
     throw Error("No tracker to clear");
   tracker = void 0;
 }
-function ForEach(array, map) {
-  const result = document.createDocumentFragment();
-  for (const e of array) {
-    result.append(map(e));
-  }
-  return result;
+function effectOrDo(sideEffect) {
+  if (tracker)
+    effect(tracker, sideEffect, { suppressUntrackedWarning: true });
+  else
+    sideEffect();
 }
-var suppress = { suppressUntrackedWarning: true };
+function ForEach(array, map) {
+  const result = new ElementSpan();
+  const containers = [];
+  effectOrDo(() => {
+    for (let i = containers.length; i < array.length; i++) {
+      const container = new ElementSpan();
+      containers.push(container);
+      effectOrDo(() => {
+        container.replaceWith(map(array[i]));
+      });
+      result.append(container.removeAsFragment());
+    }
+    while (containers.length > array.length) {
+      containers.pop().removeAsFragment();
+    }
+  });
+  return result.removeAsFragment();
+}
 function element(name, attrGetters, ...children) {
   const el = document.createElement(name);
   let blank = void 0;
@@ -563,38 +622,28 @@ function element(name, attrGetters, ...children) {
               blank?.replaceWith(el);
             else
               el.replaceWith(blank ??= document.createTextNode(""));
-          }, suppress);
+          }, { suppressUntrackedWarning: true });
         } else {
           if (!attrGetter())
             blank = document.createTextNode("");
         }
         break;
       case "style":
-        if (tracker) {
-          effect(tracker, () => Object.assign(el.style, attrGetter()), suppress);
-        } else {
+        effectOrDo(() => {
           Object.assign(el.style, attrGetter());
-        }
+        });
         break;
       case "classList":
-        if (tracker) {
-          effect(tracker, () => {
-            const classMap = attrGetter();
-            for (const e of Object.entries(classMap))
-              el.classList.toggle(...e);
-          }, suppress);
-        } else {
+        effectOrDo(() => {
           const classMap = attrGetter();
           for (const e of Object.entries(classMap))
             el.classList.toggle(...e);
-        }
+        });
         break;
       default:
-        if (tracker) {
-          effect(tracker, () => el[name2] = attrGetter(), suppress);
-        } else {
+        effectOrDo(() => {
           el[name2] = attrGetter();
-        }
+        });
         break;
     }
   }
@@ -611,7 +660,7 @@ function child(getter) {
       const newNode = document.createTextNode(String(getter() ?? ""));
       node.replaceWith(newNode);
       node = newNode;
-    }, suppress);
+    }, { suppressUntrackedWarning: true });
     return node;
   } else {
     return document.createTextNode(String(getter() ?? ""));
@@ -641,7 +690,9 @@ var div = [setTracker(tracker2), element("main", {}, element("div", {}, child(()
   "mu:if": () => model.message.length > 10
 }, "Long message alert"), element("button", {
   onclick: () => () => model.arr.push(model.arr.length + 1)
-}, "push"), element("ol", {}, child(() => ForEach(model.arr, (e) => element("li", {}, child(() => e)))))), clearTracker()][1];
+}, "push"), element("button", {
+  onclick: () => () => model.arr.pop()
+}, "pop"), element("ol", {}, child(() => ForEach(model.arr, (e) => element("li", {}, child(() => e), element("input", {})))))), clearTracker()][1];
 var root = document.getElementById("root");
 root.replaceChildren(div);
 model.message = "something else";

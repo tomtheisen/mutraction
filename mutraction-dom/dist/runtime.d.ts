@@ -1,8 +1,7 @@
 import { Tracker } from 'mutraction';
-export declare function getTracker(): Tracker | undefined;
 export declare function setTracker(newTracker: Tracker): void;
 export declare function clearTracker(): void;
-export declare function ForEach<Model, Output extends Node>(array: Model[], map: (e: Model) => Output): Node;
+export declare function ForEach<Model>(array: Model[], map: (e: Model) => Node): Node;
 type AttributeType<E extends keyof HTMLElementTagNameMap, K extends keyof HTMLElementTagNameMap[E]> = K extends "style" ? Partial<CSSStyleDeclaration> : K extends "classList" ? Record<string, boolean> : HTMLElementTagNameMap[E][K];
 type StandardAttributes = {
     if?: () => boolean;

@@ -152,9 +152,7 @@ var Tracker = class {
   }
   get history() {
     this.#ensureHistory();
-    for (const dt of this.#dependencyTrackers) {
-      dt.trackAllChanges();
-    }
+    this.#dependencyTrackers[0]?.trackAllChanges();
     if (!this.#rootTransaction)
       throw Error("History tracking enabled, but no root transaction. Probably mutraction internal error.");
     return this.#rootTransaction.operations;
@@ -165,7 +163,7 @@ var Tracker = class {
   #advanceGeneration() {
     ++this.#generation;
   }
-  // add another transaction to the stack
+  /** add another transaction to the stack  */
   startTransaction(name) {
     const transaction = this.#ensureHistory();
     this.#transaction = { type: "transaction", parent: transaction, operations: [] };
@@ -173,8 +171,9 @@ var Tracker = class {
       this.#transaction.transactionName = name;
     return this.#transaction;
   }
-  // resolve and close the most recent transaction
-  // throws if no transactions are active
+  /** resolve and close the most recent transaction
+    * throws if no transactions are active
+    */
   commit(transaction) {
     const actualTransaction = this.#ensureHistory();
     if (transaction && transaction !== actualTransaction)
@@ -192,9 +191,10 @@ var Tracker = class {
       this.#notifySubscribers(void 0);
     }
   }
-  // undo all operations done since the beginning of the most recent trasaction
-  // remove it from the transaction stack
-  // if no transactions are active, undo all mutations
+  /** undo all operations done since the beginning of the most recent trasaction
+   * remove it from the transaction stack
+   * if no transactions are active, undo all mutations
+   */
   rollback(transaction) {
     const actualTransaction = this.#ensureHistory();
     if (transaction && transaction !== actualTransaction)
@@ -208,7 +208,7 @@ var Tracker = class {
     if (didSomething)
       this.#advanceGeneration();
   }
-  // undo last mutation or transaction and push into the redo stack
+  /** undo last mutation or transaction and push into the redo stack  */
   undo() {
     const transaction = this.#ensureHistory();
     const mutation = transaction.operations.pop();
@@ -246,7 +246,7 @@ var Tracker = class {
       this.#notifySubscribers(mutation);
     }
   }
-  // repeat last undone mutation
+  /** repeat last undone mutation  */
   redo() {
     const transaction = this.#ensureHistory();
     const mutation = this.#redos.shift();
@@ -284,7 +284,7 @@ var Tracker = class {
       this.#notifySubscribers(mutation);
     }
   }
-  // clear the redo stack  
+  /** clear the redo stack */
   // any direct mutation implicitly does this
   clearRedos() {
     this.#redos.length = 0;
@@ -297,7 +297,7 @@ var Tracker = class {
     this.#advanceGeneration();
     this.#notifySubscribers(void 0);
   }
-  // record a mutation, if you have the secret key
+  /** record a mutation, if you have the secret key  */
   [RecordMutation](mutation) {
     this.#transaction?.operations.push(Object.freeze(mutation));
     this.clearRedos();
@@ -308,22 +308,20 @@ var Tracker = class {
   #setLastChangeGeneration(mutation) {
     createOrRetrievePropRef(mutation.target, mutation.name)[SetGeneration](this.generation);
   }
-  #dependencyTrackers = /* @__PURE__ */ new Set();
+  #dependencyTrackers = [];
   startDependencyTrack() {
     let deps = new DependencyList(this);
-    this.#dependencyTrackers.add(deps);
+    this.#dependencyTrackers.unshift(deps);
     return deps;
   }
   endDependencyTrack(dep) {
-    const wasTracking = this.#dependencyTrackers.delete(dep);
-    if (!wasTracking)
-      throw Error("Dependency tracker was not active on this tracker");
+    if (this.#dependencyTrackers[0] !== dep)
+      throw Error("Specified dependency list is not top of stack");
+    this.#dependencyTrackers.shift();
     return dep;
   }
   [RecordDependency](propRef) {
-    for (const dt of this.#dependencyTrackers) {
-      dt.addDependency(propRef);
-    }
+    this.#dependencyTrackers[0]?.addDependency(propRef);
     if (this.#gettingPropRef) {
       this.#lastPropRef = propRef;
     }
@@ -442,7 +440,7 @@ function makeProxyHandler(model, tracker) {
     const mutation = name in target ? { type: "change", target, name, oldValue: model[name], newValue } : { type: "create", target, name, newValue };
     const initialSets = setsCompleted;
     const wasSet = Reflect.set(target, name, newValue, receiver);
-    if (initialSets == setsCompleted) {
+    if (initialSets == setsCompleted && wasSet) {
       tracker[RecordMutation](mutation);
     }
     ++setsCompleted;
@@ -467,9 +465,10 @@ function makeProxyHandler(model, tracker) {
           newLength,
           removed
         };
+        const wasSet = Reflect.set(target, name, newValue, receiver);
         tracker[RecordMutation](shorten);
         ++setsCompleted;
-        return Reflect.set(target, name, newValue, receiver);
+        return wasSet;
       }
     }
     if (isArrayIndex(name)) {
@@ -483,9 +482,10 @@ function makeProxyHandler(model, tracker) {
           newIndex: index,
           newValue
         };
+        const wasSet = Reflect.set(target, name, newValue, receiver);
         tracker[RecordMutation](extension);
         ++setsCompleted;
-        return Reflect.set(target, name, newValue, receiver);
+        return wasSet;
       }
     }
     return setOrdinary(target, name, newValue, receiver);

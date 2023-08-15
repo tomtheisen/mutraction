@@ -16,24 +16,33 @@ export function clearTracker() {
     tracker = undefined;
 }
 
+function effectOrDo(sideEffect: () => (void | (() => void))) {
+    if (tracker) effect(tracker, sideEffect, { suppressUntrackedWarning: true });
+    else sideEffect();
+}
+
 export function ForEach<Model>(array: Model[], map: (e: Model) => Node): Node {
-    const result = document.createDocumentFragment();
+    const result = new ElementSpan();
+    const containers: ElementSpan[] = [];
 
-    for (let i = 0; i < array.length; i++) {
-        const container = new ElementSpan();
-        result.append(container.getFragment());
+    effectOrDo(() => {
+        for (let i = containers.length; i < array.length; i++) {
+            const container = new ElementSpan();
+            containers.push(container);
 
-        if (tracker) {
-            effect(tracker, () => {
+            effectOrDo(() => {
                 container.replaceWith(map(array[i]));
             });
-        }
-        else {
-            container.replaceWith(map(array[i]));
-        }
-    }
 
-    return result;
+            result.append(container.removeAsFragment());
+        }
+
+        while (containers.length > array.length) {
+            containers.pop()!.removeAsFragment();
+        }
+    });
+
+    return result.removeAsFragment();
 }
 
 type AttributeType<E extends keyof HTMLElementTagNameMap, K extends keyof HTMLElementTagNameMap[E]> = 
@@ -49,8 +58,6 @@ type ElementProps<E extends keyof HTMLElementTagNameMap> = {
     [K in keyof HTMLElementTagNameMap[E]]?:
         () => AttributeType<E, K>;
 } & StandardAttributes; 
-
-const suppress = { suppressUntrackedWarning: true } as const;
 
 // function element(name: string, attrs: Record<string, () => string|number|boolean>, ...children: ChildNode[]): HTMLElement;
 export function element<E extends keyof HTMLElementTagNameMap>(
@@ -68,7 +75,7 @@ export function element<E extends keyof HTMLElementTagNameMap>(
                     effect(tracker, () => {
                         if (attrGetter()) blank?.replaceWith(el);
                         else el.replaceWith(blank ??= document.createTextNode(""));
-                    }, suppress);
+                    }, { suppressUntrackedWarning: true });
                 }
                 else {
                     if (!attrGetter()) blank = document.createTextNode("");
@@ -76,33 +83,22 @@ export function element<E extends keyof HTMLElementTagNameMap>(
                 break;
 
             case "style":
-                if (tracker) {
-                    effect(tracker, () => Object.assign(el.style, attrGetter()), suppress);
-                }
-                else {
+                effectOrDo(() => { 
                     Object.assign(el.style, attrGetter());
-                }
+                });
                 break;
 
             case "classList":
-                if (tracker) {
-                    effect(tracker, () => {
-                        const classMap = attrGetter() as Record<string, boolean>;
-                        for (const e of Object.entries(classMap)) el.classList.toggle(...e);
-                    }, suppress);
-                }
-                else {
+                effectOrDo(() => {
                     const classMap = attrGetter() as Record<string, boolean>;
                     for (const e of Object.entries(classMap)) el.classList.toggle(...e);
-                }
+                });
                 break;
+
             default:
-                if (tracker) {
-                    effect(tracker, () => (el as any)[name] = attrGetter(), suppress);
-                }
-                else {
+                effectOrDo(() => {
                     (el as any)[name] = attrGetter();                
-                }
+                });
                 break;
         }
     }
@@ -121,13 +117,10 @@ export function child(getter: () => number | string | bigint | null | undefined 
             const newNode = document.createTextNode(String(getter() ?? ""));
             node.replaceWith(newNode);
             node = newNode;
-        }, suppress);
+        }, { suppressUntrackedWarning: true });
         return node;
     }
     else {
         return document.createTextNode(String(getter() ?? ""));
     }
 }
-
-
-document.createDocumentFragment().child

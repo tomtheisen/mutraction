@@ -19,13 +19,25 @@ export declare class Tracker {
     };
     get history(): ReadonlyArray<Readonly<Mutation>>;
     get generation(): number;
+    /** add another transaction to the stack  */
     startTransaction(name?: string): Transaction;
+    /** resolve and close the most recent transaction
+      * throws if no transactions are active
+      */
     commit(transaction?: Transaction): void;
+    /** undo all operations done since the beginning of the most recent trasaction
+     * remove it from the transaction stack
+     * if no transactions are active, undo all mutations
+     */
     rollback(transaction?: Transaction): void;
+    /** undo last mutation or transaction and push into the redo stack  */
     undo(): void;
+    /** repeat last undone mutation  */
     redo(): void;
+    /** clear the redo stack */
     clearRedos(): void;
     clearHistory(): void;
+    /** record a mutation, if you have the secret key  */
     [RecordMutation](mutation: SingleMutation): void;
     startDependencyTrack(): DependencyList;
     endDependencyTrack(dep: DependencyList): DependencyList;
