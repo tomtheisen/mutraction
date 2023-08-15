@@ -440,7 +440,7 @@ function makeProxyHandler(model, tracker) {
     const mutation = name in target ? { type: "change", target, name, oldValue: model[name], newValue } : { type: "create", target, name, newValue };
     const initialSets = setsCompleted;
     const wasSet = Reflect.set(target, name, newValue, receiver);
-    if (initialSets == setsCompleted && wasSet) {
+    if (initialSets == setsCompleted) {
       tracker[RecordMutation](mutation);
     }
     ++setsCompleted;
