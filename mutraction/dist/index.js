@@ -569,7 +569,7 @@ var emptyEffect = { dispose: () => {
 } };
 function effect(tracker, sideEffect, options = {}) {
   let dep = tracker.startDependencyTrack();
-  sideEffect();
+  let lastResult = sideEffect();
   dep.endDependencyTrack();
   if (dep.trackedProperties.size === 0) {
     if (!options.suppressUntrackedWarning) {
@@ -579,12 +579,13 @@ function effect(tracker, sideEffect, options = {}) {
   }
   let latestGen = dep.getLatestChangeGeneration();
   function modelChangedForEffect() {
+    lastResult?.();
     const depgen = dep.getLatestChangeGeneration();
     if (depgen === latestGen)
       return;
     latestGen = depgen;
     dep = tracker.startDependencyTrack();
-    sideEffect();
+    lastResult = sideEffect();
     dep.endDependencyTrack();
   }
   return tracker.subscribe(modelChangedForEffect);

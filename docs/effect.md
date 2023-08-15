@@ -21,6 +21,8 @@ model.x = 7; // no output
 * `tracker` is the [`Tracker`](./tracker.md) that's tracking the model.
 * `callback` is a function to run every time one of its dependencies change.  It will be invoked once immediately.  Then each time one of its dependencies is assigned to, it will run again, and recalculate dependencies.
 
+    `callback` can optionally return a cleanup function.  The cleanup function will be invoked immediately prior to the next invocation of `callback`.
+
 ## Return value
 
 `effect()` returns an object with a `dispose()` method.  Call it to stop the effect and free its resources.
