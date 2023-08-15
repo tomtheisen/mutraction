@@ -83,4 +83,19 @@ test('history dependency', () => {
     assert.equal(dep.getLatestChangeGeneration(), 3);
 });
 
+test('only top dependency notified', () => {
+    const [model, tracker] = track({a:0, b:0, c:0});
+
+    const d1 = tracker.startDependencyTrack();
+    model.a;
+    const d2 = tracker.startDependencyTrack();
+    model.b;
+    d2.endDependencyTrack();
+    model.c;
+    d1.endDependencyTrack();
+
+    assert.equal(d1.trackedProperties.size, 2);
+    assert.equal(d2.trackedProperties.size, 1);
+});
+
 test.run();

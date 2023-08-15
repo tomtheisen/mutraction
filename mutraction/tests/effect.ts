@@ -65,4 +65,27 @@ test('effect exit', () => {
     assert.equal(effectLog, ["in:44","out:44","in:55","out:55","in:66"]);
 });
 
+test('inner effect runs without outer', () => {
+    const [model, tracker] = track({a:0, b:0, c:0});
+
+    let times1 = 0, times2 = 0;
+
+    effect(tracker, () => {
+        model.a;
+        effect(tracker, () => {
+            model.b;
+            ++times2;
+        });
+        model.c;
+        ++times1;
+    });
+
+    assert.equal(times1, 1);
+    assert.equal(times2, 1);
+
+    model.b++;
+    assert.equal(times1, 1);
+    assert.equal(times2, 2);
+});
+
 test.run();

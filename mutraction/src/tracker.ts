@@ -67,9 +67,7 @@ export class Tracker {
 
         // reading the history can create a dependency too, not just the tracked model, 
         // for use cases that depend on the tracker history
-        for (const dt of this.#dependencyTrackers) {
-            dt.trackAllChanges();
-        }
+        this.#dependencyTrackers[0]?.trackAllChanges();
 
         if (!this.#rootTransaction) 
             throw Error("History tracking enabled, but no root transaction. Probably mutraction internal error.");
@@ -83,7 +81,7 @@ export class Tracker {
         ++this.#generation;
     }
 
-    // add another transaction to the stack
+    /** add another transaction to the stack  */
     startTransaction(name?: string): Transaction {
         const transaction = this.#ensureHistory();
         this.#transaction = { type: "transaction", parent: transaction, operations: [] };
@@ -91,8 +89,9 @@ export class Tracker {
         return this.#transaction;
     }
 
-    // resolve and close the most recent transaction
-    // throws if no transactions are active
+    /** resolve and close the most recent transaction  
+      * throws if no transactions are active 
+      */
     commit(transaction?: Transaction) {
         const actualTransaction = this.#ensureHistory();
 
@@ -115,9 +114,10 @@ export class Tracker {
         }
     }
 
-    // undo all operations done since the beginning of the most recent trasaction
-    // remove it from the transaction stack
-    // if no transactions are active, undo all mutations
+    /** undo all operations done since the beginning of the most recent trasaction
+     * remove it from the transaction stack
+     * if no transactions are active, undo all mutations
+     */
     rollback(transaction?: Transaction) {
         const actualTransaction = this.#ensureHistory();
 
@@ -133,7 +133,7 @@ export class Tracker {
         if (didSomething) this.#advanceGeneration();
     }
 
-    // undo last mutation or transaction and push into the redo stack
+    /** undo last mutation or transaction and push into the redo stack  */
     undo() {
         const transaction = this.#ensureHistory();
         const mutation = transaction.operations.pop();
@@ -163,7 +163,7 @@ export class Tracker {
         }
     }
 
-    // repeat last undone mutation
+    /** repeat last undone mutation  */
     redo() {
         const transaction = this.#ensureHistory();
         const mutation = this.#redos.shift();
@@ -193,7 +193,7 @@ export class Tracker {
         }
     }
 
-    // clear the redo stack  
+    /** clear the redo stack */
     // any direct mutation implicitly does this
     clearRedos() {
         this.#redos.length = 0;
@@ -208,7 +208,7 @@ export class Tracker {
         this.#notifySubscribers(undefined);
     }
 
-    // record a mutation, if you have the secret key
+    /** record a mutation, if you have the secret key  */
     [RecordMutation](mutation: SingleMutation) {
         // if history tracking is enabled
         this.#transaction?.operations.push(Object.freeze(mutation));
@@ -223,24 +223,24 @@ export class Tracker {
         createOrRetrievePropRef(mutation.target, mutation.name)[SetGeneration](this.generation);
     }
 
-    #dependencyTrackers: Set<DependencyList> = new Set;
+    #dependencyTrackers: DependencyList[] = [];
 
     startDependencyTrack(): DependencyList {
         let deps = new DependencyList(this);
-        this.#dependencyTrackers.add(deps);
+        this.#dependencyTrackers.unshift(deps);
         return deps;
     }
 
     endDependencyTrack(dep: DependencyList): DependencyList {
-        const wasTracking = this.#dependencyTrackers.delete(dep);
-        if (!wasTracking) throw Error('Dependency tracker was not active on this tracker');
+        if (this.#dependencyTrackers[0] !== dep) 
+            throw Error('Specified dependency list is not top of stack');
+
+        this.#dependencyTrackers.shift();
         return dep;
     }
 
     [RecordDependency](propRef: PropReference) {
-        for (const dt of this.#dependencyTrackers) {
-            dt.addDependency(propRef);
-        }
+        this.#dependencyTrackers[0]?.addDependency(propRef);
         if (this.#gettingPropRef) {
             this.#lastPropRef = propRef;
         }

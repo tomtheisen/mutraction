@@ -16,6 +16,8 @@ fx.dispose();
 model.x = 7; // no output
 ```
 
+When nested, inner effects won't re-trigger containing effects.
+
 ## Arguments
 
 * `tracker` is the [`Tracker`](./tracker.md) that's tracking the model.
