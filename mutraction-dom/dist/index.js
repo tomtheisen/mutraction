@@ -11,13 +11,20 @@ function clearTracker() {
     throw Error("No tracker to clear");
   tracker = void 0;
 }
+function ForEach(array, map) {
+  const result = document.createDocumentFragment();
+  for (const e of array) {
+    result.append(map(e));
+  }
+  return result;
+}
 var suppress = { suppressUntrackedWarning: true };
 function element(name, attrGetters, ...children) {
   const el = document.createElement(name);
   let blank = void 0;
   for (let [name2, attrGetter] of Object.entries(attrGetters ?? {})) {
     switch (name2) {
-      case "if":
+      case "mu:if":
         if (tracker) {
           effect(tracker, () => {
             if (attrGetter())
@@ -64,9 +71,7 @@ function element(name, attrGetters, ...children) {
 }
 function child(getter) {
   const result = getter();
-  if (result instanceof HTMLElement)
-    return result;
-  if (result instanceof Text)
+  if (result instanceof Node)
     return result;
   if (tracker) {
     let node = document.createTextNode("");
@@ -81,6 +86,7 @@ function child(getter) {
   }
 }
 export {
+  ForEach,
   child,
   clearTracker,
   element,

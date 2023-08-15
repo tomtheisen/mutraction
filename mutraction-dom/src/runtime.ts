@@ -1,4 +1,5 @@
 import { effect, Tracker } from 'mutraction';
+import { ElementSpan } from './ElementSpan.js';
 
 let tracker: Tracker | undefined = undefined;
 
@@ -15,59 +16,21 @@ export function clearTracker() {
     tracker = undefined;
 }
 
-export function ForEach<Model, Output extends ChildNode>(array: Model[], map: (e: Model) => Output): Node {
+export function ForEach<Model>(array: Model[], map: (e: Model) => Node): Node {
     const result = document.createDocumentFragment();
-    const startMarker = document.createTextNode(""), endMarker = document.createTextNode("");
-    result.append(startMarker);
 
-    startMarker.parentNode?.childNodes.entries
+    for (let i = 0; i < array.length; i++) {
+        const container = new ElementSpan();
+        result.append(container.getFragment());
 
-    const dep = tracker?.startDependencyTrack();
-    const outputMap = dep ? new WeakMap<object, Output>() : undefined;
-    // TODO once reconcile is working i think there's no need for this
-    for (const e of array) {
-        const node = map(e);
-        if (e && typeof e === "object") outputMap?.set(e, node);
-        result.append(node);
-    }
-    dep?.endDependencyTrack();
-
-    result.append(endMarker);
-
-    if (tracker) {
-        effect(tracker, () => {
-            // reconcile TODO
-            const parent = startMarker.parentNode;
-            for (let i = 0, currentEl = startMarker.nextSibling; i < array.length; i++, currentEl = currentEl && currentEl.nextSibling) {
-                if (!currentEl)
-                    throw Error("ForEach: end marker has gotten lost following start marker");
-
-                const e = array[i];
-                let correctEl: Output | undefined;
-                if (typeof e === "object" && e !== null) {
-                    correctEl = outputMap?.get(e);
-                    if (!correctEl) {
-                        correctEl = map(e);
-                        outputMap?.set(e, correctEl);
-                    }
-
-                    if (Object.is(currentEl, correctEl)) continue;
-
-                    if (correctEl.parentElement) {
-                        correctEl.parentElement.removeChild(correctEl);
-                    }
-                }
-                else {
-                    correctEl = map(e);
-                }
-
-                if (!currentEl.parentNode)
-                    throw Error("Internal error: ForEach target element detached from parent node");
-
-                currentEl.parentNode.insertBefore(correctEl, currentEl);
-                currentEl = correctEl;
-            }
-        });
+        if (tracker) {
+            effect(tracker, () => {
+                container.replaceWith(map(array[i]));
+            });
+        }
+        else {
+            container.replaceWith(map(array[i]));
+        }
     }
 
     return result;
@@ -165,3 +128,6 @@ export function child(getter: () => number | string | bigint | null | undefined 
         return document.createTextNode(String(getter() ?? ""));
     }
 }
+
+
+document.createDocumentFragment().child

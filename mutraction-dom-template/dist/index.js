@@ -543,13 +543,20 @@ function clearTracker() {
     throw Error("No tracker to clear");
   tracker = void 0;
 }
+function ForEach(array, map) {
+  const result = document.createDocumentFragment();
+  for (const e of array) {
+    result.append(map(e));
+  }
+  return result;
+}
 var suppress = { suppressUntrackedWarning: true };
 function element(name, attrGetters, ...children) {
   const el = document.createElement(name);
   let blank = void 0;
   for (let [name2, attrGetter] of Object.entries(attrGetters ?? {})) {
     switch (name2) {
-      case "if":
+      case "mu:if":
         if (tracker) {
           effect(tracker, () => {
             if (attrGetter())
@@ -596,9 +603,7 @@ function element(name, attrGetters, ...children) {
 }
 function child(getter) {
   const result = getter();
-  if (result instanceof HTMLElement)
-    return result;
-  if (result instanceof Text)
+  if (result instanceof Node)
     return result;
   if (tracker) {
     let node = document.createTextNode("");
@@ -618,7 +623,8 @@ var message = "Hello world";
 
 // out2/index.js
 var [model, tracker2] = track({
-  message
+  message,
+  arr: [1, 2, 3]
 });
 effect(tracker2, () => {
   console.log(model.message);
@@ -631,9 +637,11 @@ function FuncComp({}) {
 var div = [setTracker(tracker2), element("main", {}, element("div", {}, child(() => model.message)), element("input", {
   value: () => model.message,
   oninput: () => (ev) => model.message = ev.target.value
-}), child(() => p), FuncComp({}), element("p", {
-  if: () => model.message.length > 10
-}, "Long message alert")), clearTracker()][1];
+}), child(() => p), FuncComp({}), child(() => model.arr), child(() => "asdf"), element("p", {
+  "mu:if": () => model.message.length > 10
+}, "Long message alert"), element("button", {
+  onclick: () => () => model.arr.push(model.arr.length + 1)
+}, "push"), element("ol", {}, child(() => ForEach(model.arr, (e) => element("li", {}, child(() => e)))))), clearTracker()][1];
 var root = document.getElementById("root");
 root.replaceChildren(div);
 model.message = "something else";
