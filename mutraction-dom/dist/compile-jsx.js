@@ -146,7 +146,7 @@ const mutractPlugin = {
                 ]);
             }
             else { // JSXMemberExpression or upper-case function component
-                renderFunc = t.callExpression(jsxId2Id(name), [t.objectExpression(propsForRuntime)]);
+                throw Error("Embed function 'components' with curly braces, not jsx.");
             }
             if (trackerExpression) {
                 const trackedRoot = t.memberExpression(t.arrayExpression([
@@ -168,7 +168,6 @@ const mutractPlugin = {
                 if (compiled)
                     jsxChildren.push(compiled);
             }
-            // path.scope.addGlobal(t.identifier("document"));
             const fragId = path.scope.generateDeclaredUidIdentifier("frag");
             path.replaceExpressionWithStatements([
                 // frag = document.createDocumentFragment()

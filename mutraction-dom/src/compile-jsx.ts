@@ -215,10 +215,7 @@ const mutractPlugin: PluginObj = {
                 );
             }
             else { // JSXMemberExpression or upper-case function component
-                renderFunc = t.callExpression(
-                    jsxId2Id(name),
-                    [ t.objectExpression(propsForRuntime) ]
-                );
+                throw Error("Embed function 'components' with curly braces, not jsx.");
             }
 
             if (trackerExpression) {

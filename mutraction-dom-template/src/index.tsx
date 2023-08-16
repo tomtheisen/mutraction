@@ -20,8 +20,12 @@ function modelFactory() {
 
 const [model, tracker] = track(modelFactory());
 
-function todoItemRender(item: TodoItem) {
-    return <li>{ item.title }</li>;
+function itemRender(item: TodoItem) {
+    return <li>
+        <input type="checkbox" checked={ item.done } onchange={ ev => item.done = (ev.target as any).checked } />
+        { item.title }
+        <span mu:if={ item.done }>Done</span>
+    </li>;
 }
 
 function doAdd(ev: SubmitEvent) {
@@ -30,13 +34,11 @@ function doAdd(ev: SubmitEvent) {
     ev.preventDefault();
 }
 
-// TODO: <FuncComp prop={ jsxProp } /> provides thunk
-
 const app = (
     <div mu:tracker={tracker}>
         <h1 title={ model.newItemTitle }>To-do</h1>
         <ul>
-            { ForEachPersist(model.items, item => todoItemRender(item)) }
+            { ForEachPersist(model.items, item => itemRender(item)) }
         </ul>
         <form onsubmit={ doAdd }>
             <label>
