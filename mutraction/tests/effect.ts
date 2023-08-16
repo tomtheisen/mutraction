@@ -88,4 +88,30 @@ test('inner effect runs without outer', () => {
     assert.equal(times2, 2);
 });
 
+test('inner conditional effect', () => {
+    const [model, tracker] = track({a: false, b: false});
+
+    let t1 = 0, t2 = 0, t3 = 0, t4 = 0;
+
+    effect(tracker, () => {
+        ++t1;
+        if (model.a) {
+            ++t2;
+            effect(tracker, () => {
+                ++t3;
+                if (model.b) {
+                    ++t4;
+                }
+            });
+        }
+    });
+    assert.equal([t1,t2,t3,t4], [1, 0, 0, 0]);
+
+    model.a = true;
+    assert.equal([t1,t2,t3,t4], [2, 1, 1, 0]);
+
+    model.b = true;
+    assert.equal([t1,t2,t3,t4], [2, 1, 2, 1]);
+});
+
 test.run();

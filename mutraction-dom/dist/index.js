@@ -57,28 +57,30 @@ function clearTracker() {
     throw Error("No tracker to clear");
   tracker = void 0;
 }
-function effectOrDo(sideEffect) {
-  if (tracker)
-    effect(tracker, sideEffect, { suppressUntrackedWarning: true });
+function effectOrDo(sideEffect, t = tracker) {
+  if (t)
+    effect(t, sideEffect, { suppressUntrackedWarning: true });
   else
     sideEffect();
 }
 function ForEach(array, map) {
   const result = new ElementSpan();
   const containers = [];
+  const localTracker = tracker;
   effectOrDo(() => {
     for (let i = containers.length; i < array.length; i++) {
       const container = new ElementSpan();
+      const locali = i;
       containers.push(container);
       effectOrDo(() => {
-        container.replaceWith(map(array[i]));
-      });
+        container.replaceWith(map(array[locali]));
+      }, localTracker);
       result.append(container.removeAsFragment());
     }
     while (containers.length > array.length) {
       containers.pop().removeAsFragment();
     }
-  });
+  }, localTracker);
   return result.removeAsFragment();
 }
 function element(name, attrGetters, ...children) {
