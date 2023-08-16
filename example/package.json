@@ -7,9 +7,9 @@
   "scripts": {
     "build": "npx tsc && npm run bundle",
     "bundle": "npm run bundle:react && npm run bundle:todo && npm run bundle:binding",
-    "bundle:react": "npx esbuild --bundle .\\react\\counter.js --outfile=.\\react\\counter_bundle.js",
-    "bundle:binding": "npx esbuild --bundle .\\react-binding\\binding.js --outfile=.\\react-binding\\binding_bundle.js",
-    "bundle:todo": "npx esbuild --bundle .\\react-todo\\todo.js --outfile=.\\react-todo\\todo_bundle.js"
+    "bundle:react": "npx esbuild --bundle react/counter.js --outfile=react/counter_bundle.js",
+    "bundle:binding": "npx esbuild --bundle react-binding/binding.js --outfile=react-binding/binding_bundle.js",
+    "bundle:todo": "npx esbuild --bundle react-todo/todo.js --outfile=react-todo/todo_bundle.js"
   },
   "author": "",
   "license": "ISC",

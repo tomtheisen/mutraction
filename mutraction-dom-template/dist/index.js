@@ -684,15 +684,18 @@ function makeItem(title) {
     editing: false
   };
 }
-function modelFactory() {
-  return {
-    newItemTitle: "",
-    items: []
-  };
-}
-var [model, tracker2] = track(modelFactory());
-function todoItemRender(item) {
-  return element("li", {}, child(() => item.title));
+var [model, tracker2] = track({
+  newItemTitle: "",
+  items: []
+});
+function itemRender(item) {
+  return element("li", {}, element("input", {
+    type: "checkbox",
+    checked: () => item.done,
+    onchange: () => (ev) => item.done = ev.target.checked
+  }), child(() => item.title), element("span", {
+    "mu:if": () => item.done
+  }, "Done"));
 }
 function doAdd(ev) {
   model.items.push(makeItem(model.newItemTitle));
@@ -701,7 +704,7 @@ function doAdd(ev) {
 }
 var app = [setTracker(tracker2), element("div", {}, element("h1", {
   title: () => model.newItemTitle
-}, "To-do"), element("ul", {}, child(() => ForEachPersist(model.items, (item) => todoItemRender(item)))), element("form", {
+}, "To-do"), element("ul", {}, child(() => ForEachPersist(model.items, (item) => itemRender(item)))), element("form", {
   onsubmit: () => doAdd
 }, element("label", {}, "New item", element("input", {
   value: () => model.newItemTitle,

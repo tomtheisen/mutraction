@@ -1,7 +1,7 @@
 {
   "name": "mutraction-dom",
   "type": "module",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "description": "DOM synchronization for mutable models ",
   "main": "index.js",
   "repository": {
@@ -15,7 +15,7 @@
   ],
   "scripts": {
     "build": "npm run clean && npx tsc && npm run bundle && npm run types && npm run jsxtype && npm run compiler && npm run cleanout",
-    "bundle": "npx esbuild .\\out\\index.js --bundle --format=esm --outfile=.\\dist\\index.js --external:@babel/core --external:@babel/types --external:mutraction",
+    "bundle": "npx esbuild out/index.js --bundle --format=esm --outfile=dist/index.js --external:@babel/core --external:@babel/types --external:mutraction",
     "types": "npx tsc -p tsconfig.types.json",
     "test": "npx tsc && npx uvu out/tests -i \"[.]d[.]ts$\"",
     "clean": "del /Q /S dist && del /Q /S out",
@@ -30,7 +30,7 @@
   },
   "homepage": "https://github.com/tomtheisen/mutraction#readme",
   "dependencies": {
-    "mutraction": "^0.13.0"
+    "mutraction": "^0.14.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.22.10",

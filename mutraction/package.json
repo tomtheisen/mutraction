@@ -5,14 +5,14 @@
     "type": "git",
     "url": "git+https://github.com/tomtheisen/mutraction.git"
   },
-  "version": "0.13.0",
+  "version": "0.14.0",
   "description": "Transactional reactive state management based on simple mutation.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": ["dist/*.*", "dist/src"],
   "scripts": {
     "build": "npm run clean && npx tsc && npm run bundle && npm run types && npm run cleanout",
-    "bundle": "npx esbuild .\\out\\src\\index.js --bundle --format=esm --outfile=.\\dist\\index.js",
+    "bundle": "npx esbuild out/src/index.js --bundle --format=esm --outfile=dist/index.js",
     "types": "npx tsc -p tsconfig.types.json",
     "test": "npx tsc && npx uvu out/tests -i \"[.]d[.]ts$\"",
     "clean": "del /Q /S dist && del /Q /S out",

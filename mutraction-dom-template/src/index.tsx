@@ -1,24 +1,16 @@
 import { track } from "mutraction";
 import { ForEachPersist } from "mutraction-dom";
 
-type TodoItem = {
-    title: string;
-    done: boolean;
-    editing: boolean;
-}
+type TodoItem = ReturnType<typeof makeItem>;
 
-function makeItem(title: string): TodoItem {
+function makeItem(title: string) {
     return { title, done: false, editing: false };
 }
 
-function modelFactory() {
-    return {
-        newItemTitle: "",
-        items: [] as TodoItem[],
-    }
-}
-
-const [model, tracker] = track(modelFactory());
+const [model, tracker] = track({
+    newItemTitle: "",
+    items: [] as TodoItem[],
+});
 
 function itemRender(item: TodoItem) {
     return <li>
@@ -35,7 +27,7 @@ function doAdd(ev: SubmitEvent) {
 }
 
 const app = (
-    <div mu:tracker={tracker}>
+    <div mu:tracker={ tracker }>
         <h1 title={ model.newItemTitle }>To-do</h1>
         <ul>
             { ForEachPersist(model.items, item => itemRender(item)) }
