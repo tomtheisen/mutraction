@@ -16,23 +16,25 @@ export function clearTracker() {
     tracker = undefined;
 }
 
-function effectOrDo(sideEffect: () => (void | (() => void))) {
-    if (tracker) effect(tracker, sideEffect, { suppressUntrackedWarning: true });
+function effectOrDo(sideEffect: () => (void | (() => void)), t: Tracker | undefined = tracker) {
+    if (t) effect(t, sideEffect, { suppressUntrackedWarning: true });
     else sideEffect();
 }
 
 export function ForEach<Model>(array: Model[], map: (e: Model) => Node): Node {
     const result = new ElementSpan();
     const containers: ElementSpan[] = [];
+    const localTracker = tracker;
 
     effectOrDo(() => {
         for (let i = containers.length; i < array.length; i++) {
             const container = new ElementSpan();
+            const locali = i;
             containers.push(container);
 
             effectOrDo(() => {
-                container.replaceWith(map(array[i]));
-            });
+                container.replaceWith(map(array[locali]));
+            }, localTracker);
 
             result.append(container.removeAsFragment());
         }
@@ -40,7 +42,7 @@ export function ForEach<Model>(array: Model[], map: (e: Model) => Node): Node {
         while (containers.length > array.length) {
             containers.pop()!.removeAsFragment();
         }
-    });
+    }, localTracker);
 
     return result.removeAsFragment();
 }

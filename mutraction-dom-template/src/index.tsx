@@ -2,9 +2,7 @@ import { message } from "./message.js";
 import { effect, track } from "mutraction";
 import { ForEach } from "mutraction-dom";
 
-const [model, tracker] = track({ message, arr: [1,2,3] });
-
-effect(tracker, () => { console.log(model.message) });
+const [model, tracker] = track({ message, arr: [{current:1},{current:2},{current:3},] });
 
 const p = <p>lorem and stuff</p>;
 
@@ -24,11 +22,12 @@ const div = (
         { model.arr }
         { "asdf" }
         <p mu:if={ model.message.length > 10 }>Long message alert</p>
-        <button onclick={()=>model.arr.push(model.arr.length + 1)}>push</button>
+        <button onclick={()=>model.arr.push({current: model.arr.length + 1})}>push</button>
         <button onclick={()=>model.arr.pop()}>pop</button>
+        <button onclick={()=>model.arr.reverse()}>rev</button>
 
         <ol>
-            { ForEach(model.arr, e=><li>{e}<input /></li>) }
+            { ForEach(model.arr, e=><li>{e.current}<input /></li>) }
         </ol>
     </main>
 );

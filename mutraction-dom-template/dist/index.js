@@ -430,7 +430,7 @@ function makeProxyHandler(model2, tracker3) {
     const mutation = name in target ? { type: "change", target, name, oldValue: model2[name], newValue } : { type: "create", target, name, newValue };
     const initialSets = setsCompleted;
     const wasSet = Reflect.set(target, name, newValue, receiver);
-    if (initialSets == setsCompleted && wasSet) {
+    if (initialSets == setsCompleted) {
       tracker3[RecordMutation](mutation);
     }
     ++setsCompleted;
@@ -586,28 +586,30 @@ function clearTracker() {
     throw Error("No tracker to clear");
   tracker = void 0;
 }
-function effectOrDo(sideEffect) {
-  if (tracker)
-    effect(tracker, sideEffect, { suppressUntrackedWarning: true });
+function effectOrDo(sideEffect, t = tracker) {
+  if (t)
+    effect(t, sideEffect, { suppressUntrackedWarning: true });
   else
     sideEffect();
 }
 function ForEach(array, map) {
   const result = new ElementSpan();
   const containers = [];
+  const localTracker = tracker;
   effectOrDo(() => {
     for (let i = containers.length; i < array.length; i++) {
       const container = new ElementSpan();
+      const locali = i;
       containers.push(container);
       effectOrDo(() => {
-        container.replaceWith(map(array[i]));
-      });
+        container.replaceWith(map(array[locali]));
+      }, localTracker);
       result.append(container.removeAsFragment());
     }
     while (containers.length > array.length) {
       containers.pop().removeAsFragment();
     }
-  });
+  }, localTracker);
   return result.removeAsFragment();
 }
 function element(name, attrGetters, ...children) {
@@ -673,10 +675,13 @@ var message = "Hello world";
 // out2/index.js
 var [model, tracker2] = track({
   message,
-  arr: [1, 2, 3]
-});
-effect(tracker2, () => {
-  console.log(model.message);
+  arr: [{
+    current: 1
+  }, {
+    current: 2
+  }, {
+    current: 3
+  }]
 });
 var p = element("p", {}, "lorem and stuff");
 function FuncComp({}) {
@@ -689,10 +694,14 @@ var div = [setTracker(tracker2), element("main", {}, element("div", {}, child(()
 }), child(() => p), FuncComp({}), child(() => model.arr), child(() => "asdf"), element("p", {
   "mu:if": () => model.message.length > 10
 }, "Long message alert"), element("button", {
-  onclick: () => () => model.arr.push(model.arr.length + 1)
+  onclick: () => () => model.arr.push({
+    current: model.arr.length + 1
+  })
 }, "push"), element("button", {
   onclick: () => () => model.arr.pop()
-}, "pop"), element("ol", {}, child(() => ForEach(model.arr, (e) => element("li", {}, child(() => e), element("input", {})))))), clearTracker()][1];
+}, "pop"), element("button", {
+  onclick: () => () => model.arr.reverse()
+}, "rev"), element("ol", {}, child(() => ForEach(model.arr, (e) => element("li", {}, child(() => e.current), element("input", {})))))), clearTracker()][1];
 var root = document.getElementById("root");
 root.replaceChildren(div);
 model.message = "something else";
