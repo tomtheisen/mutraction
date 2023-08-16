@@ -1,7 +1,7 @@
 {
   "name": "mutraction-dom",
   "type": "module",
-  "version": "0.14.0",
+  "version": "0.14.1",
   "description": "DOM synchronization for mutable models ",
   "main": "index.js",
   "repository": {
@@ -30,9 +30,7 @@
   },
   "homepage": "https://github.com/tomtheisen/mutraction#readme",
   "dependencies": {
-    "mutraction": "^0.14.0"
-  },
-  "devDependencies": {
+    "mutraction": "^0.14.0",
     "@babel/cli": "^7.22.10",
     "@babel/core": "^7.22.10",
     "@babel/plugin-syntax-jsx": "^7.22.5",

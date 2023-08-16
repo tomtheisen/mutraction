@@ -1,7 +1,7 @@
 {
   "name": "mutraction-dom-template",
   "type": "module",
-  "version": "0.14.0",
+  "version": "0.14.1",
   "description": "template for a starter mutraction-dom project",
   "main": "index.js",
   "scripts": {
@@ -20,6 +20,6 @@
     "typescript": "^5.1.6"
   },
   "dependencies": {
-    "mutraction-dom": "^0.14.0"
+    "mutraction-dom": "^0.14.1"
   }
 }
