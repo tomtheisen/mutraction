@@ -64,23 +64,50 @@ function effectOrDo(sideEffect, t = tracker) {
     sideEffect();
 }
 function ForEach(array, map) {
+  const _tracker = tracker;
   const result = new ElementSpan();
   const containers = [];
-  const localTracker = tracker;
   effectOrDo(() => {
     for (let i = containers.length; i < array.length; i++) {
       const container = new ElementSpan();
-      const locali = i;
       containers.push(container);
       effectOrDo(() => {
-        container.replaceWith(map(array[locali]));
-      }, localTracker);
+        const newNode = map(array[i]);
+        container.replaceWith(newNode);
+      }, _tracker);
       result.append(container.removeAsFragment());
     }
     while (containers.length > array.length) {
       containers.pop().removeAsFragment();
     }
-  }, localTracker);
+  }, _tracker);
+  return result.removeAsFragment();
+}
+function ForEachPersist(array, map) {
+  const _tracker = tracker;
+  const result = new ElementSpan();
+  const containers = [];
+  const outputMap = /* @__PURE__ */ new WeakMap();
+  effectOrDo(() => {
+    for (let i = containers.length; i < array.length; i++) {
+      const container = new ElementSpan();
+      containers.push(container);
+      effectOrDo(() => {
+        const item = array[i];
+        if (typeof item !== "object" || item == null)
+          throw Error("Elements must be object in ForEachPersist");
+        let newNode = outputMap.get(item);
+        if (newNode == null) {
+          outputMap.set(item, newNode = map(item));
+        }
+        container.replaceWith(newNode);
+      }, _tracker);
+      result.append(container.removeAsFragment());
+    }
+    while (containers.length > array.length) {
+      containers.pop().removeAsFragment();
+    }
+  }, _tracker);
   return result.removeAsFragment();
 }
 function element(name, attrGetters, ...children) {
@@ -141,6 +168,7 @@ function child(getter) {
 }
 export {
   ForEach,
+  ForEachPersist,
   child,
   clearTracker,
   element,

@@ -1,6 +1,6 @@
 import { message } from "./message.js";
 import { effect, track } from "mutraction";
-import { ForEach } from "mutraction-dom";
+import { ForEach, ForEachPersist } from "mutraction-dom";
 
 const [model, tracker] = track({ message, arr: [{current:1},{current:2},{current:3},] });
 
@@ -27,7 +27,10 @@ const div = (
         <button onclick={()=>model.arr.reverse()}>rev</button>
 
         <ol>
-            { ForEach(model.arr, e=><li>{e.current}<input /></li>) }
+            { ForEach(model.arr, e=><li>{ e.current * 9 }<input /></li>) }
+        </ol>
+        <ol>
+            { ForEachPersist(model.arr, e=><li>{ e.current * 9 }<input /></li>) }
         </ol>
     </main>
 );

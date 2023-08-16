@@ -21,20 +21,21 @@ function effectOrDo(sideEffect: () => (void | (() => void)), t: Tracker | undefi
     else sideEffect();
 }
 
-export function ForEach<Model>(array: Model[], map: (e: Model) => Node): Node {
+export function ForEach<TIn, TOut extends Node>(array: TIn[], map: (e: TIn) => TOut): Node {
+    const _tracker = tracker;
     const result = new ElementSpan();
     const containers: ElementSpan[] = [];
-    const localTracker = tracker;
 
     effectOrDo(() => {
+        // i is scoped to each loop body invocation
         for (let i = containers.length; i < array.length; i++) {
             const container = new ElementSpan();
-            const locali = i;
             containers.push(container);
 
             effectOrDo(() => {
-                container.replaceWith(map(array[locali]));
-            }, localTracker);
+                const newNode = map(array[i]);
+                container.replaceWith(newNode);
+            }, _tracker);
 
             result.append(container.removeAsFragment());
         }
@@ -42,7 +43,41 @@ export function ForEach<Model>(array: Model[], map: (e: Model) => Node): Node {
         while (containers.length > array.length) {
             containers.pop()!.removeAsFragment();
         }
-    }, localTracker);
+    }, _tracker);
+
+    return result.removeAsFragment();
+}
+
+export function ForEachPersist<TIn extends object, TOut extends Node>(array: TIn[], map: (e: TIn) => TOut): Node {
+    const _tracker = tracker;
+    const result = new ElementSpan();
+    const containers: ElementSpan[] = [];
+    const outputMap = new WeakMap<TIn, TOut>;
+
+    effectOrDo(() => {
+        // i is scoped to each loop body invocation
+        for (let i = containers.length; i < array.length; i++) {
+            const container = new ElementSpan();
+            containers.push(container);
+
+            effectOrDo(() => {
+                const item = array[i];
+                if (typeof item !== "object" || item == null)
+                    throw Error("Elements must be object in ForEachPersist");
+                let newNode = outputMap.get(item);
+                if (newNode == null) {
+                    outputMap.set(item, newNode = map(item));
+                }
+                container.replaceWith(newNode);
+            }, _tracker);
+
+            result.append(container.removeAsFragment());
+        }
+
+        while (containers.length > array.length) {
+            containers.pop()!.removeAsFragment();
+        }
+    }, _tracker);
 
     return result.removeAsFragment();
 }
