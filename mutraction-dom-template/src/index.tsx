@@ -14,7 +14,7 @@ const [model, tracker] = track({
 
 function itemRender(item: TodoItem) {
     return <li>
-        <input type="checkbox" checked={ item.done } onchange={ ev => item.done = (ev.target as any).checked } />
+        {/* <input type="checkbox" checked={ item.done } onchange={ ev => item.done = (ev.target as any).checked } /> */}
         { item.title }
         <span mu:if={ item.done }>Done</span>
     </li>;
