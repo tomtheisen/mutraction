@@ -1,7 +1,7 @@
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
-import { track } from '../index.js';
+import { track } from '../src/index.js';
 
 test('array push and transaction', () => {
     const [model, tracker] = track([] as any);

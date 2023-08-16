@@ -1,7 +1,7 @@
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
-import { track, effect } from '../index.js';
+import { track, effect } from '../src/index.js';
 
 test('effect is selective', () => {
     const [model, tracker] = track({x:1,y:2,z:3});

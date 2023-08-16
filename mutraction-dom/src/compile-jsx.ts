@@ -60,7 +60,7 @@ function jsxAttrVal2Prop(attrVal:
     }
     else if (type === 'JSXExpressionContainer') {
         if (attrVal.expression.type === 'JSXEmptyExpression') return t.booleanLiteral(true);
-        return t.arrowFunctionExpression([], attrVal.expression)
+        return t.arrowFunctionExpression([], attrVal.expression);
     }
     else {
         return attrVal; // process later / TODO?
@@ -246,7 +246,6 @@ const mutractPlugin: PluginObj = {
                 if (compiled) jsxChildren.push(compiled);
             }
 
-            // path.scope.addGlobal(t.identifier("document"));
             const fragId = path.scope.generateDeclaredUidIdentifier("frag");
             path.replaceExpressionWithStatements([
                 // frag = document.createDocumentFragment()

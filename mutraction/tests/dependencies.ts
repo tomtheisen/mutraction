@@ -1,7 +1,7 @@
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
-import { track, isTracked } from '../index.js';
+import { track, isTracked } from '../src/index.js';
 import { DependencyList } from '../src/dependency.js';
 
 function assertDependencies(dep: DependencyList, expected: [obj: object, prop: string][]) {

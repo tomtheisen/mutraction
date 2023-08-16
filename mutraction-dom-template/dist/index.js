@@ -592,26 +592,6 @@ function effectOrDo(sideEffect, t = tracker) {
   else
     sideEffect();
 }
-function ForEach(array, map) {
-  const _tracker = tracker;
-  const result = new ElementSpan();
-  const containers = [];
-  effectOrDo(() => {
-    for (let i = containers.length; i < array.length; i++) {
-      const container = new ElementSpan();
-      containers.push(container);
-      effectOrDo(() => {
-        const newNode = map(array[i]);
-        container.replaceWith(newNode);
-      }, _tracker);
-      result.append(container.removeAsFragment());
-    }
-    while (containers.length > array.length) {
-      containers.pop().removeAsFragment();
-    }
-  }, _tracker);
-  return result.removeAsFragment();
-}
 function ForEachPersist(array, map) {
   const _tracker = tracker;
   const result = new ElementSpan();
@@ -696,39 +676,35 @@ function child(getter) {
   }
 }
 
-// out2/message.js
-var message = "Hello world";
-
 // out2/index.js
-var [model, tracker2] = track({
-  message,
-  arr: [{
-    current: 1
-  }, {
-    current: 2
-  }, {
-    current: 3
-  }]
-});
-var p = element("p", {}, "lorem and stuff");
-function FuncComp({}) {
-  var _frag;
-  return _frag = document.createDocumentFragment(), _frag.append(element("p", {}, "Hello from FuncComp"), element("p", {}, "The message is:", child(() => model.message))), _frag;
+function makeItem(title) {
+  return {
+    title,
+    done: false,
+    editing: false
+  };
 }
-var div = [setTracker(tracker2), element("main", {}, element("div", {}, child(() => model.message)), element("input", {
-  value: () => model.message,
-  oninput: () => (ev) => model.message = ev.target.value
-}), child(() => p), FuncComp({}), child(() => model.arr), child(() => "asdf"), element("p", {
-  "mu:if": () => model.message.length > 10
-}, "Long message alert"), element("button", {
-  onclick: () => () => model.arr.push({
-    current: model.arr.length + 1
-  })
-}, "push"), element("button", {
-  onclick: () => () => model.arr.pop()
-}, "pop"), element("button", {
-  onclick: () => () => model.arr.reverse()
-}, "rev"), element("ol", {}, child(() => ForEach(model.arr, (e) => element("li", {}, child(() => e.current * 9), element("input", {}))))), element("ol", {}, child(() => ForEachPersist(model.arr, (e) => element("li", {}, child(() => e.current * 9), element("input", {})))))), clearTracker()][1];
-var root = document.getElementById("root");
-root.replaceChildren(div);
-model.message = "something else";
+function modelFactory() {
+  return {
+    newItemTitle: "",
+    items: []
+  };
+}
+var [model, tracker2] = track(modelFactory());
+function todoItemRender(item) {
+  return element("li", {}, child(() => item.title));
+}
+function doAdd(ev) {
+  model.items.push(makeItem(model.newItemTitle));
+  model.newItemTitle = "";
+  ev.preventDefault();
+}
+var app = [setTracker(tracker2), element("div", {}, element("h1", {
+  title: () => model.newItemTitle
+}, "To-do"), element("ul", {}, child(() => ForEachPersist(model.items, (item) => todoItemRender(item)))), element("form", {
+  onsubmit: () => doAdd
+}, element("label", {}, "New item", element("input", {
+  value: () => model.newItemTitle,
+  oninput: () => (ev) => model.newItemTitle = ev.target.value
+})), element("button", {}, "New item"))), clearTracker()][1];
+document.getElementById("root").replaceChildren(app);

@@ -1,7 +1,7 @@
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
-import { track } from '../index.js';
+import { track } from '../src/index.js';
 
 test('shallow prop ref', () => {
     const [model, tracker] = track({ foo: { bar: 1 } });

@@ -1,7 +1,7 @@
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
-import { track, trackAsReadonlyDeep, isTracked, effect } from '../index.js';
+import { track, trackAsReadonlyDeep, isTracked, effect } from '../src/index.js';
 
 test('array sort undo', () => {
     const [arr, tracker] = track(["a","c","b"]);
