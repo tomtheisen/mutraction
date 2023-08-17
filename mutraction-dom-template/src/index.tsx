@@ -10,7 +10,6 @@ function makeItem(title: string) {
 const [model, tracker] = track({
     newItemTitle: "",
     items: [] as TodoItem[],
-    flag: true,
 });
 
 function remove(item: TodoItem) {
@@ -45,9 +44,14 @@ function doAdd(ev: SubmitEvent) {
     ev.preventDefault();
 }
 
+function sort() {
+    model.items.sort((a, b) => Number(a.done) - Number(b.done));
+}
+
 const app = (
     <div mu:tracker={ tracker }>
-        <h1 mu:if={ model.flag } title={ model.newItemTitle }>To-do</h1>
+        <h1 title={ model.newItemTitle }>To-do</h1>
+        <button onclick={sort}>Sort by unfinished</button>
         <ul>
             { ForEachPersist(model.items, item => itemRender(item)) }
         </ul>
