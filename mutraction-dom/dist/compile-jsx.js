@@ -24,27 +24,26 @@ function jsxChild(ctx, child) {
     }
     throw Error("Unsupported child type " + type);
 }
+function jsxAttrVal2Prop(attrVal) {
+    // bare attribute e.b. <input disabled />
+    if (!attrVal)
+        return [false, t.booleanLiteral(true)];
+    if (attrVal.type === 'StringLiteral') {
+        return [false, t.stringLiteral(attrVal.value)];
+    }
+    else if (attrVal.type === 'JSXExpressionContainer') {
+        if (attrVal.expression.type === 'JSXEmptyExpression')
+            return [false, t.booleanLiteral(true)];
+        return [true, attrVal.expression];
+    }
+    else {
+        return [false, attrVal]; // process later / TODO?
+    }
+}
 function jsxId2Id(name) {
     if (name.type === "JSXIdentifier")
         return t.identifier(name.name);
     return t.memberExpression(jsxId2Id(name.object), t.identifier(name.property.name));
-}
-function jsxAttrVal2Prop(attrVal) {
-    // bare attribute e.b. <input disabled />
-    if (!attrVal)
-        return t.booleanLiteral(true);
-    const type = attrVal.type;
-    if (type === 'StringLiteral') {
-        return t.stringLiteral(attrVal.value);
-    }
-    else if (type === 'JSXExpressionContainer') {
-        if (attrVal.expression.type === 'JSXEmptyExpression')
-            return t.booleanLiteral(true);
-        return t.arrowFunctionExpression([], attrVal.expression);
-    }
-    else {
-        return attrVal; // process later / TODO?
-    }
 }
 function isProgram(path) {
     return path?.node.type === "Program";
@@ -75,6 +74,8 @@ function ensureImportsCreated(path) {
 function isMutractionNamespace(ns) {
     return ns.name === "mu" || ns.name === "µ";
 }
+/** AST node where mu:tracker is defined, if in scope */
+let trackerDefinitionJsxNode = undefined;
 const mutractPlugin = {
     visitor: {
         Program: {
@@ -83,81 +84,118 @@ const mutractPlugin = {
                 clearImports();
             }
         },
-        JSXElement(path) {
-            const ctx = ensureImportsCreated(path);
-            const { name } = path.node.openingElement;
-            if (name.type === "JSXNamespacedName")
-                throw path.buildCodeFrameError("JSXNamespacedName JSX element type is not supported");
-            let trackerExpression = undefined;
-            // build props and look for tracker attribute
-            const propsForRuntime = [];
-            for (const attr of path.node.openingElement.attributes) {
-                switch (attr.type) {
-                    case 'JSXAttribute':
-                        switch (attr.name.type) {
-                            case 'JSXNamespacedName':
-                                const { name, value } = attr;
-                                if (!isMutractionNamespace(name.namespace))
-                                    throw Error(`Unsupported namespace ${name.namespace.name} in JSX attribute`);
-                                switch (name.name.name) { // lol babel
-                                    case "tracker":
-                                        if (value?.type !== "JSXExpressionContainer")
-                                            throw Error(`Expression value expected for '${name.name.name}'`);
-                                        if (value.expression.type === "JSXEmptyExpression")
-                                            break;
-                                        trackerExpression = value.expression;
-                                        break;
-                                    case "if":
-                                        if (value?.type !== "JSXExpressionContainer")
-                                            throw Error(`Expression value expected for '${name.name.name}'`);
-                                        if (value.expression.type === "JSXEmptyExpression")
-                                            break;
-                                        propsForRuntime.push(t.objectProperty(t.stringLiteral("mu:" + name.name.name), jsxAttrVal2Prop(value)));
-                                        break;
-                                    default:
-                                        throw Error(`Unsupported mutraction JSX attribute ${name.name.name}`);
-                                }
+        JSXElement: {
+            enter(path) {
+                const ctx = ensureImportsCreated(path);
+                const { name } = path.node.openingElement;
+                if (name.type === "JSXNamespacedName")
+                    throw path.buildCodeFrameError("JSXNamespacedName JSX element type is not supported");
+                let trackerExpression = undefined;
+                // look for tracker attribute
+                for (const attr of path.node.openingElement.attributes) {
+                    if (attr.type === 'JSXAttribute' && attr.name.type === 'JSXNamespacedName') {
+                        const { name, value } = attr;
+                        if (!isMutractionNamespace(name.namespace))
+                            throw Error(`Unsupported namespace ${name.namespace.name} in JSX attribute`);
+                        if (name.name.name === "tracker") {
+                            if (value?.type !== "JSXExpressionContainer")
+                                throw Error(`Expression value expected for '${name.name.name}'`);
+                            if (value.expression.type === "JSXEmptyExpression")
                                 break;
-                            case 'JSXIdentifier':
-                                propsForRuntime.push(t.objectProperty(t.identifier(attr.name.name), jsxAttrVal2Prop(attr.value)));
-                                break;
+                            if (trackerDefinitionJsxNode)
+                                throw Error('Cannot nest dom mu:tracker properties');
+                            trackerDefinitionJsxNode = path.node;
+                            trackerExpression = value.expression;
                         }
-                        break;
-                    case 'JSXSpreadAttribute':
-                        propsForRuntime.push(t.spreadElement(attr.argument)); // TODO: probably doesn't work
-                        break;
-                    default:
-                        throw Error('Unsupported attribute type.');
+                    }
                 }
-            }
-            let renderFunc = undefined;
-            if (name.type === "JSXIdentifier" && /^[a-z]/.test(name.name)) {
-                // treat as DOM element
-                const jsxChildren = [];
-                for (const child of path.node.children) {
-                    const compiled = jsxChild(ctx, child);
-                    if (compiled)
-                        jsxChildren.push(compiled);
+                // build props and look for tracker attribute
+                const staticPropsForRuntime = [];
+                const dynamicPropsForRuntime = [];
+                for (const attr of path.node.openingElement.attributes) {
+                    switch (attr.type) {
+                        case 'JSXAttribute':
+                            switch (attr.name.type) {
+                                case 'JSXNamespacedName': {
+                                    const { name, value } = attr;
+                                    if (!isMutractionNamespace(name.namespace))
+                                        throw Error(`Unsupported namespace ${name.namespace.name} in JSX attribute`);
+                                    switch (name.name.name) { // lol babel
+                                        case "tracker":
+                                            // already handled
+                                            break;
+                                        case "if":
+                                            if (value?.type !== "JSXExpressionContainer")
+                                                throw Error(`Expression value expected for '${name.name.name}'`);
+                                            if (value.expression.type === "JSXEmptyExpression")
+                                                break;
+                                            const [isDynamic, expr] = jsxAttrVal2Prop(value);
+                                            if (isDynamic && trackerDefinitionJsxNode) {
+                                                dynamicPropsForRuntime.push(t.objectProperty(t.stringLiteral("mu:if"), t.arrowFunctionExpression([], expr)));
+                                            }
+                                            else {
+                                                staticPropsForRuntime.push(t.objectProperty(t.stringLiteral("mu:if"), expr));
+                                            }
+                                            break;
+                                        default:
+                                            throw Error(`Unsupported mutraction JSX attribute ${name.name.name}`);
+                                    }
+                                    break;
+                                }
+                                case 'JSXIdentifier': {
+                                    const { name, value } = attr;
+                                    const [isDynamic, expr] = jsxAttrVal2Prop(value);
+                                    if (isDynamic && trackerDefinitionJsxNode) {
+                                        dynamicPropsForRuntime.push(t.objectProperty(t.identifier(name.name), t.arrowFunctionExpression([], expr)));
+                                    }
+                                    else {
+                                        staticPropsForRuntime.push(t.objectProperty(t.identifier(name.name), expr));
+                                    }
+                                    break;
+                                }
+                            }
+                            break;
+                        case 'JSXSpreadAttribute':
+                            throw Error('JSX spread not supported.');
+                        default:
+                            throw Error('Unsupported attribute type.');
+                    }
                 }
-                renderFunc = t.callExpression(t.identifier(ctx.elementFnName), [
-                    t.stringLiteral(name.name),
-                    t.objectExpression(propsForRuntime),
-                    ...jsxChildren
-                ]);
-            }
-            else { // JSXMemberExpression or upper-case function component
-                throw Error("Embed function 'components' with curly braces, not jsx.");
-            }
-            if (trackerExpression) {
-                const trackedRoot = t.memberExpression(t.arrayExpression([
-                    t.callExpression(t.identifier(ctx.setTrackerFnName), [trackerExpression]),
-                    renderFunc,
-                    t.callExpression(t.identifier(ctx.clearTrackerFnName), [])
-                ]), t.numericLiteral(1), true /* computed */);
-                path.replaceWith(trackedRoot);
-            }
-            else {
-                path.replaceWith(renderFunc);
+                let renderFunc = undefined;
+                if (name.type === "JSXIdentifier" && /^[a-z]/.test(name.name)) {
+                    // treat as DOM element
+                    const jsxChildren = [];
+                    for (const child of path.node.children) {
+                        const compiled = jsxChild(ctx, child);
+                        if (compiled)
+                            jsxChildren.push(compiled);
+                    }
+                    renderFunc = t.callExpression(t.identifier(ctx.elementFnName), [
+                        t.stringLiteral(name.name),
+                        t.objectExpression(staticPropsForRuntime),
+                        t.objectExpression(dynamicPropsForRuntime),
+                        ...jsxChildren
+                    ]);
+                }
+                else { // JSXMemberExpression or upper-case function component
+                    throw Error("Embed function 'components' with curly braces, not jsx.");
+                }
+                if (trackerExpression) {
+                    const trackedRoot = t.memberExpression(t.arrayExpression([
+                        t.callExpression(t.identifier(ctx.setTrackerFnName), [trackerExpression]),
+                        renderFunc,
+                        t.callExpression(t.identifier(ctx.clearTrackerFnName), [])
+                    ]), t.numericLiteral(1), true /* computed */);
+                    path.replaceWith(trackedRoot);
+                }
+                else {
+                    path.replaceWith(renderFunc);
+                }
+            },
+            exit(path) {
+                if (path.node === trackerDefinitionJsxNode) {
+                    trackerDefinitionJsxNode = undefined;
+                }
             }
         },
         JSXFragment(path) {

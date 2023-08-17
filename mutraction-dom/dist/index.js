@@ -110,40 +110,56 @@ function ForEachPersist(array, map) {
   }, _tracker);
   return result.removeAsFragment();
 }
-function element(name, attrGetters, ...children) {
+function element(name, staticAttrs, dynamicAttrs, ...children) {
   const el = document.createElement(name);
-  let blank = void 0;
-  for (let [name2, attrGetter] of Object.entries(attrGetters ?? {})) {
+  for (let [name2, value] of Object.entries(staticAttrs ?? {})) {
     switch (name2) {
       case "mu:if":
-        if (tracker) {
-          effect(tracker, () => {
-            if (attrGetter())
-              blank?.replaceWith(el);
-            else
-              el.replaceWith(blank ??= document.createTextNode(""));
-          }, { suppressUntrackedWarning: true });
-        } else {
-          if (!attrGetter())
-            blank = document.createTextNode("");
-        }
+        if (!value)
+          return document.createTextNode("");
         break;
       case "style":
-        effectOrDo(() => {
-          Object.assign(el.style, attrGetter());
-        });
+        Object.assign(el.style, value);
         break;
       case "classList":
-        effectOrDo(() => {
-          const classMap = attrGetter();
-          for (const e of Object.entries(classMap))
-            el.classList.toggle(...e);
-        });
+        const classMap = value;
+        for (const e of Object.entries(classMap))
+          el.classList.toggle(...e);
         break;
       default:
-        effectOrDo(() => {
-          el[name2] = attrGetter();
-        });
+        el[name2] = value;
+        break;
+    }
+  }
+  let blank = void 0;
+  for (let [name2, getter] of Object.entries(dynamicAttrs ?? {})) {
+    if (!tracker)
+      throw Error("Cannot apply dynamic properties without scoped tracker");
+    switch (name2) {
+      case "mu:if":
+        effect(tracker, () => {
+          if (getter())
+            blank?.replaceWith(el);
+          else
+            el.replaceWith(blank ??= document.createTextNode(""));
+        }, { suppressUntrackedWarning: true });
+        break;
+      case "style":
+        effect(tracker, () => {
+          Object.assign(el.style, getter());
+        }, { suppressUntrackedWarning: true });
+        break;
+      case "classList":
+        effect(tracker, () => {
+          const classMap = getter();
+          for (const e of Object.entries(classMap))
+            el.classList.toggle(...e);
+        }, { suppressUntrackedWarning: true });
+        break;
+      default:
+        effect(tracker, () => {
+          el[name2] = getter();
+        }, { suppressUntrackedWarning: true });
         break;
     }
   }

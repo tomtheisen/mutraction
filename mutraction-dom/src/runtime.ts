@@ -1,4 +1,4 @@
-import { effect, Tracker } from 'mutraction';
+import { effect, track, Tracker } from 'mutraction';
 import { ElementSpan } from './ElementSpan.js';
 
 let tracker: Tracker | undefined = undefined;
@@ -89,56 +89,80 @@ type AttributeType<E extends keyof HTMLElementTagNameMap, K extends keyof HTMLEl
 
 // the jsx transformer wraps all the attributes in thunks
 type StandardAttributes = {
-    if?: () => boolean;
+    if?: boolean;
 };
 type ElementProps<E extends keyof HTMLElementTagNameMap> = {
-    [K in keyof HTMLElementTagNameMap[E]]?:
-        () => AttributeType<E, K>;
-} & StandardAttributes; 
+    [K in keyof HTMLElementTagNameMap[E]]?: AttributeType<E, K>;
+} & StandardAttributes;
 
-// function element(name: string, attrs: Record<string, () => string|number|boolean>, ...children: ChildNode[]): HTMLElement;
+type ElementPropGetters<E extends keyof HTMLElementTagNameMap> = {
+    [K in keyof ElementProps<E>]: () => ElementProps<E>[K];
+}
+
 export function element<E extends keyof HTMLElementTagNameMap>(
     name: E, 
-    attrGetters: ElementProps<E>, 
+    staticAttrs: ElementProps<E>,
+    dynamicAttrs: ElementPropGetters<E>,
     ...children: (Node | string)[]
 ): HTMLElementTagNameMap[E] | Text {
     const el = document.createElement(name);
-    let blank: Text | undefined = undefined;
 
-    for (let [name, attrGetter] of Object.entries(attrGetters ?? {})) {
+    for (let [name, value] of Object.entries(staticAttrs ?? {})) {
         switch (name) {
             case "mu:if":
-                if (tracker) {
-                    effect(tracker, () => {
-                        if (attrGetter()) blank?.replaceWith(el);
-                        else el.replaceWith(blank ??= document.createTextNode(""));
-                    }, { suppressUntrackedWarning: true });
-                }
-                else {
-                    if (!attrGetter()) blank = document.createTextNode("");
-                }
+                if (!value) return document.createTextNode("");
                 break;
 
             case "style":
-                effectOrDo(() => { 
-                    Object.assign(el.style, attrGetter());
-                });
+                Object.assign(el.style, value);
                 break;
 
             case "classList":
-                effectOrDo(() => {
-                    const classMap = attrGetter() as Record<string, boolean>;
-                    for (const e of Object.entries(classMap)) el.classList.toggle(...e);
-                });
+                const classMap = value as Record<string, boolean>;
+                for (const e of Object.entries(classMap)) el.classList.toggle(...e);
                 break;
 
             default:
-                effectOrDo(() => {
-                    (el as any)[name] = attrGetter();                
-                });
+                (el as any)[name] = value;                
                 break;
         }
     }
+
+    let blank: Text | undefined = undefined; // for mu:if
+    for (let [name, getter] of Object.entries(dynamicAttrs ?? {})) {
+        if (!tracker) throw Error("Cannot apply dynamic properties without scoped tracker");
+
+        switch (name) {
+            case "mu:if":
+                effect(tracker, () => {
+                    if (getter()) blank?.replaceWith(el);
+                    else el.replaceWith(blank ??= document.createTextNode(""));
+                }, { suppressUntrackedWarning: true });
+            
+
+                break;
+
+            case "style":
+                effect(tracker, () => { 
+                    Object.assign(el.style, getter());
+                }, { suppressUntrackedWarning: true });
+                break;
+
+            case "classList":
+                effect(tracker, () => { 
+                    const classMap = getter() as Record<string, boolean>;
+                    for (const e of Object.entries(classMap)) el.classList.toggle(...e);
+                }, { suppressUntrackedWarning: true });
+                break;
+
+            default:
+                effect(tracker, () => { 
+                    (el as any)[name] = getter();                
+                }, { suppressUntrackedWarning: true });
+                break;
+        }
+    }
+
     el.append(...children);
 
     return blank ?? el;
