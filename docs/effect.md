@@ -23,6 +23,8 @@ When nested, inner effects won't re-trigger containing effects.
 * `tracker` is the [`Tracker`](./tracker.md) that's tracking the model.
 * `callback` is a function to run every time one of its dependencies change.  It will be invoked once immediately.  Then each time one of its dependencies is assigned to, it will run again, and recalculate dependencies.
 
+    `callback` can optionally take a [`DependencyList`](./dependency.md) as an argument.  This might be useful for temporarily suspending dependency tracking.
+
     `callback` can optionally return a cleanup function.  The cleanup function will be invoked immediately prior to the next invocation of `callback`.
 
 ## Return value

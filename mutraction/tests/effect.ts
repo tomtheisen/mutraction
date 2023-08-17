@@ -114,4 +114,28 @@ test('inner conditional effect', () => {
     assert.equal([t1,t2,t3,t4], [2, 1, 2, 1]);
 });
 
+test('dependency suspension', () => {
+    const [model, tracker] = track({ a: 1, b: 2, c: 3 });
+
+    let runs = 0;
+    effect(tracker, dep => {
+        model.a;
+        dep.active = false;
+        model.b;
+        dep.active = true;
+        model.c;
+        ++runs;
+    });
+    assert.equal(runs, 1);
+
+    model.a = 111;
+    assert.equal(runs, 2);
+
+    model.b = 222;
+    assert.equal(runs, 2);
+
+    model.a = 333;
+    assert.equal(runs, 3);
+});
+
 test.run();
