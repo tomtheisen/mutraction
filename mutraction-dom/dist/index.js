@@ -57,42 +57,52 @@ function clearTracker() {
     throw Error("No tracker to clear");
   tracker = void 0;
 }
-function effectOrDo(sideEffect, t = tracker) {
-  if (t)
-    effect(t, sideEffect, { suppressUntrackedWarning: true });
+function effectOrDo(sideEffect) {
+  if (tracker)
+    effect(tracker, sideEffect, { suppressUntrackedWarning: true });
   else
     sideEffect();
 }
 function ForEach(array, map) {
-  const _tracker = tracker;
+  const capturedTracker = tracker;
   const result = new ElementSpan();
   const containers = [];
   effectOrDo(() => {
+    const originalTracker = tracker;
+    tracker = capturedTracker;
     for (let i = containers.length; i < array.length; i++) {
       const container = new ElementSpan();
       containers.push(container);
       effectOrDo(() => {
+        const originalTracker2 = tracker;
+        tracker = capturedTracker;
         const newNode = map(array[i]);
         container.replaceWith(newNode);
-      }, _tracker);
+        tracker = originalTracker2;
+      });
       result.append(container.removeAsFragment());
     }
     while (containers.length > array.length) {
       containers.pop().removeAsFragment();
     }
-  }, _tracker);
+    tracker = originalTracker;
+  });
   return result.removeAsFragment();
 }
 function ForEachPersist(array, map) {
-  const _tracker = tracker;
+  const capturedTracker = tracker;
   const result = new ElementSpan();
   const containers = [];
   const outputMap = /* @__PURE__ */ new WeakMap();
   effectOrDo(() => {
+    const originalTracker = tracker;
+    tracker = capturedTracker;
     for (let i = containers.length; i < array.length; i++) {
       const container = new ElementSpan();
       containers.push(container);
       effectOrDo(() => {
+        const originalTracker2 = tracker;
+        tracker = capturedTracker;
         const item = array[i];
         if (typeof item !== "object" || item == null)
           throw Error("Elements must be object in ForEachPersist");
@@ -101,13 +111,15 @@ function ForEachPersist(array, map) {
           outputMap.set(item, newNode = map(item));
         }
         container.replaceWith(newNode);
-      }, _tracker);
+        tracker = originalTracker2;
+      });
       result.append(container.removeAsFragment());
     }
     while (containers.length > array.length) {
       containers.pop().removeAsFragment();
     }
-  }, _tracker);
+    tracker = originalTracker;
+  });
   return result.removeAsFragment();
 }
 function element(name, staticAttrs, dynamicAttrs, ...children) {
@@ -137,12 +149,12 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
       throw Error("Cannot apply dynamic properties without scoped tracker");
     switch (name2) {
       case "mu:if":
-        effect(tracker, () => {
+        effectOrDo(() => {
           if (getter())
             blank?.replaceWith(el);
           else
             el.replaceWith(blank ??= document.createTextNode(""));
-        }, { suppressUntrackedWarning: true });
+        });
         break;
       case "style":
         effect(tracker, () => {
