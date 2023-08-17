@@ -1,4 +1,5 @@
 import { effect, Tracker, DependencyList } from 'mutraction';
+import { getMarker } from './getMarker.js';
 import { ElementSpan } from './ElementSpan.js';
 
 let tracker: Tracker | undefined = undefined;
@@ -140,7 +141,7 @@ export function element<E extends keyof HTMLElementTagNameMap>(
     for (let [name, value] of Object.entries(staticAttrs ?? {})) {
         switch (name) {
             case "mu:if":
-                if (!value) return document.createTextNode("");
+                if (!value) return getMarker();
                 break;
 
             case "style":
@@ -166,7 +167,7 @@ export function element<E extends keyof HTMLElementTagNameMap>(
             case "mu:if":
                 effectOrDo(() => {
                     if (getter()) blank?.replaceWith(el);
-                    else el.replaceWith(blank ??= document.createTextNode(""));
+                    else el.replaceWith(blank ??= getMarker());
                 });
                 break;
 
@@ -201,7 +202,7 @@ export function child(getter: () => number | string | bigint | null | undefined 
     if (result instanceof Node) return result;
     
     if (tracker) {
-        let node = document.createTextNode("");
+        let node = getMarker();
         effect(tracker, () => {
             const newNode = document.createTextNode(String(getter() ?? ""));
             node.replaceWith(newNode);

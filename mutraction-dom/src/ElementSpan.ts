@@ -1,11 +1,13 @@
+import { getMarker } from "./getMarker.js";
+
 /**
  * Represents a collection of sibling DOM nodes that can be moved together.
  * It can move in and out of the document using document fragments.
  * The beginning and end are marked with a pair of empty sentinel text nodes.
  */
 export class ElementSpan {
-    readonly startMarker = document.createTextNode("");
-    readonly endMarker = document.createTextNode("");
+    readonly startMarker = getMarker("start");
+    readonly endMarker = getMarker("end");
 
     constructor(...node: Node[]) {
         const frag = document.createDocumentFragment();

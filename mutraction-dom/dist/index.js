@@ -1,10 +1,17 @@
 // out/runtime.js
 import { effect } from "mutraction";
 
+// out/markerNode.js
+var debug = true;
+var id = 1e4;
+function getMarker(mark = "mark") {
+  return document.createTextNode(debug ? `\u27EA${mark}:${String(++id)}\u27EB` : "");
+}
+
 // out/ElementSpan.js
 var ElementSpan = class {
-  startMarker = document.createTextNode("");
-  endMarker = document.createTextNode("");
+  startMarker = getMarker("start");
+  endMarker = getMarker("end");
   constructor(...node) {
     const frag = document.createDocumentFragment();
     frag.append(this.startMarker, ...node, this.endMarker);
@@ -138,7 +145,7 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
     switch (name2) {
       case "mu:if":
         if (!value)
-          return document.createTextNode("");
+          return getMarker();
         break;
       case "style":
         Object.assign(el.style, value);
@@ -163,7 +170,7 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
           if (getter())
             blank?.replaceWith(el);
           else
-            el.replaceWith(blank ??= document.createTextNode(""));
+            el.replaceWith(blank ??= getMarker());
         });
         break;
       case "style":
@@ -193,7 +200,7 @@ function child(getter) {
   if (result instanceof Node)
     return result;
   if (tracker) {
-    let node = document.createTextNode("");
+    let node = getMarker();
     effect(tracker, () => {
       const newNode = document.createTextNode(String(getter() ?? ""));
       node.replaceWith(newNode);
