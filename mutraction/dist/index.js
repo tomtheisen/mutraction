@@ -10,11 +10,13 @@ var DependencyList = class {
   trackedProperties = /* @__PURE__ */ new Set();
   #tracker;
   #tracksAllChanges = false;
+  active = true;
   constructor(tracker) {
     this.#tracker = tracker;
   }
   addDependency(propRef) {
-    this.trackedProperties.add(propRef);
+    if (this.active)
+      this.trackedProperties.add(propRef);
   }
   endDependencyTrack() {
     this.#tracker.endDependencyTrack(this);
@@ -569,7 +571,7 @@ var emptyEffect = { dispose: () => {
 } };
 function effect(tracker, sideEffect, options = {}) {
   let dep = tracker.startDependencyTrack();
-  let lastResult = sideEffect();
+  let lastResult = sideEffect(dep);
   dep.endDependencyTrack();
   if (dep.trackedProperties.size === 0) {
     if (!options.suppressUntrackedWarning) {
@@ -585,7 +587,7 @@ function effect(tracker, sideEffect, options = {}) {
       return;
     latestGen = depgen;
     dep = tracker.startDependencyTrack();
-    lastResult = sideEffect();
+    lastResult = sideEffect(dep);
     dep.endDependencyTrack();
   }
   return tracker.subscribe(modelChangedForEffect);

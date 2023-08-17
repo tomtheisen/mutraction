@@ -100,7 +100,7 @@ function ForEachPersist(array, map) {
     for (let i = containers.length; i < array.length; i++) {
       const container = new ElementSpan();
       containers.push(container);
-      effectOrDo(() => {
+      effectOrDo((dep) => {
         const originalTracker2 = tracker;
         tracker = capturedTracker;
         const item = array[i];
@@ -108,7 +108,11 @@ function ForEachPersist(array, map) {
           throw Error("Elements must be object in ForEachPersist");
         let newNode = outputMap.get(item);
         if (newNode == null) {
+          if (dep)
+            dep.active = false;
           outputMap.set(item, newNode = map(item));
+          if (dep)
+            dep.active = true;
         }
         container.replaceWith(newNode);
         tracker = originalTracker2;

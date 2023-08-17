@@ -1,5 +1,6 @@
 import { effect, track, Tracker } from 'mutraction';
 import { ElementSpan } from './ElementSpan.js';
+import { DependencyList } from 'mutraction/dist/dependency.js';
 
 let tracker: Tracker | undefined = undefined;
 
@@ -16,7 +17,7 @@ export function clearTracker() {
     tracker = undefined;
 }
 
-function effectOrDo(sideEffect: () => (void | (() => void))) {
+function effectOrDo(sideEffect: (dep?: DependencyList) => (void | (() => void))) {
     if (tracker) effect(tracker, sideEffect, { suppressUntrackedWarning: true });
     else sideEffect();
 }
@@ -73,7 +74,7 @@ export function ForEachPersist<TIn extends object, TOut extends Node>(array: TIn
             const container = new ElementSpan();
             containers.push(container);
 
-            effectOrDo(() => {
+            effectOrDo((dep) => {
                 const originalTracker = tracker;
                 tracker = capturedTracker;
 
@@ -82,7 +83,9 @@ export function ForEachPersist<TIn extends object, TOut extends Node>(array: TIn
                     throw Error("Elements must be object in ForEachPersist");
                 let newNode = outputMap.get(item);
                 if (newNode == null) {
+                    if (dep) dep.active = false;
                     outputMap.set(item, newNode = map(item));
+                    if (dep) dep.active = true;
                 }
                 container.replaceWith(newNode);
 
@@ -158,8 +161,6 @@ export function element<E extends keyof HTMLElementTagNameMap>(
                     if (getter()) blank?.replaceWith(el);
                     else el.replaceWith(blank ??= document.createTextNode(""));
                 });
-            
-
                 break;
 
             case "style":

@@ -1,3 +1,4 @@
+import { DependencyList } from "./dependency.js";
 import { Tracker } from "./tracker.js";
 
 const emptyEffect = { dispose: () => {} };
@@ -5,9 +6,9 @@ const emptyEffect = { dispose: () => {} };
 type EffectOptions = {
     suppressUntrackedWarning?: boolean;
 }
-export function effect(tracker: Tracker, sideEffect: () => (void | (() => void)), options: EffectOptions = {}) {
+export function effect(tracker: Tracker, sideEffect: (dep: DependencyList) => (void | (() => void)), options: EffectOptions = {}) {
     let dep = tracker.startDependencyTrack();
-    let lastResult = sideEffect();
+    let lastResult = sideEffect(dep);
     dep.endDependencyTrack();
 
     if (dep.trackedProperties.size === 0) {
@@ -25,7 +26,7 @@ export function effect(tracker: Tracker, sideEffect: () => (void | (() => void))
         latestGen = depgen;
         
         dep = tracker.startDependencyTrack();
-        lastResult = sideEffect();
+        lastResult = sideEffect(dep);
         dep.endDependencyTrack();
     }
     

@@ -5,13 +5,14 @@ export class DependencyList {
     trackedProperties = new Set<PropReference>;
     #tracker: Tracker;
     #tracksAllChanges = false;
+    active = true;
 
     constructor(tracker: Tracker) {
         this.#tracker = tracker;
     }
 
     addDependency(propRef: PropReference) {
-        this.trackedProperties.add(propRef);
+        if (this.active) this.trackedProperties.add(propRef);
     }
 
     endDependencyTrack() {

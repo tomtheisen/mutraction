@@ -3,6 +3,7 @@ import { Tracker } from "./tracker.js";
 export declare class DependencyList {
     #private;
     trackedProperties: Set<PropReference<any>>;
+    active: boolean;
     constructor(tracker: Tracker);
     addDependency(propRef: PropReference): void;
     endDependencyTrack(): void;
