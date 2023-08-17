@@ -1,6 +1,5 @@
-import { effect, track, Tracker } from 'mutraction';
+import { effect, Tracker, DependencyList } from 'mutraction';
 import { ElementSpan } from './ElementSpan.js';
-import { DependencyList } from 'mutraction/dist/dependency.js';
 
 let tracker: Tracker | undefined = undefined;
 
@@ -59,11 +58,11 @@ export function ForEach<TIn, TOut extends Node>(array: TIn[], map: (e: TIn) => T
     return result.removeAsFragment();
 }
 
-export function ForEachPersist<TIn extends object, TOut extends Node>(array: TIn[], map: (e: TIn) => TOut): Node {
+export function ForEachPersist<TIn extends object>(array: TIn[], map: (e: TIn) => Node): Node {
     const capturedTracker = tracker;
     const result = new ElementSpan();
     const containers: ElementSpan[] = [];
-    const outputMap = new WeakMap<TIn, TOut>;
+    const outputMap = new WeakMap<TIn, HTMLElement | ElementSpan>;
 
     effectOrDo(() => {
         const originalTracker = tracker;
@@ -81,13 +80,21 @@ export function ForEachPersist<TIn extends object, TOut extends Node>(array: TIn
                 const item = array[i];
                 if (typeof item !== "object" || item == null)
                     throw Error("Elements must be object in ForEachPersist");
-                let newNode = outputMap.get(item);
-                if (newNode == null) {
+                let newContents = outputMap.get(item);
+                if (newContents == null) {
                     if (dep) dep.active = false;
-                    outputMap.set(item, newNode = map(item));
+                    let newNode = map(item);
+                    newContents = newNode instanceof HTMLElement ? newNode : new ElementSpan(newNode);
+                    outputMap.set(item, newContents);
                     if (dep) dep.active = true;
                 }
-                container.replaceWith(newNode);
+
+                if (newContents instanceof HTMLElement) {
+                    container.replaceWith(newContents);
+                }
+                else {
+                    container.replaceWith(newContents.removeAsFragment());
+                }
 
                 tracker = originalTracker;
             });

@@ -2,7 +2,7 @@ import { Tracker } from 'mutraction';
 export declare function setTracker(newTracker: Tracker): void;
 export declare function clearTracker(): void;
 export declare function ForEach<TIn, TOut extends Node>(array: TIn[], map: (e: TIn) => TOut): Node;
-export declare function ForEachPersist<TIn extends object, TOut extends Node>(array: TIn[], map: (e: TIn) => TOut): Node;
+export declare function ForEachPersist<TIn extends object>(array: TIn[], map: (e: TIn) => Node): Node;
 type AttributeType<E extends keyof HTMLElementTagNameMap, K extends keyof HTMLElementTagNameMap[E]> = K extends "style" ? Partial<CSSStyleDeclaration> : K extends "classList" ? Record<string, boolean> : HTMLElementTagNameMap[E][K];
 type StandardAttributes = {
     if?: boolean;

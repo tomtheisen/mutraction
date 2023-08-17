@@ -106,15 +106,21 @@ function ForEachPersist(array, map) {
         const item = array[i];
         if (typeof item !== "object" || item == null)
           throw Error("Elements must be object in ForEachPersist");
-        let newNode = outputMap.get(item);
-        if (newNode == null) {
+        let newContents = outputMap.get(item);
+        if (newContents == null) {
           if (dep)
             dep.active = false;
-          outputMap.set(item, newNode = map(item));
+          let newNode = map(item);
+          newContents = newNode instanceof HTMLElement ? newNode : new ElementSpan(newNode);
+          outputMap.set(item, newContents);
           if (dep)
             dep.active = true;
         }
-        container.replaceWith(newNode);
+        if (newContents instanceof HTMLElement) {
+          container.replaceWith(newContents);
+        } else {
+          container.replaceWith(newContents.removeAsFragment());
+        }
         tracker = originalTracker2;
       });
       result.append(container.removeAsFragment());

@@ -442,7 +442,7 @@ function makeProxyHandler(model, tracker) {
     const mutation = name in target ? { type: "change", target, name, oldValue: model[name], newValue } : { type: "create", target, name, newValue };
     const initialSets = setsCompleted;
     const wasSet = Reflect.set(target, name, newValue, receiver);
-    if (initialSets == setsCompleted) {
+    if (wasSet && initialSets == setsCompleted) {
       tracker[RecordMutation](mutation);
     }
     ++setsCompleted;
@@ -494,8 +494,11 @@ function makeProxyHandler(model, tracker) {
   }
   function deleteProperty(target, name) {
     const mutation = { type: "delete", target, name, oldValue: model[name] };
-    tracker[RecordMutation](mutation);
-    return Reflect.deleteProperty(target, name);
+    const wasDeleted = Reflect.deleteProperty(target, name);
+    if (wasDeleted) {
+      tracker[RecordMutation](mutation);
+    }
+    return wasDeleted;
   }
   let set = setOrdinary, get = getOrdinary;
   if (Array.isArray(model)) {
@@ -593,6 +596,7 @@ function effect(tracker, sideEffect, options = {}) {
   return tracker.subscribe(modelChangedForEffect);
 }
 export {
+  DependencyList,
   PropReference,
   Tracker,
   createOrRetrievePropRef,
