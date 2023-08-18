@@ -19,10 +19,10 @@ var PropReference = class {
   }
   subscribe(callback) {
     this.#subscribers.add(callback);
-    return { dispose: () => this.#subscribers.delete(callback) };
+    return { dispose: this.#subscribers.delete.bind(this.#subscribers, callback) };
   }
   notifySubscribers() {
-    for (const callback of this.#subscribers)
+    for (const callback of [...this.#subscribers])
       callback();
   }
   get current() {
@@ -60,7 +60,7 @@ var DependencyList = class {
     if (this.active && !this.#tracksAllChanges) {
       if (this.#trackedProperties.has(propRef))
         return;
-      const propSubscription = propRef.subscribe(() => this.notifySubscribers());
+      const propSubscription = propRef.subscribe(this.notifySubscribers.bind(this));
       this.#trackedProperties.set(propRef, propSubscription);
     }
   }
@@ -69,7 +69,7 @@ var DependencyList = class {
     return { dispose: () => this.#subscribers.delete(callback) };
   }
   notifySubscribers() {
-    for (const callback of this.#subscribers)
+    for (const callback of [...this.#subscribers])
       callback();
   }
   endDependencyTrack() {

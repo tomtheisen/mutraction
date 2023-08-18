@@ -17,11 +17,11 @@ export class PropReference<T = any> {
 
     subscribe(callback: () => void): Subscription {
         this.#subscribers.add(callback);
-        return { dispose: () => this.#subscribers.delete(callback) };
+        return { dispose: this.#subscribers.delete.bind(this.#subscribers, callback) };
     }
 
     notifySubscribers() {
-        for (const callback of this.#subscribers) callback();
+        for (const callback of [...this.#subscribers]) callback();
     }
 
     get current(): T {
