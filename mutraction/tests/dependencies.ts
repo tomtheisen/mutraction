@@ -5,7 +5,7 @@ import { track, isTracked } from '../src/index.js';
 import { DependencyList } from '../src/dependency.js';
 
 function assertDependencies(dep: DependencyList, expected: [obj: object, prop: string][]) {
-    assert.equal(dep.trackedProperties.size, expected.length, "Unexpected dependency size");
+    assert.equal(dep.trackedProperties.length, expected.length, "Unexpected dependency size");
 
     for (const act of dep.trackedProperties) {
         assert.ok(
@@ -34,36 +34,31 @@ test('track inner dep', () => {
 test('inner change does not increase outer dependency generation', () => {
     const [model, tracker] = track({ foo: { leaf1: 4, leaf2: 45 }, inner: "bar" } as any);
 
-    let dt1 = tracker.startDependencyTrack();
+    let d1 = tracker.startDependencyTrack();
     let foo = model.foo;
-    dt1.endDependencyTrack();
-    assertDependencies(dt1, [[model, "foo"]]);
+    d1.endDependencyTrack();
+    assertDependencies(d1, [[model, "foo"]]);
     assert.ok(isTracked(foo), "inner object is tracked");
 
-    let dt2 = tracker.startDependencyTrack();
+    let d2 = tracker.startDependencyTrack();
     foo.leaf1;
-    dt2.endDependencyTrack();
-    assertDependencies(dt2,[[foo, "leaf1"]]);
+    d2.endDependencyTrack();
+    assertDependencies(d2,[[foo, "leaf1"]]);
 
-    const g1_1 = dt1.getLatestChangeGeneration();
-    const g2_1 = dt2.getLatestChangeGeneration();
+    let c1 = 0, c2 = 0;
+    d1.subscribe(() => ++c1);
+    d2.subscribe(() => ++c2);
 
     model.foo = model.foo;
 
-    const g1_2 = dt1.getLatestChangeGeneration();
-    const g2_2 = dt2.getLatestChangeGeneration();
-
-    assert.ok(g1_1 < g1_2, "first tracker generation changed");
-    assert.ok(g2_1 === g2_2, "second tracker generation did not change");
+    assert.equal(c1, 1, "first tracker generation changed");
+    assert.equal(c2, 0, "second tracker generation did not change");
 
     foo.leaf1 = "squizzblaster";
     model.crumpets = "fuzzy";
 
-    const g1_3 = dt1.getLatestChangeGeneration();
-    const g2_3 = dt2.getLatestChangeGeneration();
-
-    assert.ok(g1_2 === g1_3, "first tracker generation did not change");
-    assert.ok(g2_2 < g2_3, "second tracker generation changed");
+    assert.equal(c1, 1, "first tracker generation did not change");
+    assert.equal(c2, 1, "second tracker generation changed");
 });
 
 test('history dependency', () => {
@@ -74,13 +69,16 @@ test('history dependency', () => {
     const history = tracker.history;
     dep.endDependencyTrack();
 
+    let c = 0;
+    dep.subscribe(() => ++c);
+
     assert.equal(history.length, 0);
-    assert.equal(dep.getLatestChangeGeneration(), 0);
+    assert.equal(c, 0);
 
     model.foo = {}; // 1
     model.foo.bar = {}; // 2
     tracker.undo(); // 3
-    assert.equal(dep.getLatestChangeGeneration(), 3);
+    assert.equal(c, 3);
 });
 
 test('only top dependency notified', () => {
@@ -94,8 +92,8 @@ test('only top dependency notified', () => {
     model.c;
     d1.endDependencyTrack();
 
-    assert.equal(d1.trackedProperties.size, 2);
-    assert.equal(d2.trackedProperties.size, 1);
+    assert.equal(d1.trackedProperties.length, 2);
+    assert.equal(d2.trackedProperties.length, 1);
 });
 
 test.run();
