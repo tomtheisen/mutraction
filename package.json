@@ -2,9 +2,7 @@
   "name": "mutraction-packages",
   "workspaces": [
     "mutraction",
-    "mutraction-react",
     "mutraction-dom",
-    "mutraction-dom-template",
-    "example"
+    "mutraction-dom-template"
   ]
 }
