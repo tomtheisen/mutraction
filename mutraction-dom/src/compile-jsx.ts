@@ -1,7 +1,6 @@
 import * as B from '@babel/core';
 import type * as BT from '@babel/types';
 import type { PluginObj } from '@babel/core';
-import { track } from 'mutraction';
 
 export type Babel = typeof B;
 export type BabelTypes = typeof BT;

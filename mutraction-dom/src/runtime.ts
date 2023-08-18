@@ -1,4 +1,6 @@
-import { effect, Tracker, DependencyList } from 'mutraction';
+import { effect } from "./effect.js"
+import { Tracker } from "./tracker.js";
+import { DependencyList } from './dependency.js';
 import { getMarker } from './getMarker.js';
 import { ElementSpan } from './ElementSpan.js';
 

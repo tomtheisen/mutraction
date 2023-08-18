@@ -1,4 +1,4 @@
-import { Tracker } from 'mutraction';
+import { Tracker } from "./tracker.js";
 export declare function setTracker(newTracker: Tracker): void;
 export declare function clearTracker(): void;
 export declare function ForEach<TIn, TOut extends Node>(array: TIn[], map: (e: TIn) => TOut): Node;

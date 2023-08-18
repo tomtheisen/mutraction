@@ -1,5 +1,4 @@
-import { effect, track } from "mutraction";
-import { ForEachPersist } from "mutraction-dom";
+import { effect, track, ForEachPersist } from "mutraction-dom";
 
 type TodoItem = ReturnType<typeof makeItem>;
 

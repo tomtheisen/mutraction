@@ -9,13 +9,10 @@
     "url": "git+https://github.com/tomtheisen/mutraction.git"
   },
   "types": "dist/index.d.ts",
-  "files": [
-    "dist/*.*",
-    "dist/src"
-  ],
+  "files": [ "dist" ],
   "scripts": {
     "build": "npm run clean && npx tsc && npm run bundle && npm run types && npm run jsxtype && npm run compiler && npm run cleanout",
-    "bundle": "npx esbuild out/index.js --bundle --format=esm --outfile=dist/index.js --external:@babel/core --external:@babel/types --external:mutraction",
+    "bundle": "npx esbuild out/index.js --bundle --format=esm --outfile=dist/index.js --external:@babel/core --external:@babel/types",
     "types": "npx tsc -p tsconfig.types.json",
     "test": "npx tsc && npx uvu out/tests -i \"[.]d[.]ts$\"",
     "clean": "del /Q /S dist && del /Q /S out",
@@ -25,17 +22,18 @@
   },
   "author": "Tom Theisen",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/tomtheisen/mutraction/issues"
-  },
   "homepage": "https://github.com/tomtheisen/mutraction#readme",
   "dependencies": {
-    "mutraction": "^0.14.0",
     "@babel/cli": "^7.22.10",
     "@babel/core": "^7.22.10",
     "@babel/plugin-syntax-jsx": "^7.22.5",
     "@babel/preset-env": "^7.22.10",
     "@types/babel__core": "^7.20.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.18.16",
+    "typescript": "^5.1.6",
+    "uvu": "^0.5.6"
   },
   "exports": {
     ".": "./dist/index.js",
