@@ -97,7 +97,7 @@ var ElementSpan = class _ElementSpan {
   }
 };
 
-// out/runtime.js
+// out/runtime.trackers.js
 var trackers = [];
 function setTracker(newTracker) {
   if (trackers.length)
@@ -125,6 +125,8 @@ function effectOrDo(sideEffect) {
     sideEffect();
   }
 }
+
+// out/runtime.js
 function ForEach(array, map) {
   const result = new ElementSpan();
   const containers = [];
@@ -145,19 +147,14 @@ function ForEach(array, map) {
   return result.removeAsFragment();
 }
 function ForEachPersist(array, map) {
-  const capturedTracker = trackers;
   const result = new ElementSpan();
   const containers = [];
   const outputMap = /* @__PURE__ */ new WeakMap();
   effectOrDo(() => {
-    const originalTracker = trackers;
-    trackers = capturedTracker;
     for (let i = containers.length; i < array.length; i++) {
       const container = new ElementSpan();
       containers.push(container);
       effectOrDo((dep) => {
-        const originalTracker2 = trackers;
-        trackers = capturedTracker;
         container.emptyAsFragment();
         const item = array[i];
         if (item == null)
@@ -179,14 +176,12 @@ function ForEachPersist(array, map) {
         } else {
           container.replaceWith(newContents.removeAsFragment());
         }
-        trackers = originalTracker2;
       });
       result.append(container.removeAsFragment());
     }
     while (containers.length > array.length) {
       containers.pop().removeAsFragment();
     }
-    trackers = originalTracker;
   });
   return result.removeAsFragment();
 }

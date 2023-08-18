@@ -1,4 +1,5 @@
-export { element, child, setTracker, clearTracker, ForEach, ForEachPersist } from './runtime.js';
+export { element, child, ForEach, ForEachPersist } from './runtime.js';
+export { setTracker, clearTracker } from './runtime.trackers.js';
 export { track, trackAsReadonlyDeep, isTracked } from './proxy.js';
 export { Tracker, TrackerOptions } from './tracker.js';
 export { PropReference, createOrRetrievePropRef } from './propref.js';

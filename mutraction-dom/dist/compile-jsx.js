@@ -40,11 +40,6 @@ function jsxAttrVal2Prop(attrVal) {
         return [false, attrVal]; // process later / TODO?
     }
 }
-function jsxId2Id(name) {
-    if (name.type === "JSXIdentifier")
-        return t.identifier(name.name);
-    return t.memberExpression(jsxId2Id(name.object), t.identifier(name.property.name));
-}
 function isProgram(path) {
     return path?.node.type === "Program";
 }
@@ -74,137 +69,149 @@ function ensureImportsCreated(path) {
 function isMutractionNamespace(ns) {
     return ns.name === "mu" || ns.name === "µ";
 }
+const jsxElmentsWithIf = new Set;
+let lastJsxExited = undefined;
+function JSXElement_enter(path) {
+    const ctx = ensureImportsCreated(path);
+    const { name } = path.node.openingElement;
+    if (name.type === "JSXNamespacedName")
+        throw path.buildCodeFrameError("JSXNamespacedName JSX element type is not supported");
+    let trackerExpression = undefined;
+    // look for tracker attribute
+    for (const attr of path.node.openingElement.attributes) {
+        if (attr.type === 'JSXAttribute' && attr.name.type === 'JSXNamespacedName') {
+            const { name, value } = attr;
+            if (!isMutractionNamespace(name.namespace))
+                throw Error(`Unsupported namespace ${name.namespace.name} in JSX attribute`);
+            if (name.name.name === "tracker") {
+                if (value?.type !== "JSXExpressionContainer")
+                    throw Error(`Expression value expected for '${name.name.name}'`);
+                if (value.expression.type !== "JSXEmptyExpression") {
+                    trackerExpression = value.expression;
+                }
+            }
+        }
+    }
+    // build props and look for tracker attribute
+    const staticPropsForRuntime = [];
+    const dynamicPropsForRuntime = [];
+    for (const attr of path.node.openingElement.attributes) {
+        switch (attr.type) {
+            case 'JSXAttribute':
+                switch (attr.name.type) {
+                    case 'JSXNamespacedName': {
+                        // probably mu: directive
+                        const { name, value } = attr;
+                        if (!isMutractionNamespace(name.namespace))
+                            throw Error(`Unsupported namespace ${name.namespace.name} in JSX attribute`);
+                        switch (name.name.name) { // lol babel
+                            case "tracker":
+                                // already handled
+                                break;
+                            case "if":
+                                if (value?.type !== "JSXExpressionContainer")
+                                    throw Error(`Expression value expected for '${name.name.name}'`);
+                                if (value.expression.type === "JSXEmptyExpression")
+                                    break;
+                                jsxElmentsWithIf.add(path.node);
+                                const [isDynamic, expr] = jsxAttrVal2Prop(value);
+                                if (isDynamic) {
+                                    dynamicPropsForRuntime.push(t.objectProperty(t.stringLiteral("mu:if"), t.arrowFunctionExpression([], expr)));
+                                }
+                                else {
+                                    staticPropsForRuntime.push(t.objectProperty(t.stringLiteral("mu:if"), expr));
+                                }
+                                break;
+                            case "else":
+                                break;
+                            default:
+                                throw Error(`Unsupported mutraction JSX attribute ${name.name.name}`);
+                        }
+                        break;
+                    }
+                    case 'JSXIdentifier': {
+                        // probably standard DOM attribute
+                        const { name, value } = attr;
+                        const [isDynamic, expr] = jsxAttrVal2Prop(value);
+                        if (isDynamic) {
+                            dynamicPropsForRuntime.push(t.objectProperty(t.identifier(name.name), t.arrowFunctionExpression([], expr)));
+                        }
+                        else {
+                            staticPropsForRuntime.push(t.objectProperty(t.identifier(name.name), expr));
+                        }
+                        break;
+                    }
+                }
+                break;
+            case 'JSXSpreadAttribute':
+                throw Error('JSX spread not supported.');
+            default:
+                throw Error('Unsupported attribute type.');
+        }
+    }
+    let renderFunc = undefined;
+    if (name.type === "JSXIdentifier" && /^[a-z]/.test(name.name)) {
+        // treat as DOM element
+        const jsxChildren = [];
+        for (const child of path.node.children) {
+            const compiled = jsxChild(ctx, child);
+            if (compiled)
+                jsxChildren.push(compiled);
+        }
+        renderFunc = t.callExpression(t.identifier(ctx.elementFnName), [
+            t.stringLiteral(name.name),
+            t.objectExpression(staticPropsForRuntime),
+            t.objectExpression(dynamicPropsForRuntime),
+            ...jsxChildren
+        ]);
+    }
+    else { // JSXMemberExpression or upper-case function component
+        throw Error("Embed function 'components' with curly braces, not jsx.");
+    }
+    if (trackerExpression) {
+        // e.g. [setTracker(...), element(...), clearTracker()][1]
+        const trackedRoot = t.memberExpression(t.arrayExpression([
+            t.callExpression(t.identifier(ctx.setTrackerFnName), [trackerExpression]),
+            renderFunc,
+            t.callExpression(t.identifier(ctx.clearTrackerFnName), [])
+        ]), t.numericLiteral(1), true /* computed */);
+        path.replaceWith(trackedRoot);
+    }
+    else {
+        path.replaceWith(renderFunc);
+    }
+}
+function JSXFragment_enter(path) {
+    const ctx = ensureImportsCreated(path);
+    const jsxChildren = [];
+    for (const child of path.node.children) {
+        const compiled = jsxChild(ctx, child);
+        if (compiled)
+            jsxChildren.push(compiled);
+    }
+    const fragId = path.scope.generateDeclaredUidIdentifier("frag");
+    path.replaceExpressionWithStatements([
+        // frag = document.createDocumentFragment()
+        t.expressionStatement(t.assignmentExpression("=", fragId, t.callExpression(t.memberExpression(t.identifier("document"), t.identifier("createDocumentFragment")), []))),
+        // frag.append(...)
+        t.expressionStatement(t.callExpression(t.memberExpression(fragId, t.identifier("append")), jsxChildren)),
+        // frag
+        t.expressionStatement(fragId),
+    ]);
+}
 const mutractPlugin = {
     visitor: {
         Program: {
-            enter(path) { },
-            exit(path) {
-                clearImports();
-            }
+            exit(path) { clearImports(); }
         },
-        JSXElement(path) {
-            const ctx = ensureImportsCreated(path);
-            const { name } = path.node.openingElement;
-            if (name.type === "JSXNamespacedName")
-                throw path.buildCodeFrameError("JSXNamespacedName JSX element type is not supported");
-            let trackerExpression = undefined;
-            // look for tracker attribute
-            for (const attr of path.node.openingElement.attributes) {
-                if (attr.type === 'JSXAttribute' && attr.name.type === 'JSXNamespacedName') {
-                    const { name, value } = attr;
-                    if (!isMutractionNamespace(name.namespace))
-                        throw Error(`Unsupported namespace ${name.namespace.name} in JSX attribute`);
-                    if (name.name.name === "tracker") {
-                        if (value?.type !== "JSXExpressionContainer")
-                            throw Error(`Expression value expected for '${name.name.name}'`);
-                        if (value.expression.type !== "JSXEmptyExpression") {
-                            trackerExpression = value.expression;
-                        }
-                    }
-                }
-            }
-            // build props and look for tracker attribute
-            const staticPropsForRuntime = [];
-            const dynamicPropsForRuntime = [];
-            for (const attr of path.node.openingElement.attributes) {
-                switch (attr.type) {
-                    case 'JSXAttribute':
-                        switch (attr.name.type) {
-                            case 'JSXNamespacedName': {
-                                const { name, value } = attr;
-                                if (!isMutractionNamespace(name.namespace))
-                                    throw Error(`Unsupported namespace ${name.namespace.name} in JSX attribute`);
-                                switch (name.name.name) { // lol babel
-                                    case "tracker":
-                                        // already handled
-                                        break;
-                                    case "if":
-                                        if (value?.type !== "JSXExpressionContainer")
-                                            throw Error(`Expression value expected for '${name.name.name}'`);
-                                        if (value.expression.type === "JSXEmptyExpression")
-                                            break;
-                                        const [isDynamic, expr] = jsxAttrVal2Prop(value);
-                                        if (isDynamic) {
-                                            dynamicPropsForRuntime.push(t.objectProperty(t.stringLiteral("mu:if"), t.arrowFunctionExpression([], expr)));
-                                        }
-                                        else {
-                                            staticPropsForRuntime.push(t.objectProperty(t.stringLiteral("mu:if"), expr));
-                                        }
-                                        break;
-                                    default:
-                                        throw Error(`Unsupported mutraction JSX attribute ${name.name.name}`);
-                                }
-                                break;
-                            }
-                            case 'JSXIdentifier': {
-                                const { name, value } = attr;
-                                const [isDynamic, expr] = jsxAttrVal2Prop(value);
-                                if (isDynamic) {
-                                    dynamicPropsForRuntime.push(t.objectProperty(t.identifier(name.name), t.arrowFunctionExpression([], expr)));
-                                }
-                                else {
-                                    staticPropsForRuntime.push(t.objectProperty(t.identifier(name.name), expr));
-                                }
-                                break;
-                            }
-                        }
-                        break;
-                    case 'JSXSpreadAttribute':
-                        throw Error('JSX spread not supported.');
-                    default:
-                        throw Error('Unsupported attribute type.');
-                }
-            }
-            let renderFunc = undefined;
-            if (name.type === "JSXIdentifier" && /^[a-z]/.test(name.name)) {
-                // treat as DOM element
-                const jsxChildren = [];
-                for (const child of path.node.children) {
-                    const compiled = jsxChild(ctx, child);
-                    if (compiled)
-                        jsxChildren.push(compiled);
-                }
-                renderFunc = t.callExpression(t.identifier(ctx.elementFnName), [
-                    t.stringLiteral(name.name),
-                    t.objectExpression(staticPropsForRuntime),
-                    t.objectExpression(dynamicPropsForRuntime),
-                    ...jsxChildren
-                ]);
-            }
-            else { // JSXMemberExpression or upper-case function component
-                throw Error("Embed function 'components' with curly braces, not jsx.");
-            }
-            if (trackerExpression) {
-                // e.g. [setTracker(...), element(...), clearTracker()][1]
-                const trackedRoot = t.memberExpression(t.arrayExpression([
-                    t.callExpression(t.identifier(ctx.setTrackerFnName), [trackerExpression]),
-                    renderFunc,
-                    t.callExpression(t.identifier(ctx.clearTrackerFnName), [])
-                ]), t.numericLiteral(1), true /* computed */);
-                path.replaceWith(trackedRoot);
-            }
-            else {
-                path.replaceWith(renderFunc);
-            }
+        JSXElement: {
+            enter: JSXElement_enter,
+            exit(path) { lastJsxExited = path.node; }
         },
-        JSXFragment(path) {
-            const ctx = ensureImportsCreated(path);
-            const jsxChildren = [];
-            for (const child of path.node.children) {
-                const compiled = jsxChild(ctx, child);
-                if (compiled)
-                    jsxChildren.push(compiled);
-            }
-            const fragId = path.scope.generateDeclaredUidIdentifier("frag");
-            path.replaceExpressionWithStatements([
-                // frag = document.createDocumentFragment()
-                t.expressionStatement(t.assignmentExpression("=", fragId, t.callExpression(t.memberExpression(t.identifier("document"), t.identifier("createDocumentFragment")), []))),
-                // frag.append(...)
-                t.expressionStatement(t.callExpression(t.memberExpression(fragId, t.identifier("append")), jsxChildren)),
-                // frag
-                t.expressionStatement(fragId),
-            ]);
-        }
+        JSXFragment: {
+            enter: JSXFragment_enter,
+            exit(path) { lastJsxExited = path.node; }
+        },
     }
 };
 export default function (_) {
