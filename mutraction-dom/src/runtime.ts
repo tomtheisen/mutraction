@@ -106,10 +106,6 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 
     for (let [name, value] of Object.entries(staticAttrs ?? {})) {
         switch (name) {
-            case "mu:if":
-                if (!value) return getMarker("optimized out");
-                break;
-
             case "style":
                 Object.assign(el.style, value);
                 break;
@@ -131,13 +127,6 @@ export function element<E extends keyof HTMLElementTagNameMap>(
         if (!tracker) throw Error("Cannot apply dynamic properties without scoped tracker");
 
         switch (name) {
-            case "mu:if":
-                effectOrDo(() => {
-                    if (getter()) blank?.replaceWith(el);
-                    else el.replaceWith(blank ??= getMarker("blank"));
-                });
-                break;
-
             case "style":
                 effect(tracker, () => { 
                     Object.assign(el.style, getter());

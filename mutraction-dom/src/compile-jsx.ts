@@ -38,6 +38,13 @@ function jsxChild(ctx: MuContext, child:
     throw Error("Unsupported child type " + type);
 }
 
+/**
+ * extracts an expression from a jsx attribute
+ * @param attrVal 
+ * @returns 2-tuple [isDynamic, expression] containing
+ *      * isDynamic - whether it's a curly brace expression
+ *      * expression - the AST node for the expression
+ */
 function jsxAttrVal2Prop(attrVal: 
     BT.JSXExpressionContainer |
     BT.JSXElement |
@@ -63,6 +70,7 @@ function jsxAttrVal2Prop(attrVal:
 type MuContext = {
     elementFnName: string;
     childFnName: string;
+    chooseFnName: string;
     setTrackerFnName: string;
     clearTrackerFnName: string;
 }
@@ -78,13 +86,14 @@ function clearImports() {
 function ensureImportsCreated(path: B.NodePath) {
     const programPath = path.findParent(isProgram);
     if (!isProgram(programPath)) 
-        throw Error ("Can't create imports outside of a program.");
+        throw path.buildCodeFrameError("Can't create imports outside of a program.");
 
     if (_ctx) return _ctx;
 
     programPath.node.sourceType = "module";
     const elementFnName = programPath.scope.generateUid("mu_element");
     const childFnName = programPath.scope.generateUid("mu_child");
+    const chooseFnName = programPath.scope.generateUid("mu_choose");
     const setTrackerFnName = programPath.scope.generateUid("mu_setTracker");
     const clearTrackerFnName = programPath.scope.generateUid("mu_clearTracker");
 
@@ -93,6 +102,7 @@ function ensureImportsCreated(path: B.NodePath) {
             [
                 t.importSpecifier(t.identifier(elementFnName), t.identifier("element")),
                 t.importSpecifier(t.identifier(childFnName), t.identifier("child")),
+                t.importSpecifier(t.identifier(chooseFnName), t.identifier("choose")),
                 t.importSpecifier(t.identifier(setTrackerFnName), t.identifier("setTracker")),
                 t.importSpecifier(t.identifier(clearTrackerFnName), t.identifier("clearTracker")),
             ],
@@ -100,15 +110,16 @@ function ensureImportsCreated(path: B.NodePath) {
         )
     );
 
-    return _ctx = { elementFnName, childFnName, setTrackerFnName, clearTrackerFnName };
+    return _ctx = { elementFnName, childFnName, chooseFnName, setTrackerFnName, clearTrackerFnName };
 }
 
 function isMutractionNamespace(ns: BT.JSXIdentifier): boolean {
     return ns.name === "mu" || ns.name ==="µ";
 }
 
-const jsxElmentsWithIf: Set<BT.JSXElement> = new Set;
-let lastJsxExited: BT.JSXFragment | BT.JSXElement | undefined = undefined;
+/** runtime choose call for mu:if and mu:else */
+const jsxElementChoose: Map<BT.JSXElement, BT.CallExpression> = new Map;
+let lastJsxExited: BT.JSXElement | undefined = undefined;
 
 function JSXElement_enter(path: B.NodePath<BT.JSXElement>) {
     const ctx = ensureImportsCreated(path);
@@ -119,25 +130,8 @@ function JSXElement_enter(path: B.NodePath<BT.JSXElement>) {
         throw path.buildCodeFrameError("JSXNamespacedName JSX element type is not supported");
 
     let trackerExpression: BT.Expression | undefined = undefined;
-
-    // look for tracker attribute
-    for (const attr of path.node.openingElement.attributes) {
-        if (attr.type === 'JSXAttribute' && attr.name.type === 'JSXNamespacedName') {
-            const { name, value } = attr;
-
-            if (!isMutractionNamespace(name.namespace))
-                throw Error(`Unsupported namespace ${ name.namespace.name } in JSX attribute`);
-            
-            if (name.name.name === "tracker") {
-                if (value?.type !== "JSXExpressionContainer") 
-                    throw Error(`Expression value expected for '${ name.name.name }'`);
-
-                if (value.expression.type !== "JSXEmptyExpression") {
-                    trackerExpression = value.expression;
-                }
-            }
-        }
-    }
+    let ifExpression: BT.Expression | undefined = undefined;
+    let hasElse = false;
 
     // build props and look for tracker attribute
     const staticPropsForRuntime: (BT.ObjectProperty | BT.SpreadElement)[] = []
@@ -152,43 +146,37 @@ function JSXElement_enter(path: B.NodePath<BT.JSXElement>) {
                         const { name, value } = attr;
 
                         if (!isMutractionNamespace(name.namespace))
-                            throw Error(`Unsupported namespace ${ name.namespace.name } in JSX attribute`);
+                            throw path.buildCodeFrameError(`Unsupported namespace ${ name.namespace.name } in JSX attribute`);
                         
                         switch (name.name.name) { // lol babel
                             case "tracker":
-                                // already handled
+                                if (value?.type !== "JSXExpressionContainer")
+                                throw path.buildCodeFrameError(`Expression value expected for '${name.name.name}'`);
+            
+                                if (value.expression.type !== "JSXEmptyExpression") {
+                                    trackerExpression = value.expression;
+                                }                                
                                 break;
 
                             case "if":
                                 if (value?.type !== "JSXExpressionContainer") 
-                                throw Error(`Expression value expected for '${ name.name.name }'`);
+                                    throw path.buildCodeFrameError(`Expression value expected for '${ name.name.name }'`);
 
                                 if (value.expression.type === "JSXEmptyExpression")
                                     break;
 
-                                jsxElmentsWithIf.add(path.node);
-
                                 const [isDynamic, expr] = jsxAttrVal2Prop(value);
-                                if (isDynamic) {
-                                    dynamicPropsForRuntime.push(
-                                        t.objectProperty(
-                                            t.stringLiteral("mu:if"),
-                                            t.arrowFunctionExpression([], expr)
-                                        )
-                                    );
-                                }
-                                else {
-                                    staticPropsForRuntime.push(
-                                        t.objectProperty(t.stringLiteral("mu:if"), expr)
-                                    );
-                                }
+                                ifExpression = expr;
                                 break;
 
                             case "else":
+                                if (value)
+                                    throw path.buildCodeFrameError("mu:else not take a value.  Maybe you want <foo mu:else mu:if={...} />?");
+                                hasElse = true;
                                 break;
                                 
                             default:
-                                throw Error(`Unsupported mutraction JSX attribute ${ name.name.name }`);
+                                throw path.buildCodeFrameError(`Unsupported mutraction JSX attribute ${ name.name.name }`);
                         }
                         break;
                     }
@@ -216,15 +204,14 @@ function JSXElement_enter(path: B.NodePath<BT.JSXElement>) {
                 break;
 
             case 'JSXSpreadAttribute':
-                throw Error('JSX spread not supported.');
+                throw path.buildCodeFrameError('JSX spread not supported.');
 
             default:
-                throw Error('Unsupported attribute type.');
+                throw path.buildCodeFrameError('Unsupported attribute type.');
         }
     }
 
     let renderFunc: BT.CallExpression | undefined = undefined;
-
     if (name.type === "JSXIdentifier" && /^[a-z]/.test(name.name)) {
         // treat as DOM element
         const jsxChildren: BT.Expression[] = [];
@@ -244,7 +231,67 @@ function JSXElement_enter(path: B.NodePath<BT.JSXElement>) {
         );
     }
     else { // JSXMemberExpression or upper-case function component
-        throw Error("Embed function 'components' with curly braces, not jsx.");
+        throw path.buildCodeFrameError("Embed function 'components' with curly braces, not jsx.");
+    }
+
+    // handle mu:if and mu:else
+    if (hasElse) {
+        const chooseCall = lastJsxExited && jsxElementChoose.get(lastJsxExited);
+        if (!chooseCall) {
+            throw path.buildCodeFrameError("Elements with mu:else must immediately follow one with mu:if");
+        }
+
+        // type of choosecall arg
+        /*
+        *  type ConditionalElement = {
+        *      nodeGetter: () => CharacterData;
+        *      conditionGetter?: () => boolean;
+        *  }
+        */
+        if (ifExpression) {
+            jsxElementChoose.set(path.node, chooseCall); // continue the else-if chain
+            chooseCall.arguments.push(
+                t.objectExpression([
+                    t.objectProperty(
+                        t.identifier("nodeGetter"),
+                        renderFunc
+                    ),
+                    t.objectProperty(
+                        t.identifier("conditionGetter"),
+                        t.arrowFunctionExpression([], ifExpression)
+                    )
+                ])
+            );
+        }
+        else {
+            chooseCall.arguments.push(
+                t.objectExpression([
+                    t.objectProperty(
+                        t.identifier("nodeGetter"),
+                        renderFunc
+                    )
+                ])
+            );
+        }
+        path.remove();
+    }
+    else if (ifExpression) {
+        renderFunc = t.callExpression(
+            t.identifier(ctx.chooseFnName),
+            [
+                t.objectExpression([
+                    t.objectProperty(
+                        t.identifier("nodeGetter"),
+                        renderFunc
+                    ),
+                    t.objectProperty(
+                        t.identifier("conditionGetter"),
+                        t.arrowFunctionExpression([], ifExpression)
+                    )
+                ])
+            ]
+        );
+        jsxElementChoose.set(path.node, renderFunc);
     }
 
     if (trackerExpression) {
@@ -316,7 +363,7 @@ const mutractPlugin: PluginObj = {
         },
         JSXFragment: {
             enter: JSXFragment_enter,
-            exit(path) { lastJsxExited = path.node; }
+            exit(path) { lastJsxExited = undefined; }
         },
     }
 };

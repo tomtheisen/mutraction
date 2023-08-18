@@ -29,7 +29,7 @@ function itemRender(item: TodoItem) {
                 <span style={ { textDecoration: item.done ? "line-through" : "none" } }>{ item.title }</span>
             </label>
         </li>
-        <li mu:if={item.editing}>
+        <li mu:else>
             { editor }
             <button onclick={() => (item.title = editor.value, item.editing = false) }>✅</button>
             <button onclick={() => item.editing = false}>❌</button>
