@@ -21,6 +21,7 @@ export class Tracker {
     #rootTransaction?: Transaction;
     #redos: Mutation[] = [];
     options: Readonly<Required<TrackerOptions>>;
+    #historyPropRef: PropReference | undefined;
 
     constructor(options: TrackerOptions = {}) {
         if (options.trackHistory === false && options.compactOnCommit == null) {
@@ -67,6 +68,8 @@ export class Tracker {
         // reading the history can create a dependency too, not just the tracked model, 
         // for use cases that depend on the tracker history
         this.#dependencyTrackers[0]?.trackAllChanges();
+
+        this.#historyPropRef ??= createOrRetrievePropRef(this, "history");
 
         if (!this.#rootTransaction) 
             throw Error("History tracking enabled, but no root transaction. Probably mutraction internal error.");
@@ -127,6 +130,8 @@ export class Tracker {
         if (!mutation) return;
         this.#undoOperation(mutation);
         this.#redos.unshift(mutation);
+
+        this.#historyPropRef?.notifySubscribers();
     }
     #undoOperation(mutation: Mutation) {
         if (mutation.type === "transaction") {
@@ -155,6 +160,8 @@ export class Tracker {
         if (!mutation) return;
         this.#redoOperation(mutation);
         transaction.operations.push(mutation);
+
+        this.#historyPropRef?.notifySubscribers();
     }
     #redoOperation(mutation: Mutation) {
         if (mutation.type === "transaction") {
@@ -198,6 +205,8 @@ export class Tracker {
         this.clearRedos();
         createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
         this.#notifySubscribers(mutation);
+
+        this.#historyPropRef?.notifySubscribers();
     }
 
     #dependencyTrackers: DependencyList[] = [];

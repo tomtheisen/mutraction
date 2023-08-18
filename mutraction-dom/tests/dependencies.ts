@@ -75,10 +75,17 @@ test('history dependency', () => {
     assert.equal(history.length, 0);
     assert.equal(c, 0);
 
-    model.foo = {}; // 1
-    model.foo.bar = {}; // 2
-    tracker.undo(); // 3
+    model.foo = {};
+    assert.equal(c, 1);
+
+    model.foo.bar = {};
+    assert.equal(c, 2);
+
+    tracker.undo();
     assert.equal(c, 3);
+
+    tracker.redo();
+    assert.equal(c, 4);
 });
 
 test('only top dependency notified', () => {

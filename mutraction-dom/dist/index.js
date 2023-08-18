@@ -29,7 +29,8 @@ function effect(tracker, sideEffect, options = {}) {
 
 // out/config.js
 function getConfig(name) {
-  return document.querySelector(`meta[name=${name.replace(/\W/g, "\\$&")}]`)?.getAttribute("value") ?? void 0;
+  const meta = globalThis.document?.querySelector(`meta[name=${name.replace(/\W/g, "\\$&")}]`);
+  return meta?.getAttribute("value") ?? void 0;
 }
 var showMarkers = !!getConfig("mu:show-markers");
 
@@ -404,6 +405,7 @@ var Tracker = class {
   #rootTransaction;
   #redos = [];
   options;
+  #historyPropRef;
   constructor(options = {}) {
     if (options.trackHistory === false && options.compactOnCommit == null) {
       options.compactOnCommit = false;
@@ -440,6 +442,7 @@ var Tracker = class {
   get history() {
     this.#ensureHistory();
     this.#dependencyTrackers[0]?.trackAllChanges();
+    this.#historyPropRef ??= createOrRetrievePropRef(this, "history");
     if (!this.#rootTransaction)
       throw Error("History tracking enabled, but no root transaction. Probably mutraction internal error.");
     return this.#rootTransaction.operations;
@@ -491,6 +494,7 @@ var Tracker = class {
       return;
     this.#undoOperation(mutation);
     this.#redos.unshift(mutation);
+    this.#historyPropRef?.notifySubscribers();
   }
   #undoOperation(mutation) {
     if (mutation.type === "transaction") {
@@ -527,6 +531,7 @@ var Tracker = class {
       return;
     this.#redoOperation(mutation);
     transaction.operations.push(mutation);
+    this.#historyPropRef?.notifySubscribers();
   }
   #redoOperation(mutation) {
     if (mutation.type === "transaction") {
@@ -573,6 +578,7 @@ var Tracker = class {
     this.clearRedos();
     createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
     this.#notifySubscribers(mutation);
+    this.#historyPropRef?.notifySubscribers();
   }
   #dependencyTrackers = [];
   startDependencyTrack() {
