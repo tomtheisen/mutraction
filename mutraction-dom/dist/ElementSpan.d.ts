@@ -9,6 +9,7 @@ export declare class ElementSpan {
     readonly endMarker: Text;
     constructor(...node: Node[]);
     removeAsFragment(): DocumentFragment;
+    emptyAsFragment(): DocumentFragment;
     clear(): void;
     replaceWith(...nodes: Node[]): void;
     append(...nodes: Node[]): void;

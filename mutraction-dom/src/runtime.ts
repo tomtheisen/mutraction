@@ -78,9 +78,14 @@ export function ForEachPersist<TIn extends object>(array: TIn[], map: (e: TIn) =
                 const originalTracker = tracker;
                 tracker = capturedTracker;
 
+                // this is wild - just keep the contents together with a parent somewhere
+                container.emptyAsFragment();
+
                 const item = array[i];
-                if (typeof item !== "object" || item == null)
-                    throw Error("Elements must be object in ForEachPersist");
+                if (item == null) return; // probably an array key deletion
+
+                if (typeof item !== "object") throw Error("Elements must be object in ForEachPersist");
+                
                 let newContents = outputMap.get(item);
                 if (newContents == null) {
                     if (dep) dep.active = false;

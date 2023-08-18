@@ -37,6 +37,19 @@ var ElementSpan = class _ElementSpan {
     result.append(...nodes);
     return result;
   }
+  emptyAsFragment() {
+    const nodes = [];
+    for (let walk = this.startMarker.nextSibling; ; walk = walk?.nextSibling) {
+      if (walk == null)
+        throw Error("End marker not found as subsequent document sibling as start marker");
+      if (Object.is(walk, this.endMarker))
+        break;
+      nodes.push(walk);
+    }
+    const result = document.createDocumentFragment();
+    result.append(...nodes);
+    return result;
+  }
   clear() {
     while (!Object.is(this.startMarker.nextSibling, this.endMarker)) {
       if (this.startMarker.nextSibling == null)
@@ -115,8 +128,11 @@ function ForEachPersist(array, map) {
       effectOrDo((dep) => {
         const originalTracker2 = tracker;
         tracker = capturedTracker;
+        container.emptyAsFragment();
         const item = array[i];
-        if (typeof item !== "object" || item == null)
+        if (item == null)
+          return;
+        if (typeof item !== "object")
           throw Error("Elements must be object in ForEachPersist");
         let newContents = outputMap.get(item);
         if (newContents == null) {

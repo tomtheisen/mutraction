@@ -17,6 +17,7 @@ export class ElementSpan {
 
     removeAsFragment(): DocumentFragment {
         if (this.startMarker.parentNode instanceof DocumentFragment) {
+            // TODO: this is only true if this ElementSpan is the entire contents
             return this.startMarker.parentNode;
         }
         const nodes: Node[] = [];
@@ -25,6 +26,20 @@ export class ElementSpan {
                 throw Error("End marker not found as subsequent document sibling as start marker");
             nodes.push(walk);
             if (Object.is(walk, this.endMarker)) break;
+        }
+        
+        const result = document.createDocumentFragment();
+        result.append(...nodes);
+        return result;
+    }
+
+    emptyAsFragment(): DocumentFragment {
+        const nodes: Node[] = [];
+        for (let walk: ChildNode | null | undefined = this.startMarker.nextSibling; ; walk = walk?.nextSibling) {
+            if (walk == null)
+                throw Error("End marker not found as subsequent document sibling as start marker");
+            if (Object.is(walk, this.endMarker)) break;
+            nodes.push(walk);
         }
         
         const result = document.createDocumentFragment();
