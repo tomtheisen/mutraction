@@ -789,53 +789,7 @@ function track(model, options) {
   linkProxyToObject(model, proxied);
   return [proxied, tracker];
 }
-function trackAsReadonlyDeep(model, options) {
-  return track(model, options);
-}
-
-// out/describe.js
-function describeValue(val) {
-  if (val === void 0)
-    return "undefined";
-  if (val === null)
-    return "null";
-  if (Array.isArray(val)) {
-    if (val.length > 3) {
-      return "[" + val.slice(0, 3).map(describeValue).join() + ", ...]";
-    } else {
-      return "[" + val.map(describeValue).join() + "]";
-    }
-  }
-  if (typeof val === "object")
-    return "{...}";
-  if (typeof val === "string")
-    return JSON.stringify(val);
-  return String(val);
-}
-function describeMutation(mutation) {
-  switch (mutation.type) {
-    case "create":
-      return `Create [${describeValue(mutation.name)}] = ${describeValue(mutation.newValue)}`;
-    case "delete":
-      return `Delete [${describeValue(mutation.name)}]`;
-    case "change":
-      return `Change [${describeValue(mutation.name)}] = ${describeValue(mutation.newValue)}`;
-    case "arrayshorten":
-      return `Shorten to length ${mutation.newLength}`;
-    case "arrayextend":
-      return `Extend to [${mutation.newIndex}] = ${describeValue(mutation.newValue)}`;
-    case "transaction":
-      const operationsDescription = mutation.operations.map(describeMutation).join(", ");
-      if (mutation.transactionName) {
-        return `Transaction ${mutation.transactionName}: [${operationsDescription}]`;
-      } else {
-        return `Transaction [${operationsDescription}]`;
-      }
-    default:
-      mutation;
-  }
-  throw Error("unsupported mutation type");
-}
+var trackAsReadonlyDeep = track;
 export {
   DependencyList,
   ForEach,
@@ -845,7 +799,6 @@ export {
   child,
   clearTracker,
   createOrRetrievePropRef,
-  describeMutation,
   effect,
   element,
   isTracked,

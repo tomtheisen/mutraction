@@ -188,6 +188,6 @@ export function track<TModel extends object>(model: TModel, options?: TrackerOpt
     return [proxied, tracker];
 }
 
-export function trackAsReadonlyDeep<TModel extends object>(model: TModel, options?: TrackerOptions): [ReadonlyDeep<TModel>, Tracker] {
-    return track(model, options);
-}
+export const trackAsReadonlyDeep: 
+    <TModel extends object>(model: TModel, options?: TrackerOptions) => [ReadonlyDeep<TModel>, Tracker] 
+    = track;

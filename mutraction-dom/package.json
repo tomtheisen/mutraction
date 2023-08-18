@@ -14,9 +14,9 @@
     "build": "npm run clean && npx tsc && npm run bundle && npm run types && npm run jsxtype && npm run compiler && npm run cleanout",
     "bundle": "npx esbuild out/index.js --bundle --format=esm --outfile=dist/index.js --external:@babel/core --external:@babel/types",
     "types": "npx tsc -p tsconfig.types.json",
-    "test": "npx tsc -p tsconfig.tests.json && npx uvu out-tests -i \"[.]d[.]ts$\"",
+    "test": "npx tsc -p tsconfig.tests.json && npx uvu out-tests -i \"[.]d[.]ts$\" && rd /Q /S out-tests",
     "clean": "del /Q /S dist && del /Q /S out",
-    "cleanout": "rd /Q /S out && rd /Q /S out-tests",
+    "cleanout": "rd /Q /S out",
     "jsxtype": "copy src\\jsx.d.ts dist",
     "compiler": "copy out\\compile-jsx.js dist"
   },
