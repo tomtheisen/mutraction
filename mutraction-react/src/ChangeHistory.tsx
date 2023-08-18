@@ -10,7 +10,7 @@ export const ChangeHistory: FunctionComponent = () => {
         const subscription = tracker.subscribe(callback);
         return () => subscription.dispose();
     }
-    useSyncExternalStore(subscribe, () => tracker.generation);
+    useSyncExternalStore(subscribe, () => ({}));
 
     return <ol>{
         tracker.history.map(m => 

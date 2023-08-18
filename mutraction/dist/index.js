@@ -5,34 +5,87 @@ var ProxyOf = Symbol("ProxyOf");
 var RecordDependency = Symbol("RecordDependency");
 var GetOriginal = Symbol("GetOriginal");
 
+// out/src/propref.js
+var PropReference = class {
+  object;
+  prop;
+  #subscribers = /* @__PURE__ */ new Set();
+  constructor(object, prop) {
+    if (!isTracked(object) && object[ProxyOf]) {
+      object = object[ProxyOf];
+    }
+    this.object = object;
+    this.prop = prop;
+  }
+  subscribe(callback) {
+    this.#subscribers.add(callback);
+    return { dispose: () => this.#subscribers.delete(callback) };
+  }
+  notifySubscribers() {
+    for (const callback of this.#subscribers)
+      callback();
+  }
+  get current() {
+    return this.object[this.prop];
+  }
+  set current(newValue) {
+    this.object[this.prop] = newValue;
+  }
+};
+var propRefRegistry = /* @__PURE__ */ new WeakMap();
+function createOrRetrievePropRef(object, prop) {
+  let objectPropRefs = propRefRegistry.get(object);
+  if (!objectPropRefs)
+    propRefRegistry.set(object, objectPropRefs = /* @__PURE__ */ new Map());
+  let result = objectPropRefs.get(prop);
+  if (!result)
+    objectPropRefs.set(prop, result = new PropReference(object, prop));
+  return result;
+}
+
 // out/src/dependency.js
 var DependencyList = class {
-  trackedProperties = /* @__PURE__ */ new Set();
+  #trackedProperties = /* @__PURE__ */ new Map();
   #tracker;
   #tracksAllChanges = false;
+  #subscribers = /* @__PURE__ */ new Set();
   active = true;
   constructor(tracker) {
     this.#tracker = tracker;
   }
+  get trackedProperties() {
+    return Array.from(this.#trackedProperties.keys());
+  }
   addDependency(propRef) {
-    if (this.active)
-      this.trackedProperties.add(propRef);
+    if (this.active && !this.#tracksAllChanges) {
+      if (this.#trackedProperties.has(propRef))
+        return;
+      const propSubscription = propRef.subscribe(() => this.notifySubscribers());
+      this.#trackedProperties.set(propRef, propSubscription);
+    }
+  }
+  subscribe(callback) {
+    this.#subscribers.add(callback);
+    return { dispose: () => this.#subscribers.delete(callback) };
+  }
+  notifySubscribers() {
+    for (const callback of this.#subscribers)
+      callback();
   }
   endDependencyTrack() {
     this.#tracker.endDependencyTrack(this);
   }
   /** Indicates that this dependency list is dependent on *all* tracked changes */
   trackAllChanges() {
+    this.untrackAll();
+    const historyPropRef = createOrRetrievePropRef(this.#tracker, "history");
+    this.addDependency(historyPropRef);
     this.#tracksAllChanges = true;
   }
-  getLatestChangeGeneration() {
-    if (this.#tracksAllChanges)
-      return this.#tracker.generation;
-    let result = 0;
-    for (let propRef of this.trackedProperties) {
-      result = Math.max(result, propRef.generation);
-    }
-    return result;
+  untrackAll() {
+    for (const sub of this.#trackedProperties.values())
+      sub.dispose();
+    this.#trackedProperties.clear();
   }
 };
 
@@ -67,44 +120,6 @@ function compactTransaction({ operations }) {
   }
 }
 
-// out/src/propref.js
-var SetGeneration = Symbol("SetGeneration");
-var PropReference = class {
-  object;
-  prop;
-  constructor(object, prop) {
-    if (!isTracked(object) && object[ProxyOf]) {
-      object = object[ProxyOf];
-    }
-    this.object = object;
-    this.prop = prop;
-  }
-  get current() {
-    return this.object[this.prop];
-  }
-  set current(newValue) {
-    this.object[this.prop] = newValue;
-  }
-  #generation = 0;
-  /** generation of last change */
-  get generation() {
-    return this.#generation;
-  }
-  [SetGeneration](value) {
-    this.#generation = value;
-  }
-};
-var propRefRegistry = /* @__PURE__ */ new WeakMap();
-function createOrRetrievePropRef(object, prop) {
-  let objectPropRefs = propRefRegistry.get(object);
-  if (!objectPropRefs)
-    propRefRegistry.set(object, objectPropRefs = /* @__PURE__ */ new Map());
-  let result = objectPropRefs.get(prop);
-  if (!result)
-    objectPropRefs.set(prop, result = new PropReference(object, prop));
-  return result;
-}
-
 // out/src/tracker.js
 var defaultTrackerOptions = {
   trackHistory: true,
@@ -117,7 +132,6 @@ var Tracker = class {
   #transaction;
   #rootTransaction;
   #redos = [];
-  #generation = 0;
   options;
   constructor(options = {}) {
     if (options.trackHistory === false && options.compactOnCommit == null) {
@@ -159,12 +173,6 @@ var Tracker = class {
       throw Error("History tracking enabled, but no root transaction. Probably mutraction internal error.");
     return this.#rootTransaction.operations;
   }
-  get generation() {
-    return this.#generation;
-  }
-  #advanceGeneration() {
-    ++this.#generation;
-  }
   /** add another transaction to the stack  */
   startTransaction(name) {
     const transaction = this.#ensureHistory();
@@ -189,7 +197,6 @@ var Tracker = class {
     actualTransaction.parent = void 0;
     this.#transaction = parent;
     if (this.#transaction.parent == null) {
-      this.#advanceGeneration();
       this.#notifySubscribers(void 0);
     }
   }
@@ -201,14 +208,9 @@ var Tracker = class {
     const actualTransaction = this.#ensureHistory();
     if (transaction && transaction !== actualTransaction)
       throw Error("Attempted to commit wrong transaction. Transactions must be resolved in stack order.");
-    let didSomething = false;
-    while (actualTransaction.operations.length) {
+    while (actualTransaction.operations.length)
       this.undo();
-      didSomething = true;
-    }
     this.#transaction = actualTransaction.parent ?? actualTransaction;
-    if (didSomething)
-      this.#advanceGeneration();
   }
   /** undo last mutation or transaction and push into the redo stack  */
   undo() {
@@ -216,7 +218,6 @@ var Tracker = class {
     const mutation = transaction.operations.pop();
     if (!mutation)
       return;
-    this.#advanceGeneration();
     this.#undoOperation(mutation);
     this.#redos.unshift(mutation);
   }
@@ -226,7 +227,6 @@ var Tracker = class {
         this.#undoOperation(mutation.operations[i]);
       }
     } else {
-      this.#setLastChangeGeneration(mutation);
       const targetAny = mutation.target;
       switch (mutation.type) {
         case "change":
@@ -254,7 +254,6 @@ var Tracker = class {
     const mutation = this.#redos.shift();
     if (!mutation)
       return;
-    this.#advanceGeneration();
     this.#redoOperation(mutation);
     transaction.operations.push(mutation);
   }
@@ -264,7 +263,6 @@ var Tracker = class {
         this.#redoOperation(operation);
       }
     } else {
-      this.#setLastChangeGeneration(mutation);
       const targetAny = mutation.target;
       switch (mutation.type) {
         case "change":
@@ -296,19 +294,14 @@ var Tracker = class {
     transaction.parent = void 0;
     transaction.operations.length = 0;
     this.clearRedos();
-    this.#advanceGeneration();
     this.#notifySubscribers(void 0);
   }
   /** record a mutation, if you have the secret key  */
   [RecordMutation](mutation) {
     this.#transaction?.operations.push(Object.freeze(mutation));
     this.clearRedos();
-    this.#advanceGeneration();
-    this.#setLastChangeGeneration(mutation);
+    createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
     this.#notifySubscribers(mutation);
-  }
-  #setLastChangeGeneration(mutation) {
-    createOrRetrievePropRef(mutation.target, mutation.name)[SetGeneration](this.generation);
   }
   #dependencyTrackers = [];
   startDependencyTrack() {
@@ -442,10 +435,9 @@ function makeProxyHandler(model, tracker) {
     const mutation = name in target ? { type: "change", target, name, oldValue: model[name], newValue } : { type: "create", target, name, newValue };
     const initialSets = setsCompleted;
     const wasSet = Reflect.set(target, name, newValue, receiver);
-    if (wasSet && initialSets == setsCompleted) {
+    if (wasSet && initialSets == setsCompleted++) {
       tracker[RecordMutation](mutation);
     }
-    ++setsCompleted;
     return wasSet;
   }
   function setArray(target, name, newValue, receiver) {
@@ -576,24 +568,26 @@ function effect(tracker, sideEffect, options = {}) {
   let dep = tracker.startDependencyTrack();
   let lastResult = sideEffect(dep);
   dep.endDependencyTrack();
-  if (dep.trackedProperties.size === 0) {
+  if (dep.trackedProperties.length === 0) {
     if (!options.suppressUntrackedWarning) {
       console.warn("effect() callback has no dependencies on any tracked properties.  It will not fire again.");
     }
     return emptyEffect;
   }
-  let latestGen = dep.getLatestChangeGeneration();
-  function modelChangedForEffect() {
+  let subscription = dep.subscribe(effectDependencyChanged);
+  const dispose = () => {
+    dep.untrackAll();
+    subscription.dispose();
+  };
+  function effectDependencyChanged() {
     lastResult?.();
-    const depgen = dep.getLatestChangeGeneration();
-    if (depgen === latestGen)
-      return;
-    latestGen = depgen;
+    dispose();
     dep = tracker.startDependencyTrack();
     lastResult = sideEffect(dep);
     dep.endDependencyTrack();
+    subscription = dep.subscribe(effectDependencyChanged);
   }
-  return tracker.subscribe(modelChangedForEffect);
+  return { dispose };
 }
 export {
   DependencyList,

@@ -105,12 +105,11 @@ function makeProxyHandler<TModel extends object>(model: TModel, tracker: Tracker
         
         const initialSets = setsCompleted;
         const wasSet = Reflect.set(target, name, newValue, receiver);
-        if (wasSet && initialSets == setsCompleted) {
+        if (wasSet && initialSets == setsCompleted++) {
             // no other set operation completed while this one was being executed
             // if there *was* one or more, we want to record those instead of this
             tracker[RecordMutation](mutation);
         }
-        ++setsCompleted;
         return wasSet;
     }
 

@@ -60,19 +60,7 @@ const dep = tracker.startDependencyTrack();
 dep.endDependencyTrack();
 
 // (these are `character` and `character.aptitudes`)
-console.log(dep.trackedProperties.size); // 2 
-
-// dependency versioning
-const gen1 = dep.getLatestChangeGeneration();
-character.allergies.push("pollen");
-const gen2 = dep.getLatestChangeGeneration();
-// there were no assignments to any properties of tracked objects
-console.log(gen1 == gen2); // true
-
-character.aptitudes!.fencing = 99;
-const gen3 = dep.getLatestChangeGeneration();
-// a property assignment to a tracked object increased the generation number
-console.log(gen2 < gen3); // true
+console.log(dep.trackedProperties.length); // 2 
 
 /*
  * change notifications

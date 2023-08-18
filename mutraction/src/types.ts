@@ -23,3 +23,7 @@ export type ReadonlyDeep<T extends object> = {
         : T[K] extends object ? ReadonlyDeep<T[K]>
         : T[K]
 }
+
+export type Subscription = {
+    dispose(): void;
+}

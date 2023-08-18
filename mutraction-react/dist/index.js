@@ -50,13 +50,13 @@ function sync(Component) {
       const deps = tracker.startDependencyTrack();
       const rendered = Component(props, context);
       deps.endDependencyTrack();
-      if (deps.trackedProperties.size > 0) {
+      if (deps.trackedProperties.length > 0) {
         let subscribe2 = function(callback) {
-          const subscription = tracker.subscribe(callback);
+          const subscription = deps.subscribe(callback);
           return () => subscription.dispose();
         };
         var subscribe = subscribe2;
-        useSyncExternalStore(subscribe2, () => deps.getLatestChangeGeneration());
+        useSyncExternalStore(subscribe2, () => ({}));
       }
       const result = syncAllComponents(rendered);
       return result;
@@ -88,7 +88,7 @@ var ChangeHistory = () => {
     const subscription = tracker.subscribe(callback);
     return () => subscription.dispose();
   }
-  useSyncExternalStore2(subscribe, () => tracker.generation);
+  useSyncExternalStore2(subscribe, () => ({}));
   return React.createElement("ol", null, tracker.history.map((m) => React.createElement("li", { key: key(m) }, describeMutation(m))));
 };
 

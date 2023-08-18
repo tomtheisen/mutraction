@@ -1,12 +1,11 @@
-import { Key } from "./types.js";
+import { Key, Subscription } from "./types.js";
 import { ProxyOf } from "./symbols.js";
 import { isTracked } from "./proxy.js";
-
-export const SetGeneration = Symbol("SetGeneration");
 
 export class PropReference<T = any> {
     readonly object: any;
     readonly prop: Key;
+    #subscribers: Set<() => void> = new Set;
 
     constructor(object: object, prop: Key) {
         if (!isTracked(object) && (object as any)[ProxyOf]) {
@@ -16,19 +15,20 @@ export class PropReference<T = any> {
         this.prop = prop;
     }
 
+    subscribe(callback: () => void): Subscription {
+        this.#subscribers.add(callback);
+        return { dispose: () => this.#subscribers.delete(callback) };
+    }
+
+    notifySubscribers() {
+        for (const callback of this.#subscribers) callback();
+    }
+
     get current(): T {
         return this.object[this.prop]; 
     }
     set current(newValue: T) {
         this.object[this.prop] = newValue; 
-    }
-
-    #generation = 0;
-    /** generation of last change */
-    get generation() { return this.#generation; }
-
-    [SetGeneration](value: number) {
-        this.#generation = value;
     }
 }
 

@@ -1,15 +1,13 @@
-import { Key } from "./types.js";
-export declare const SetGeneration: unique symbol;
+import { Key, Subscription } from "./types.js";
 export declare class PropReference<T = any> {
     #private;
     readonly object: any;
     readonly prop: Key;
     constructor(object: object, prop: Key);
+    subscribe(callback: () => void): Subscription;
+    notifySubscribers(): void;
     get current(): T;
     set current(newValue: T);
-    /** generation of last change */
-    get generation(): number;
-    [SetGeneration](value: number): void;
 }
 /**
  * Gets a PropReference for an object property.

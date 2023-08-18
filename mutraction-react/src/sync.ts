@@ -71,9 +71,9 @@ export function sync<P extends {}>(Component: React.FC<P>): React.FC<P> {
             const rendered: React.ReactNode = Component(props, context);
             deps.endDependencyTrack();
     
-            if (deps.trackedProperties.size > 0) {
+            if (deps.trackedProperties.length > 0) {
                 function subscribe(callback: () => void) {
-                    const subscription = tracker.subscribe(callback);
+                    const subscription = deps.subscribe(callback);
                     return () => subscription.dispose();
                 }
     
@@ -85,7 +85,7 @@ export function sync<P extends {}>(Component: React.FC<P>): React.FC<P> {
                 //    * a dependency would be found based on conditional logic of a non-tracked property
                 // If that ever happens, something else would need to be done here.
                 // But I bet it won't.
-                useSyncExternalStore(subscribe, () => deps.getLatestChangeGeneration());
+                useSyncExternalStore(subscribe, () => ({}));
             }
     
             const result = syncAllComponents(rendered);

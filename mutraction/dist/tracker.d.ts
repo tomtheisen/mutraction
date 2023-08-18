@@ -18,7 +18,6 @@ export declare class Tracker {
         dispose: () => boolean;
     };
     get history(): ReadonlyArray<Readonly<Mutation>>;
-    get generation(): number;
     /** add another transaction to the stack  */
     startTransaction(name?: string): Transaction;
     /** resolve and close the most recent transaction

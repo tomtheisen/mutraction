@@ -1,18 +1,37 @@
-import { PropReference } from "./propref.js";
+import { PropReference, createOrRetrievePropRef } from "./propref.js";
 import { Tracker } from "./tracker.js";
+import { Subscription } from "./types.js";
 
 export class DependencyList {
-    trackedProperties = new Set<PropReference>;
+    #trackedProperties = new Map<PropReference, Subscription>;
     #tracker: Tracker;
     #tracksAllChanges = false;
+    #subscribers: Set<() => void> = new Set;
     active = true;
 
     constructor(tracker: Tracker) {
         this.#tracker = tracker;
     }
 
+    get trackedProperties(): ReadonlyArray<PropReference> {
+        return Array.from(this.#trackedProperties.keys());
+    }
+
     addDependency(propRef: PropReference) {
-        if (this.active) this.trackedProperties.add(propRef);
+        if (this.active && !this.#tracksAllChanges) {
+            if (this.#trackedProperties.has(propRef)) return;
+            const propSubscription = propRef.subscribe(() => this.notifySubscribers());
+            this.#trackedProperties.set(propRef, propSubscription);
+        }
+    }
+
+    subscribe(callback: () => void): Subscription {
+        this.#subscribers.add(callback);
+        return { dispose: () => this.#subscribers.delete(callback) };
+    }
+
+    notifySubscribers() {
+        for (const callback of this.#subscribers) callback();
     }
 
     endDependencyTrack() {
@@ -21,15 +40,14 @@ export class DependencyList {
 
     /** Indicates that this dependency list is dependent on *all* tracked changes */
     trackAllChanges() {
+        this.untrackAll();
+        const historyPropRef = createOrRetrievePropRef(this.#tracker, "history");
+        this.addDependency(historyPropRef);
         this.#tracksAllChanges = true;
     }
 
-    getLatestChangeGeneration(): number {
-        if (this.#tracksAllChanges) return this.#tracker.generation;
-        let result = 0;
-        for (let propRef of this.trackedProperties) {
-            result = Math.max(result, propRef.generation);
-        }
-        return  result;
+    untrackAll() {
+        for (const sub of this.#trackedProperties.values()) sub.dispose();
+        this.#trackedProperties.clear();
     }
 }

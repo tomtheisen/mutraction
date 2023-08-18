@@ -2,7 +2,7 @@ import { RecordDependency, RecordMutation } from "./symbols.js";
 import { DependencyList } from "./dependency.js";
 import { compactTransaction } from "./compactTransaction.js";
 import type { Mutation, SingleMutation, Transaction } from "./types.js";
-import { PropReference, SetGeneration, createOrRetrievePropRef } from "./propref.js";
+import { PropReference, createOrRetrievePropRef } from "./propref.js";
 
 type Subscriber = (mutation: SingleMutation | undefined) => void;
 
@@ -20,7 +20,6 @@ export class Tracker {
     #transaction?: Transaction;
     #rootTransaction?: Transaction;
     #redos: Mutation[] = [];
-    #generation = 0;
     options: Readonly<Required<TrackerOptions>>;
 
     constructor(options: TrackerOptions = {}) {
@@ -75,12 +74,6 @@ export class Tracker {
         return this.#rootTransaction.operations; 
     }
 
-    get generation() { return this.#generation; }
-
-    #advanceGeneration() {
-        ++this.#generation;
-    }
-
     /** add another transaction to the stack  */
     startTransaction(name?: string): Transaction {
         const transaction = this.#ensureHistory();
@@ -109,7 +102,6 @@ export class Tracker {
 
         if (this.#transaction.parent == null) {
             // top level transaction, notify any history dependency
-            this.#advanceGeneration();
             this.#notifySubscribers(undefined);
         }
     }
@@ -124,13 +116,8 @@ export class Tracker {
         if (transaction && transaction !== actualTransaction)
             throw Error('Attempted to commit wrong transaction. Transactions must be resolved in stack order.');
 
-        let didSomething = false;
-        while (actualTransaction.operations.length) {
-            this.undo();
-            didSomething = true;
-        }
+        while (actualTransaction.operations.length) this.undo();
         this.#transaction = actualTransaction.parent ?? actualTransaction;
-        if (didSomething) this.#advanceGeneration();
     }
 
     /** undo last mutation or transaction and push into the redo stack  */
@@ -138,7 +125,6 @@ export class Tracker {
         const transaction = this.#ensureHistory();
         const mutation = transaction.operations.pop();
         if (!mutation) return;
-        this.#advanceGeneration();
         this.#undoOperation(mutation);
         this.#redos.unshift(mutation);
     }
@@ -149,7 +135,6 @@ export class Tracker {
             }
         }
         else {
-            this.#setLastChangeGeneration(mutation);
             const targetAny = mutation.target as any;
             switch (mutation.type) {
                 case 'change':
@@ -168,7 +153,6 @@ export class Tracker {
         const transaction = this.#ensureHistory();
         const mutation = this.#redos.shift();
         if (!mutation) return;
-        this.#advanceGeneration();
         this.#redoOperation(mutation);
         transaction.operations.push(mutation);
     }
@@ -179,7 +163,6 @@ export class Tracker {
             }
         }
         else {
-            this.#setLastChangeGeneration(mutation);
             const targetAny = mutation.target as any;
             switch (mutation.type) {
                 case 'change':
@@ -204,7 +187,6 @@ export class Tracker {
         transaction.parent = undefined;
         transaction.operations.length = 0;
         this.clearRedos();
-        this.#advanceGeneration(); // history can be a dependency
         this.#notifySubscribers(undefined);
     }
 
@@ -214,13 +196,8 @@ export class Tracker {
         this.#transaction?.operations.push(Object.freeze(mutation));
 
         this.clearRedos();
-        this.#advanceGeneration();
-        this.#setLastChangeGeneration(mutation);
+        createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
         this.#notifySubscribers(mutation);
-    }
-
-    #setLastChangeGeneration(mutation: SingleMutation) {
-        createOrRetrievePropRef(mutation.target, mutation.name)[SetGeneration](this.generation);
     }
 
     #dependencyTrackers: DependencyList[] = [];
