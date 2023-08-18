@@ -11,8 +11,9 @@
   "types": "dist/index.d.ts",
   "files": [ "dist" ],
   "scripts": {
-    "build": "npm run clean && npx tsc && npm run bundle && npm run types && npm run jsxtype && npm run compiler && npm run cleanout",
+    "build": "npm run clean && npx tsc && npm run bundle && npm run types && npm run jsxtype && npm run compiler && npm run cleanout && npm run minify",
     "bundle": "npx esbuild out/index.js --bundle --format=esm --outfile=dist/index.js --external:@babel/core --external:@babel/types",
+    "minify": "npx esbuild dist/index.js --outfile=dist/index.min.js --minify",
     "types": "npx tsc -p tsconfig.types.json",
     "test": "npx tsc -p tsconfig.tests.json && npx uvu out-tests -i \"[.]d[.]ts$\" && rd /Q /S out-tests",
     "clean": "del /Q /S dist && del /Q /S out",
