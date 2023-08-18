@@ -141,7 +141,7 @@ export function element<E extends keyof HTMLElementTagNameMap>(
     for (let [name, value] of Object.entries(staticAttrs ?? {})) {
         switch (name) {
             case "mu:if":
-                if (!value) return getMarker();
+                if (!value) return getMarker("optimized out");
                 break;
 
             case "style":
@@ -167,7 +167,7 @@ export function element<E extends keyof HTMLElementTagNameMap>(
             case "mu:if":
                 effectOrDo(() => {
                     if (getter()) blank?.replaceWith(el);
-                    else el.replaceWith(blank ??= getMarker());
+                    else el.replaceWith(blank ??= getMarker("blank"));
                 });
                 break;
 
@@ -202,7 +202,7 @@ export function child(getter: () => number | string | bigint | null | undefined 
     if (result instanceof Node) return result;
     
     if (tracker) {
-        let node = getMarker();
+        let node = getMarker("placeholder");
         effect(tracker, () => {
             const newNode = document.createTextNode(String(getter() ?? ""));
             node.replaceWith(newNode);

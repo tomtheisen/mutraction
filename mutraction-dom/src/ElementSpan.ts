@@ -6,8 +6,9 @@ import { getMarker } from "./getMarker.js";
  * The beginning and end are marked with a pair of empty sentinel text nodes.
  */
 export class ElementSpan {
-    readonly startMarker = getMarker("start");
-    readonly endMarker = getMarker("end");
+    static id = 0;
+    readonly startMarker = getMarker("start:" + ++ElementSpan.id);
+    readonly endMarker = getMarker("end:" + ElementSpan.id);
 
     constructor(...node: Node[]) {
         const frag = document.createDocumentFragment();

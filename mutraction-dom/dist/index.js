@@ -1,17 +1,22 @@
 // out/runtime.js
 import { effect } from "mutraction";
 
-// out/markerNode.js
-var debug = true;
-var id = 1e4;
-function getMarker(mark = "mark") {
-  return document.createTextNode(debug ? `\u27EA${mark}:${String(++id)}\u27EB` : "");
+// out/config.js
+function getConfig(name) {
+  return document.querySelector(`meta[name=${name.replace(/\W/g, "\\$&")}]`)?.getAttribute("value") ?? void 0;
+}
+var showMarkers = !!getConfig("mu:show-markers");
+
+// out/getMarker.js
+function getMarker(mark) {
+  return document.createTextNode(showMarkers ? `\u27EA${mark}\u27EB` : "");
 }
 
 // out/ElementSpan.js
-var ElementSpan = class {
-  startMarker = getMarker("start");
-  endMarker = getMarker("end");
+var ElementSpan = class _ElementSpan {
+  static id = 0;
+  startMarker = getMarker("start:" + ++_ElementSpan.id);
+  endMarker = getMarker("end:" + _ElementSpan.id);
   constructor(...node) {
     const frag = document.createDocumentFragment();
     frag.append(this.startMarker, ...node, this.endMarker);
@@ -145,7 +150,7 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
     switch (name2) {
       case "mu:if":
         if (!value)
-          return getMarker();
+          return getMarker("optimized out");
         break;
       case "style":
         Object.assign(el.style, value);
@@ -170,7 +175,7 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
           if (getter())
             blank?.replaceWith(el);
           else
-            el.replaceWith(blank ??= getMarker());
+            el.replaceWith(blank ??= getMarker("blank"));
         });
         break;
       case "style":
@@ -200,7 +205,7 @@ function child(getter) {
   if (result instanceof Node)
     return result;
   if (tracker) {
-    let node = getMarker();
+    let node = getMarker("placeholder");
     effect(tracker, () => {
       const newNode = document.createTextNode(String(getter() ?? ""));
       node.replaceWith(newNode);

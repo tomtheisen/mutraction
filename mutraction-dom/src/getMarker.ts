@@ -1,6 +1,5 @@
-const debug = false;
-let id = 10_000;
+import { showMarkers } from "./config.js";
 
-export function getMarker(mark: string = "mark") {
-    return document.createTextNode(debug ? `⟪${ mark }:${ String(++id) }⟫` : "");
+export function getMarker(mark: string) {
+    return document.createTextNode(showMarkers ? `⟪${ mark }⟫` : "");
 }

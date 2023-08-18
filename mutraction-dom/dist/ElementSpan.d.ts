@@ -4,6 +4,7 @@
  * The beginning and end are marked with a pair of empty sentinel text nodes.
  */
 export declare class ElementSpan {
+    static id: number;
     readonly startMarker: Text;
     readonly endMarker: Text;
     constructor(...node: Node[]);
