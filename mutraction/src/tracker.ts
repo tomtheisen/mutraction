@@ -218,9 +218,7 @@ export class Tracker {
 
     [RecordDependency](propRef: PropReference) {
         this.#dependencyTrackers[0]?.addDependency(propRef);
-        if (this.#gettingPropRef) {
-            this.#lastPropRef = propRef;
-        }
+        if (this.#gettingPropRef) this.#lastPropRef = propRef;
     }
 
     #gettingPropRef = false;

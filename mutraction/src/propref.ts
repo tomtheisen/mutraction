@@ -2,10 +2,19 @@ import { Key, Subscription } from "./types.js";
 import { ProxyOf } from "./symbols.js";
 import { isTracked } from "./proxy.js";
 
+// const stats = { created: 0, collected: 0 };
+// const registry = new FinalizationRegistry(pr => {
+//     stats.collected++;
+//     console.log(stats);
+// });
+
+
+
 export class PropReference<T = any> {
     readonly object: any;
     readonly prop: Key;
     #subscribers: Set<() => void> = new Set;
+    #notifying: boolean = false;
 
     constructor(object: object, prop: Key) {
         if (!isTracked(object) && (object as any)[ProxyOf]) {
@@ -13,6 +22,10 @@ export class PropReference<T = any> {
         }
         this.object = object;
         this.prop = prop;
+
+        // registry.register(this, {});
+        // stats.created++;
+        // console.log(stats);
     }
 
     subscribe(callback: () => void): Subscription {
@@ -21,7 +34,11 @@ export class PropReference<T = any> {
     }
 
     notifySubscribers() {
+        if (this.#notifying) 
+            console.warn(`Re-entrant property subscription for '${ String(this.prop) }'`);
+        this.#notifying = true;
         for (const callback of [...this.#subscribers]) callback();
+        this.#notifying = false;
     }
 
     get current(): T {

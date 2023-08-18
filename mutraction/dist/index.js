@@ -10,6 +10,7 @@ var PropReference = class {
   object;
   prop;
   #subscribers = /* @__PURE__ */ new Set();
+  #notifying = false;
   constructor(object, prop) {
     if (!isTracked(object) && object[ProxyOf]) {
       object = object[ProxyOf];
@@ -22,8 +23,12 @@ var PropReference = class {
     return { dispose: this.#subscribers.delete.bind(this.#subscribers, callback) };
   }
   notifySubscribers() {
+    if (this.#notifying)
+      console.warn(`Re-entrant property subscription for '${String(this.prop)}'`);
+    this.#notifying = true;
     for (const callback of [...this.#subscribers])
       callback();
+    this.#notifying = false;
   }
   get current() {
     return this.object[this.prop];
@@ -317,9 +322,8 @@ var Tracker = class {
   }
   [RecordDependency](propRef) {
     this.#dependencyTrackers[0]?.addDependency(propRef);
-    if (this.#gettingPropRef) {
+    if (this.#gettingPropRef)
       this.#lastPropRef = propRef;
-    }
   }
   #gettingPropRef = false;
   #lastPropRef = void 0;

@@ -2,48 +2,51 @@ import { effect, Tracker, DependencyList } from 'mutraction';
 import { getMarker } from './getMarker.js';
 import { ElementSpan } from './ElementSpan.js';
 
-let tracker: Tracker | undefined = undefined;
+let trackers: Tracker[] = [];
 
 export function setTracker(newTracker: Tracker) {
-    if (tracker)
+    if (trackers.length)
         throw Error("Nested dom tracking is not supported. "
             + "Apply the tracker attribute at the top level of your application.");
-    tracker = newTracker;
+    trackers.unshift(newTracker);
 }
 
 export function clearTracker() {
-    if (!tracker)
+    if (trackers.length === 0)
         throw Error("No tracker to clear");
-    tracker = undefined;
+    if (trackers.length > 1)
+        throw Error("Internal error: too many trackers");
+    trackers.unshift();
 }
 
 function effectOrDo(sideEffect: (dep?: DependencyList) => (void | (() => void))) {
-    if (tracker) effect(tracker, sideEffect, { suppressUntrackedWarning: true });
-    else sideEffect();
+    const originalTracker = trackers[0];
+    if (originalTracker) {
+        function scopedEffect(dep: DependencyList) {
+            trackers.unshift(originalTracker);
+            sideEffect(dep);
+            trackers.shift();
+        }
+        effect(originalTracker, scopedEffect, { suppressUntrackedWarning: true });
+    }
+    else {
+        sideEffect();
+    }
 }
 
 export function ForEach<TIn, TOut extends Node>(array: TIn[], map: (e: TIn) => TOut): Node {
-    const capturedTracker = tracker;
     const result = new ElementSpan();
     const containers: ElementSpan[] = [];
 
-    effectOrDo(() => {
-        const originalTracker = tracker;
-        tracker = capturedTracker;
-
+    effectOrDo(lengthDep => {
         // i is scoped to each loop body invocation
         for (let i = containers.length; i < array.length; i++) {
             const container = new ElementSpan();
             containers.push(container);
 
-            effectOrDo(() => {
-                const originalTracker = tracker;
-                tracker = capturedTracker;
-
+            effectOrDo(itemDep => {
                 const newNode = map(array[i]);
                 container.replaceWith(newNode);
-
-                tracker = originalTracker;
             });
 
             result.append(container.removeAsFragment());
@@ -52,22 +55,20 @@ export function ForEach<TIn, TOut extends Node>(array: TIn[], map: (e: TIn) => T
         while (containers.length > array.length) {
             containers.pop()!.removeAsFragment();
         }
-
-        tracker = originalTracker;
     });
 
     return result.removeAsFragment();
 }
 
 export function ForEachPersist<TIn extends object>(array: TIn[], map: (e: TIn) => Node): Node {
-    const capturedTracker = tracker;
+    const capturedTracker = trackers;
     const result = new ElementSpan();
     const containers: ElementSpan[] = [];
     const outputMap = new WeakMap<TIn, HTMLElement | ElementSpan>;
 
     effectOrDo(() => {
-        const originalTracker = tracker;
-        tracker = capturedTracker;
+        const originalTracker = trackers;
+        trackers = capturedTracker;
 
         // i is scoped to each loop body invocation
         for (let i = containers.length; i < array.length; i++) {
@@ -75,8 +76,8 @@ export function ForEachPersist<TIn extends object>(array: TIn[], map: (e: TIn) =
             containers.push(container);
 
             effectOrDo((dep) => {
-                const originalTracker = tracker;
-                tracker = capturedTracker;
+                const originalTracker = trackers;
+                trackers = capturedTracker;
 
                 // this is wild - just keep the contents together with a parent somewhere
                 container.emptyAsFragment();
@@ -102,7 +103,7 @@ export function ForEachPersist<TIn extends object>(array: TIn[], map: (e: TIn) =
                     container.replaceWith(newContents.removeAsFragment());
                 }
 
-                tracker = originalTracker;
+                trackers = originalTracker;
             });
 
             result.append(container.removeAsFragment());
@@ -112,7 +113,7 @@ export function ForEachPersist<TIn extends object>(array: TIn[], map: (e: TIn) =
             containers.pop()!.removeAsFragment();
         }
 
-        tracker = originalTracker;
+        trackers = originalTracker;
     });
 
     return result.removeAsFragment();
@@ -166,6 +167,7 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 
     let blank: Text | undefined = undefined; // for mu:if
     for (let [name, getter] of Object.entries(dynamicAttrs ?? {})) {
+        const tracker = trackers[0];
         if (!tracker) throw Error("Cannot apply dynamic properties without scoped tracker");
 
         switch (name) {
@@ -205,6 +207,7 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 export function child(getter: () => number | string | bigint | null | undefined | HTMLElement | Text): ChildNode {
     const result = getter();
     if (result instanceof Node) return result;
+    const tracker = trackers[0];
     
     if (tracker) {
         let node = getMarker("placeholder");

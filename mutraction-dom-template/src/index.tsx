@@ -12,10 +12,6 @@ const [model, tracker] = track({
     items: [] as TodoItem[],
 });
 
-tracker.subscribe(mut => {
-    console.log("mutation", mut);
-})
-
 function remove(item: TodoItem) {
     const idx = model.items.indexOf(item);
     if (idx >= 0) model.items.splice(idx, 1);
