@@ -15,6 +15,7 @@ export class ElementSpan {
         frag.append(this.startMarker, ...node, this.endMarker);
     }
 
+    /** extracts the entire span as a fragment */
     removeAsFragment(): DocumentFragment {
         if (this.startMarker.parentNode instanceof DocumentFragment) {
             // TODO: this is only true if this ElementSpan is the entire contents
@@ -33,6 +34,7 @@ export class ElementSpan {
         return result;
     }
 
+    /** extracts the interior of the span into a fragment, leaving the span container empty */
     emptyAsFragment(): DocumentFragment {
         const nodes: Node[] = [];
         for (let walk: ChildNode | null | undefined = this.startMarker.nextSibling; ; walk = walk?.nextSibling) {

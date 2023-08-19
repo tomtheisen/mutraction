@@ -79,7 +79,7 @@ function ensureImportsCreated(path) {
 function isMutractionNamespace(ns) {
     return ns.name === "mu" || ns.name === "µ";
 }
-/** runtime choose call for mu:if and mu:else */
+/** runtime choose call for mu:if and mu:else - this is where else expressions will be appended */
 const activeChooseForJsxParent = new Map;
 function JSXElement_exit(path) {
     const ctx = ensureImportsCreated(path);

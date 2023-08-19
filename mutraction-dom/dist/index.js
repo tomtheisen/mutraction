@@ -39,7 +39,7 @@ function getMarker(mark) {
   return document.createTextNode(showMarkers ? `\u27EA${mark}\u27EB` : "");
 }
 
-// out/ElementSpan.js
+// out/elementSpan.js
 var ElementSpan = class _ElementSpan {
   static id = 0;
   startMarker = getMarker("start:" + ++_ElementSpan.id);
@@ -48,6 +48,7 @@ var ElementSpan = class _ElementSpan {
     const frag = document.createDocumentFragment();
     frag.append(this.startMarker, ...node, this.endMarker);
   }
+  /** extracts the entire span as a fragment */
   removeAsFragment() {
     if (this.startMarker.parentNode instanceof DocumentFragment) {
       return this.startMarker.parentNode;
@@ -64,6 +65,7 @@ var ElementSpan = class _ElementSpan {
     result.append(...nodes);
     return result;
   }
+  /** extracts the interior of the span into a fragment, leaving the span container empty */
   emptyAsFragment() {
     const nodes = [];
     for (let walk = this.startMarker.nextSibling; ; walk = walk?.nextSibling) {
@@ -280,9 +282,7 @@ function choose(...choices) {
     const empty = getMarker("if:anti-consequent");
     lazyChoices.push({ nodeGetter: () => empty });
   }
-  const container = document.createDocumentFragment();
   let current = getMarker("choice-placeholder");
-  container.append(current);
   effectOrDo(() => {
     for (const { nodeGetter, conditionGetter } of choices) {
       if (!conditionGetter || conditionGetter()) {
@@ -293,7 +293,7 @@ function choose(...choices) {
       }
     }
   });
-  return container;
+  return current;
 }
 
 // out/symbols.js
@@ -821,11 +821,36 @@ function track(model, options) {
   return [proxied, tracker];
 }
 var trackAsReadonlyDeep = track;
+
+// out/router.js
+function Router(...routes) {
+  if (routes.some((route) => "pattern" in route && route.pattern.global))
+    throw Error("Global-flagged route patterns not supported");
+  const container = new ElementSpan();
+  function hashChangeHandler(url) {
+    const { hash } = new URL(url);
+    for (const route of routes) {
+      const pattern = "pattern" in route ? route.pattern : void 0;
+      const match = pattern?.exec(hash);
+      const element2 = route.element;
+      if (match || pattern == null) {
+        const newNode = typeof element2 === "function" ? element2(match) : element2;
+        container.replaceWith(newNode);
+        return;
+      }
+    }
+    container.emptyAsFragment();
+  }
+  window.addEventListener("hashchange", (ev) => hashChangeHandler(ev.newURL));
+  hashChangeHandler(location.href);
+  return container.removeAsFragment();
+}
 export {
   DependencyList,
   ForEach,
   ForEachPersist,
   PropReference,
+  Router,
   Tracker,
   child,
   choose,

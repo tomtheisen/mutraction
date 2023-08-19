@@ -8,7 +8,9 @@ export declare class ElementSpan {
     readonly startMarker: Text;
     readonly endMarker: Text;
     constructor(...node: Node[]);
+    /** extracts the entire span as a fragment */
     removeAsFragment(): DocumentFragment;
+    /** extracts the interior of the span into a fragment, leaving the span container empty */
     emptyAsFragment(): DocumentFragment;
     clear(): void;
     replaceWith(...nodes: Node[]): void;
