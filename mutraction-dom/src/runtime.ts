@@ -99,11 +99,11 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 ): HTMLElementTagNameMap[E] | Text {
     const el: HTMLElementTagNameMap[E] = document.createElement(name);
 
-    let syncEvent: string | undefined;
+    let syncEvents: string | undefined;
     for (let [name, value] of Object.entries(staticAttrs) as [string, string][]) {
         switch (name) {
             case "mu:syncEvent":
-                syncEvent = value;
+                syncEvents = value;
                 break;
 
             default:
@@ -112,7 +112,7 @@ export function element<E extends keyof HTMLElementTagNameMap>(
         }
     }
 
-    const syncedProps = syncEvent ? [] as [prop: keyof typeof el, ref: PropReference][] : undefined;
+    const syncedProps = syncEvents ? [] as [prop: keyof typeof el, ref: PropReference][] : undefined;
     for (let [name, getter] of Object.entries(dynamicAttrs)) {
         if (syncedProps && name in el) {
             const propRef = defaultTracker.getPropRefTolerant(getter);
@@ -141,10 +141,12 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 
     el.append(...children);
 
-    if (syncEvent && syncedProps?.length) {
-        el.addEventListener(syncEvent, ev => {
-            for (const [name, propRef] of syncedProps) propRef.current = el[name];
-        });
+    if (syncEvents && syncedProps?.length) {
+        for (const e of syncEvents.matchAll(/\S+/)) {
+            el.addEventListener(e[0], () => {
+                for (const [name, propRef] of syncedProps) propRef.current = el[name];
+            });
+        }
     }
 
     return el;

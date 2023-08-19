@@ -708,18 +708,18 @@ function ForEachPersist(array, map) {
 }
 function element(name, staticAttrs, dynamicAttrs, ...children) {
   const el = document.createElement(name);
-  let syncEvent;
+  let syncEvents;
   for (let [name2, value] of Object.entries(staticAttrs)) {
     switch (name2) {
       case "mu:syncEvent":
-        syncEvent = value;
+        syncEvents = value;
         break;
       default:
         el[name2] = value;
         break;
     }
   }
-  const syncedProps = syncEvent ? [] : void 0;
+  const syncedProps = syncEvents ? [] : void 0;
   for (let [name2, getter] of Object.entries(dynamicAttrs)) {
     if (syncedProps && name2 in el) {
       const propRef = defaultTracker.getPropRefTolerant(getter);
@@ -748,11 +748,13 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
     }
   }
   el.append(...children);
-  if (syncEvent && syncedProps?.length) {
-    el.addEventListener(syncEvent, (ev) => {
-      for (const [name2, propRef] of syncedProps)
-        propRef.current = el[name2];
-    });
+  if (syncEvents && syncedProps?.length) {
+    for (const e of syncEvents.matchAll(/\S+/)) {
+      el.addEventListener(e[0], () => {
+        for (const [name2, propRef] of syncedProps)
+          propRef.current = el[name2];
+      });
+    }
   }
   return el;
 }
