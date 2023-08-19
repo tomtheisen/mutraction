@@ -1,8 +1,6 @@
+import { track, defaultTracker as tracker, DependencyList, isTracked, Tracker } from '../src/index.js';
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
-
-import { track, isTracked } from '../src/index.js';
-import { DependencyList } from '../src/dependency.js';
 
 function assertDependencies(dep: DependencyList, expected: [obj: object, prop: string][]) {
     assert.equal(dep.trackedProperties.length, expected.length, "Unexpected dependency size");
@@ -15,7 +13,7 @@ function assertDependencies(dep: DependencyList, expected: [obj: object, prop: s
 }
 
 test('track inner dep', () => {
-    const [model, tracker] = track({ foo: "bar", inner: { leaf1: 4, leaf2: 45 } } as any);
+    const model = track({ foo: "bar", inner: { leaf1: 4, leaf2: 45 } } as any);
 
     let dt1 = tracker.startDependencyTrack();
     model.foo;
@@ -32,7 +30,7 @@ test('track inner dep', () => {
 });
 
 test('inner change does not increase outer dependency generation', () => {
-    const [model, tracker] = track({ foo: { leaf1: 4, leaf2: 45 }, inner: "bar" } as any);
+    const model = track({ foo: { leaf1: 4, leaf2: 45 }, inner: "bar" } as any);
 
     let d1 = tracker.startDependencyTrack();
     let foo = model.foo;
@@ -62,11 +60,12 @@ test('inner change does not increase outer dependency generation', () => {
 });
 
 test('history dependency', () => {
-    const [model, tracker] = track({} as any);
+    const tr = new Tracker;
+    const model = tr.track({} as any);
 
-    const dep = tracker.startDependencyTrack();
+    const dep = tr.startDependencyTrack();
     // establish history dependency
-    const history = tracker.history;
+    const history = tr.history;
     dep.endDependencyTrack();
 
     let c = 0;
@@ -81,15 +80,15 @@ test('history dependency', () => {
     model.foo.bar = {};
     assert.equal(c, 2);
 
-    tracker.undo();
+    tr.undo();
     assert.equal(c, 3);
 
-    tracker.redo();
+    tr.redo();
     assert.equal(c, 4);
 });
 
 test('only top dependency notified', () => {
-    const [model, tracker] = track({a:0, b:0, c:0});
+    const model = track({a:0, b:0, c:0});
 
     const d1 = tracker.startDependencyTrack();
     model.a;

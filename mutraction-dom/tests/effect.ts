@@ -1,10 +1,9 @@
+import { track, defaultTracker as tracker, effect } from '../src/index.js';
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
-import { track, effect } from '../src/index.js';
-
 test('effect is selective', () => {
-    const [model, tracker] = track({x:1,y:2,z:3});
+    const model = track({x:1,y:2,z:3});
     const effectLog: string[] = [];
 
     effect(tracker, () => { effectLog.push(`${model.x},${model.y}`); });
@@ -17,7 +16,7 @@ test('effect is selective', () => {
 });
 
 test('dependencies update after effect runs', () => {
-    const [model, tracker] = track({cond1: false, cond2: false});
+    const model = track({cond1: false, cond2: false});
     let target = false;
 
     effect(tracker, () => {
@@ -32,7 +31,7 @@ test('dependencies update after effect runs', () => {
 });
 
 test('effect dispose', () => {
-    const [model, tracker] = track({a:999} as any);
+    const model = track({a:999} as any);
 
     let runs = 0;
     const fx = effect(tracker, () => { (model.a, ++runs) });
@@ -50,7 +49,7 @@ test('effect dispose', () => {
 });
 
 test('effect exit', () => {
-    const [model, tracker] = track({p: 44});
+    const model = track({p: 44});
     const effectLog: string[] = [];
 
     effect(tracker, () => {
@@ -66,7 +65,7 @@ test('effect exit', () => {
 });
 
 test('inner effect runs without outer', () => {
-    const [model, tracker] = track({a:0, b:0, c:0});
+    const model = track({a:0, b:0, c:0});
 
     let times1 = 0, times2 = 0;
 
@@ -89,7 +88,7 @@ test('inner effect runs without outer', () => {
 });
 
 test('inner conditional effect', () => {
-    const [model, tracker] = track({a: false, b: false});
+    const model = track({a: false, b: false});
 
     let t1 = 0, t2 = 0, t3 = 0, t4 = 0;
 
@@ -115,7 +114,7 @@ test('inner conditional effect', () => {
 });
 
 test('dependency suspension', () => {
-    const [model, tracker] = track({ a: 1, b: 2, c: 3 });
+    const model = track({ a: 1, b: 2, c: 3 });
 
     let runs = 0;
     effect(tracker, dep => {

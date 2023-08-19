@@ -1,7 +1,6 @@
+import { track, defaultTracker as tracker, effect, Tracker } from '../src/index.js';
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
-
-import { track } from '../src/index.js';
 
 test('state methods', () => {
     class C {
@@ -10,7 +9,7 @@ test('state methods', () => {
         getProp() { return this.prop; }
     }
 
-    const [model, tracker] = track(new C);
+    const model = track(new C);
 
     model.setProp(7);
     assert.equal(model.getProp(), 7);
@@ -23,6 +22,7 @@ test('state methods', () => {
 });
 
 test('compound setter records only leaf operations', () => {
+    const tr = new Tracker;
     class C {
         _maxProp: number;
         _prop: number;
@@ -38,22 +38,24 @@ test('compound setter records only leaf operations', () => {
         }
     }
 
-    const [model, tracker] = track(new C(4));
+    const model = tr.track(new C(4));
 
-    tracker.startTransaction();
+    tr.startTransaction();
     model.prop = 5;
-    tracker.commit();
+    tr.commit();
     assert.equal(model._maxProp, 5);
 
-    assert.equal(tracker.history.length, 1);
-    assert.equal(tracker.history[0].type, "transaction");
-    assert.equal(tracker.history[0].type === "transaction" && tracker.history[0].operations.length, 2);
+    assert.equal(tr.history.length, 1);
+    assert.equal(tr.history[0].type, "transaction");
+    assert.equal(tr.history[0].type === "transaction" && tr.history[0].operations.length, 2);
 
-    tracker.undo();
+    tr.undo();
     assert.equal(model._maxProp, 4);
 });
 
 test('auto transact', () => {
+    const tr = new Tracker({ autoTransactionalize: true });
+
     class C {
         a = 1;
         b = 2;
@@ -61,13 +63,13 @@ test('auto transact', () => {
         incrementAll() { (this.a++, this.b++, this.c++); }
     }
 
-    const [model, tracker] = track(new C, { autoTransactionalize: true });
+    const model = tr.track(new C);
 
     model.b = 12;
     model.incrementAll();
     assert.equal({ ...model }, { a:2, b:13, c:4 });
 
-    tracker.undo();
+    tr.undo();
     assert.equal({ ...model }, { a:1, b:12, c:3 });
 });
 

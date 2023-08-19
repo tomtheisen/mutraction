@@ -1,10 +1,9 @@
+import { track, defaultTracker as tracker, effect, Tracker } from '../src/index.js';
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
-import { track } from '../src/index.js';
-
 test('shallow prop ref', () => {
-    const [model, tracker] = track({ foo: { bar: 1 } });
+    const model = track({ foo: { bar: 1 } });
     
     const pr = tracker.getPropRef(() => model.foo);
 
@@ -19,7 +18,7 @@ test('shallow prop ref', () => {
 });
 
 test('compound prop ref', () => {
-    const [model, tracker] = track({ foo: { bar: 1 } });
+    const model = track({ foo: { bar: 1 } });
     
     const pr = tracker.getPropRef(() => model.foo.bar);
 

@@ -1,10 +1,9 @@
+import { track, isTracked, effect, defaultTracker as tracker, Tracker } from '../src/index.js';
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
-import { track, trackAsReadonlyDeep, isTracked, effect } from '../src/index.js';
-
 test('array sort undo', () => {
-    const [arr, tracker] = track(["a","c","b"]);
+    const arr = track(["a","c","b"]);
 
     tracker.startTransaction();
     arr.sort();
@@ -16,7 +15,7 @@ test('array sort undo', () => {
 });
 
 test('array atomicity', () => {
-    const [arr, tracker] = track([3, 4]);
+    const arr = track([3, 4]);
 
     arr.push(8);
     arr.push(6, 7);
@@ -25,14 +24,15 @@ test('array atomicity', () => {
 });
 
 test('array detection', () => {
-    const [arr] = track([]);
+    const arr = track([]);
 
     assert.ok(isTracked(arr));
     assert.ok(Array.isArray(arr));
 });
 
 test('no history arrays', () => {
-    const [arr] = track([1], { trackHistory: false });
+    const tr = new Tracker({ trackHistory: false })
+    const arr = tr.track([1]);
 
     arr.push(2);
 
@@ -41,26 +41,28 @@ test('no history arrays', () => {
 });
 
 test('array lengthen', () => {
-    const [arr] = track([]);
+    const arr = track([]);
 
     arr.length = 10;
     assert.equal(arr.length, 10);
 });
 
 test('action log recipe', () => {
-    const [model, tracker] = trackAsReadonlyDeep(
-        { arr: [1,2,3], add(n: number) { this.arr.push(n) } },
-        { autoTransactionalize: true });
+    const tr = new Tracker({ autoTransactionalize: true });
+    const model = tr.trackAsReadonlyDeep({ 
+        arr: [1,2,3], 
+        add(n: number) { this.arr.push(n) } 
+    });
 
     model.add(5);
     assert.snapshot(
-        JSON.stringify(tracker.history),
+        JSON.stringify(tr.history),
         `[{"type":"transaction","operations":[{"type":"arrayextend","target":[1,2,3,5],"name":"3","oldLength":3,"newIndex":3,"newValue":5}],"transactionName":"add"}]`
     );
 });
 
 test('array pop length visible in effect', () => {
-    const[model, tracker] = track([1,2,3]);
+    const model = track([1,2,3]);
 
     let length = 0;
     effect(tracker, () => { length = model.length; });

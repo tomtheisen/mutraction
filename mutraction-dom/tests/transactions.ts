@@ -1,10 +1,9 @@
+import { track, defaultTracker as tracker, effect, Tracker } from '../src/index.js';
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
-import { track } from '../src/index.js';
-
 test('array push and transaction', () => {
-    const [model, tracker] = track([] as any);
+    const model = track([] as any);
 
     tracker.startTransaction();
     model.push(4);
@@ -22,20 +21,21 @@ test('array push and transaction', () => {
 });
 
 test('committed transaction has no parent', () => {
-    let [model, tracker] = track({} as any);
+    const tr = new Tracker;
+    const model = tr.track({} as any);
     
-    tracker.startTransaction();
+    tr.startTransaction();
     model.lol = 132;
-    tracker.commit();
+    tr.commit();
 
-    const transaction = tracker.history[0] as any;
+    const transaction = tr.history[0] as any;
     assert.ok(transaction);
     assert.is(transaction.type, "transaction");
     assert.not.ok(transaction.parent);
 });
 
 test('array length 0 rollback test', () => {
-    const [model, tracker] = track(['a','b','c'] as any);
+    const model = track(['a','b','c'] as any);
 
     model.length = 0;
     assert.equal(model, [], "was emptied");
@@ -45,7 +45,7 @@ test('array length 0 rollback test', () => {
 });
 
 test('transaction does not obscure history', () => {
-    const [model, tracker] = track({} as any);
+    const model = track({} as any);
 
     model.asdf = 123;
     tracker.startTransaction();
@@ -53,58 +53,63 @@ test('transaction does not obscure history', () => {
 });
 
 test('transaction out of order resolution fails', () => {
-    const [, tracker] = track({} as any);
+    const tr = new Tracker;
+    tr.track({} as any);
 
-    const t1 = tracker.startTransaction();
-    const t2 = tracker.startTransaction();
-    assert.throws(() => tracker.commit(t1));
-    tracker.commit(t2);
+    const t1 = tr.startTransaction();
+    const t2 = tr.startTransaction();
+    assert.throws(() => tr.commit(t1));
+    tr.commit(t2);
 });
 
 test('auto rollback on throw', () => {
-    const [model] = track({
+    const tr = new Tracker({autoTransactionalize: true});
+    const model = tr.track({
         p: 3,
         m() { this.p = 4; throw 'fail'; }
-    }, {autoTransactionalize: true});
+    });
 
     assert.throws(() => model.m());
     assert.equal(model.p, 3);
 });
 
 test('auto rollback on empty', () => {
-    const [model, tracker] = track({
+    const tr = new Tracker({autoTransactionalize: true});
+    const model = tr.track({
         x: 4,
         m() { }
-    }, {autoTransactionalize: true});
+    });
 
     model.m();
-    assert.equal(tracker.history.length, 0);
+    assert.equal(tr.history.length, 0);
 });
 
 test('compact into nothing', () => {
-    const [model, tracker] = track({foo: 45} as any);
+    const tr = new Tracker;
+    const model = tr.track({foo: 45} as any);
 
-    tracker.startTransaction("noop");
+    tr.startTransaction("noop");
     model.x = 1;
     model.x = 2;
     delete model.x;
-    tracker.commit();
+    tr.commit();
 
-    assert.equal(tracker.history, [{ transactionName: "noop", type:'transaction', parent: undefined, operations: []}]);
+    assert.equal(tr.history, [{ transactionName: "noop", type:'transaction', parent: undefined, operations: []}]);
 });
 
 test('compound noop', () => {
-    const [model, tracker] = track({foo: 45} as any);
+    const tr = new Tracker;
+    const model = track({foo: 45} as any);
 
-    tracker.startTransaction("noop2");
+    tr.startTransaction("noop2");
     model.foo = 99;
     model.x = 1;
     model.x = 2;
     delete model.x;
     model.foo = 45;
-    tracker.commit();
+    tr.commit();
 
-    assert.equal(tracker.history, [{ transactionName: "noop2", type:'transaction', parent: undefined, operations: []}]);
+    assert.equal(tr.history, [{ transactionName: "noop2", type:'transaction', parent: undefined, operations: []}]);
 });
 
 test.run();
