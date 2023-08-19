@@ -84,13 +84,6 @@ export function ForEachPersist<TIn extends object>(array: TIn[], map: (e: TIn) =
     return result.removeAsFragment();
 }
 
-
-
-type AttributeType<E extends keyof HTMLElementTagNameMap, K extends keyof HTMLElementTagNameMap[E]> = 
-    K extends "style" ? Partial<CSSStyleDeclaration> :
-    K extends "classList" ? Record<string, boolean> :
-    HTMLElementTagNameMap[E][K];
-
 type ElementStringProps<E extends keyof HTMLElementTagNameMap> = {
     [K in keyof HTMLElementTagNameMap[E]]: HTMLElementTagNameMap[E][K] extends string ? string : never;
 };
@@ -120,10 +113,6 @@ export function element<E extends keyof HTMLElementTagNameMap>(
     }
 
     const syncedProps = syncEvent ? [] as [prop: keyof typeof el, ref: PropReference][] : undefined;
-
-    // TODO i don't think this is used anymore
-    let blank: Text | undefined = undefined; // for mu:if
-
     for (let [name, getter] of Object.entries(dynamicAttrs)) {
         if (syncedProps && name in el) {
             const propRef = defaultTracker.getPropRefTolerant(getter);
@@ -154,13 +143,11 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 
     if (syncEvent && syncedProps?.length) {
         el.addEventListener(syncEvent, ev => {
-            for (const [name, propRef] of syncedProps) {
-                propRef.current = el[name];
-            }
+            for (const [name, propRef] of syncedProps) propRef.current = el[name];
         });
     }
 
-    return blank ?? el;
+    return el;
 }
 
 export function child(getter: () => number | string | bigint | null | undefined | HTMLElement | Text): ChildNode {

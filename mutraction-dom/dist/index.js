@@ -720,7 +720,6 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
     }
   }
   const syncedProps = syncEvent ? [] : void 0;
-  let blank = void 0;
   for (let [name2, getter] of Object.entries(dynamicAttrs)) {
     if (syncedProps && name2 in el) {
       const propRef = defaultTracker.getPropRefTolerant(getter);
@@ -751,12 +750,11 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
   el.append(...children);
   if (syncEvent && syncedProps?.length) {
     el.addEventListener(syncEvent, (ev) => {
-      for (const [name2, propRef] of syncedProps) {
+      for (const [name2, propRef] of syncedProps)
         propRef.current = el[name2];
-      }
     });
   }
-  return blank ?? el;
+  return el;
 }
 function child(getter) {
   const result = getter();
