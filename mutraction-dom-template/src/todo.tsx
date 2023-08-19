@@ -40,7 +40,7 @@ function doAdd(ev: SubmitEvent) {
 function sort() {
     model.items.sort((a, b) => Number(a.done) - Number(b.done));
 }
-export const app = (
+export const todoApp = (
     <div mu:tracker={tracker}>
         <h1 title={model.newItemTitle}>To-do</h1>
         <button onclick={sort}>Sort by unfinished</button>
