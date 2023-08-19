@@ -98,17 +98,19 @@ function JSXElement_exit(path) {
                             throw path.buildCodeFrameError(`Unsupported namespace ${name.namespace.name} in JSX attribute`);
                         switch (name.name.name) { // lol babel
                             case "if":
-                                if (value?.type !== "JSXExpressionContainer")
+                                if (value?.type !== "JSXExpressionContainer" || value.expression.type === "JSXEmptyExpression")
                                     throw path.buildCodeFrameError(`Expression value expected for '${name.name.name}'`);
-                                if (value.expression.type === "JSXEmptyExpression")
-                                    break;
-                                const [isDynamic, expr] = jsxAttrVal2Prop(value);
-                                ifExpression = expr;
+                                ifExpression = value.expression;
                                 break;
                             case "else":
                                 if (value)
                                     throw path.buildCodeFrameError("mu:else not take a value.  Maybe you want <foo mu:else mu:if={...} />?");
                                 hasElse = true;
+                                break;
+                            case "syncEvent":
+                                if (value?.type !== "StringLiteral")
+                                    throw path.buildCodeFrameError(`String literal expected for '${name.name.name}'`);
+                                staticPropsForRuntime.push(t.objectProperty(t.stringLiteral("mu:syncEvent"), value, true /* computed */));
                                 break;
                             default:
                                 throw path.buildCodeFrameError(`Unsupported mutraction JSX attribute ${name.name.name}`);

@@ -385,7 +385,7 @@ function compactTransaction({ operations }) {
 // out/tracker.js
 var defaultTrackerOptions = {
   trackHistory: true,
-  autoTransactionalize: false,
+  autoTransactionalize: true,
   deferNotifications: false,
   compactOnCommit: true
 };
@@ -615,6 +615,12 @@ var Tracker = class {
    * @returns PropReference for an object property
    */
   getPropRef(propGetter) {
+    const result = this.getPropRefTolerant(propGetter);
+    if (!result)
+      throw Error("No tracked properties.  Prop ref detection requires a tracked object.");
+    return result;
+  }
+  getPropRefTolerant(propGetter) {
     if (this.#gettingPropRef)
       throw Error("Cannot be called re-entrantly.");
     this.#gettingPropRef = true;
@@ -622,7 +628,7 @@ var Tracker = class {
     try {
       const actualValue = propGetter();
       if (!this.#lastPropRef)
-        throw Error("No tracked properties.  Prop ref detection requires a tracked object.");
+        return void 0;
       const propRefCurrent = this.#lastPropRef.current;
       if (!Object.is(actualValue, propRefCurrent))
         console.error("The last operation of the callback must be a property get.\n`(foo || bar).quux` is allowed, but `foo.bar + 1` is not");
@@ -702,23 +708,26 @@ function ForEachPersist(array, map) {
 }
 function element(name, staticAttrs, dynamicAttrs, ...children) {
   const el = document.createElement(name);
-  for (let [name2, value] of Object.entries(staticAttrs ?? {})) {
+  let syncEvent;
+  for (let [name2, value] of Object.entries(staticAttrs)) {
     switch (name2) {
-      case "style":
-        Object.assign(el.style, value);
-        break;
-      case "classList":
-        const classMap = value;
-        for (const e of Object.entries(classMap))
-          el.classList.toggle(...e);
+      case "mu:syncEvent":
+        syncEvent = value;
         break;
       default:
         el[name2] = value;
         break;
     }
   }
+  const syncedProps = syncEvent ? [] : void 0;
   let blank = void 0;
-  for (let [name2, getter] of Object.entries(dynamicAttrs ?? {})) {
+  for (let [name2, getter] of Object.entries(dynamicAttrs)) {
+    if (syncedProps && name2 in el) {
+      const propRef = defaultTracker.getPropRefTolerant(getter);
+      if (propRef) {
+        syncedProps.push([name2, propRef]);
+      }
+    }
     switch (name2) {
       case "style":
         effectDefault(() => {
@@ -740,6 +749,13 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
     }
   }
   el.append(...children);
+  if (syncEvent && syncedProps?.length) {
+    el.addEventListener(syncEvent, (ev) => {
+      for (const [name2, propRef] of syncedProps) {
+        propRef.current = el[name2];
+      }
+    });
+  }
   return blank ?? el;
 }
 function child(getter) {

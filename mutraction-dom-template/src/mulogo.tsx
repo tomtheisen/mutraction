@@ -10,8 +10,8 @@ const styles = `
   .tread {
     position: relative;
     padding:10px;
-    width:200px;
-    height:200px;
+    width: 200px;
+    height: 200px;
     border-radius: 200px;
     background: conic-gradient(from 90deg at 50% 50%
       , #000  0turn, #000  0.03125turn

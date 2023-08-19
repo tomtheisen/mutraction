@@ -3,6 +3,7 @@ import { getMarker } from './getMarker.js';
 import { ElementSpan } from './elementSpan.js';
 import { defaultTracker } from "./tracker.js";
 import { DependencyList } from "./dependency.js";
+import { PropReference } from "./propref.js";
 
 const suppress = { suppressUntrackedWarning: true };
 function effectDefault(sideEffect: (dep: DependencyList) => (void | (() => void))) {
@@ -90,35 +91,26 @@ type AttributeType<E extends keyof HTMLElementTagNameMap, K extends keyof HTMLEl
     K extends "classList" ? Record<string, boolean> :
     HTMLElementTagNameMap[E][K];
 
-// the jsx transformer wraps all the attributes in thunks
-type StandardAttributes = {
-    if?: boolean;
+type ElementStringProps<E extends keyof HTMLElementTagNameMap> = {
+    [K in keyof HTMLElementTagNameMap[E]]: HTMLElementTagNameMap[E][K] extends string ? string : never;
 };
-type ElementProps<E extends keyof HTMLElementTagNameMap> = {
-    [K in keyof HTMLElementTagNameMap[E]]?: AttributeType<E, K>;
-} & StandardAttributes;
-
 type ElementPropGetters<E extends keyof HTMLElementTagNameMap> = {
-    [K in keyof ElementProps<E>]: () => ElementProps<E>[K];
-}
+    [K in keyof HTMLElementTagNameMap[E]]: () => HTMLElementTagNameMap[E][K];
+};
 
 export function element<E extends keyof HTMLElementTagNameMap>(
     name: E, 
-    staticAttrs: ElementProps<E>,
+    staticAttrs: ElementStringProps<E>,
     dynamicAttrs: ElementPropGetters<E>,
     ...children: (Node | string)[]
 ): HTMLElementTagNameMap[E] | Text {
-    const el = document.createElement(name);
+    const el: HTMLElementTagNameMap[E] = document.createElement(name);
 
-    for (let [name, value] of Object.entries(staticAttrs ?? {})) {
+    let syncEvent: string | undefined;
+    for (let [name, value] of Object.entries(staticAttrs) as [string, string][]) {
         switch (name) {
-            case "style":
-                Object.assign(el.style, value);
-                break;
-
-            case "classList":
-                const classMap = value as Record<string, boolean>;
-                for (const e of Object.entries(classMap)) el.classList.toggle(...e);
+            case "mu:syncEvent":
+                syncEvent = value;
                 break;
 
             default:
@@ -127,8 +119,19 @@ export function element<E extends keyof HTMLElementTagNameMap>(
         }
     }
 
+    const syncedProps = syncEvent ? [] as [prop: keyof typeof el, ref: PropReference][] : undefined;
+
+    // TODO i don't think this is used anymore
     let blank: Text | undefined = undefined; // for mu:if
-    for (let [name, getter] of Object.entries(dynamicAttrs ?? {})) {
+
+    for (let [name, getter] of Object.entries(dynamicAttrs)) {
+        if (syncedProps && name in el) {
+            const propRef = defaultTracker.getPropRefTolerant(getter);
+            if (propRef) {
+                syncedProps.push([name as any, propRef]);
+            }
+        }
+
         switch (name) {
             case "style":
                 effectDefault(() => { Object.assign(el.style, getter()); });
@@ -148,6 +151,14 @@ export function element<E extends keyof HTMLElementTagNameMap>(
     }
 
     el.append(...children);
+
+    if (syncEvent && syncedProps?.length) {
+        el.addEventListener(syncEvent, ev => {
+            for (const [name, propRef] of syncedProps) {
+                propRef.current = el[name];
+            }
+        });
+    }
 
     return blank ?? el;
 }

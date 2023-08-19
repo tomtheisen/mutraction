@@ -16,6 +16,7 @@ export namespace JSX {
     & {
         "mu:if"?: boolean;
         "mu:else"?: boolean;
+        "mu:syncEvent"?: keyof HTMLElementEventMap;
     };
 
     export type IntrinsicElements = {

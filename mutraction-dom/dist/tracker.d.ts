@@ -52,6 +52,7 @@ export declare class Tracker {
      * @returns PropReference for an object property
      */
     getPropRef<T>(propGetter: () => T): PropReference<T>;
+    getPropRefTolerant<T>(propGetter: () => T): PropReference<T> | undefined;
 }
 export declare const defaultTracker: Tracker;
 export declare function track<TModel extends object>(model: TModel): TModel;

@@ -13,22 +13,21 @@ function remove(item: TodoItem) {
     if (idx >= 0) model.items.splice(idx, 1);
 }
 function itemRender(item: TodoItem) {
-    const editor = document.createElement("input");
-    effect(defaultTracker, () => { editor.value = item.title; });
+    const editor = <input value={ item.title } /> as HTMLInputElement;
 
     return <>
         <li mu:if={!item.editing}>
+            {editor}
+            <button onclick={() => (item.title = editor.value, item.editing = false)}>✅</button>
+            <button onclick={() => item.editing = false}>❌</button>
+        </li>
+        <li mu:else>
             <button onclick={() => remove(item)}>❌</button>
             <button onclick={() => item.editing = true}>✏️</button>
             <label>
                 <input type="checkbox" checked={item.done} onchange={ev => item.done = (ev.target as any).checked} />
                 <span style={{ textDecoration: item.done ? "line-through" : "none" }}>{item.title}</span>
             </label>
-        </li>
-        <li mu:else>
-            {editor}
-            <button onclick={() => (item.title = editor.value, item.editing = false)}>✅</button>
-            <button onclick={() => item.editing = false}>❌</button>
         </li>
     </>;
 }

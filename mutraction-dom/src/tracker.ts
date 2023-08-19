@@ -9,7 +9,7 @@ type Subscriber = (mutation: SingleMutation | undefined) => void;
 
 const defaultTrackerOptions = {
     trackHistory: true,
-    autoTransactionalize: false,
+    autoTransactionalize: true,
     deferNotifications: false,
     compactOnCommit: true,
 };
@@ -262,15 +262,19 @@ export class Tracker {
      * @returns PropReference for an object property
      */
     getPropRef<T>(propGetter: () => T): PropReference<T> {
-        if (this.#gettingPropRef)
-            throw Error("Cannot be called re-entrantly.");
+        const result = this.getPropRefTolerant(propGetter);
+        if (!result) throw Error("No tracked properties.  Prop ref detection requires a tracked object.");
+        return result;
+    }
+
+    getPropRefTolerant<T>(propGetter: () => T): PropReference<T> | undefined {
+        if (this.#gettingPropRef) throw Error("Cannot be called re-entrantly.");
 
         this.#gettingPropRef = true;
         this.#lastPropRef = undefined;
         try {
             const actualValue = propGetter();
-            if (!this.#lastPropRef)
-                throw Error("No tracked properties.  Prop ref detection requires a tracked object.");
+            if (!this.#lastPropRef) return undefined;
                         
             const propRefCurrent = (this.#lastPropRef as PropReference).current;
             if (!Object.is(actualValue, propRefCurrent))
