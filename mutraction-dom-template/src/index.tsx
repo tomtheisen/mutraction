@@ -13,22 +13,22 @@ const about = (
     <p>This is all about the stuff.</p>
 );
 
-const router = Router(
-    { pattern: /#about$/, element: about },
-    { pattern: /#todo$/, element: todoApp },
-    { pattern: /#id=(\d+)/, element: match => <>Id: {match[1]}</> },
-    { element: welcome }
-);
-
-const app = <>
+const nav = (
     <nav>
         <ul>
-            <li><a href="#about" id="about">About</a></li>
+            <li><a href="#">Welcome</a></li>
+            <li><a href="#about">About</a></li>
             <li><a href="#todo">To-do</a></li>
             <li><a href="#id=234">Lookup</a></li>
         </ul>
     </nav>
-    { router }
-</>
+);
 
-document.getElementById("root")!.replaceChildren(app);
+const router = Router(
+    { pattern: '#about', element: about },
+    { pattern: '#todo', element: todoApp },
+    { pattern: /#id=(\d+)/, element: match => <>You can match: {match[1]}</> },
+    { element: welcome }
+);
+
+document.getElementById("root")!.replaceChildren(nav, router);

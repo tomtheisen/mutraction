@@ -1,14 +1,14 @@
 import { ElementSpan } from './elementSpan.js';
 
 type Route = {
-    pattern: RegExp;
+    pattern: RegExp | string;
     element: Node | ((match: RegExpExecArray) => Node);
 } | {
     element: Node | (() => Node);
 }
 
 export function Router(...routes: Route[]): Node {
-    if (routes.some(route => "pattern" in route && route.pattern.global))
+    if (routes.some(route => "pattern" in route && route.pattern instanceof RegExp && route.pattern.global))
         throw Error("Global-flagged route patterns not supported");
 
     const container = new ElementSpan();
@@ -17,12 +17,19 @@ export function Router(...routes: Route[]): Node {
         const { hash } = new URL(url);
 
         for (const route of routes) {
-            const pattern = "pattern" in route ? route.pattern : undefined;
-            const match = pattern?.exec(hash);
+            let execResult: RegExpExecArray | undefined = undefined;
+            let match = false;
+            if ("pattern" in route) {
+                if (typeof route.pattern === "string") match = hash === route.pattern;
+                else match = !!(execResult = route.pattern.exec(hash) ?? undefined);
+            }
+            else {
+                match = true;
+            }
             const element = route.element;
 
-            if (match || pattern == null) {
-                const newNode = typeof element === "function" ? element(match!) : element;
+            if (match) {
+                const newNode = typeof element === "function" ? element(execResult!) : element;
                 container.replaceWith(newNode);
                 return;
             }

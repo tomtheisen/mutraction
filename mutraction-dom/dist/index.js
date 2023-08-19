@@ -803,17 +803,25 @@ function choose(...choices) {
 
 // out/router.js
 function Router(...routes) {
-  if (routes.some((route) => "pattern" in route && route.pattern.global))
+  if (routes.some((route) => "pattern" in route && route.pattern instanceof RegExp && route.pattern.global))
     throw Error("Global-flagged route patterns not supported");
   const container = new ElementSpan();
   function hashChangeHandler(url) {
     const { hash } = new URL(url);
     for (const route of routes) {
-      const pattern = "pattern" in route ? route.pattern : void 0;
-      const match = pattern?.exec(hash);
+      let execResult = void 0;
+      let match = false;
+      if ("pattern" in route) {
+        if (typeof route.pattern === "string")
+          match = hash === route.pattern;
+        else
+          match = !!(execResult = route.pattern.exec(hash) ?? void 0);
+      } else {
+        match = true;
+      }
       const element2 = route.element;
-      if (match || pattern == null) {
-        const newNode = typeof element2 === "function" ? element2(match) : element2;
+      if (match) {
+        const newNode = typeof element2 === "function" ? element2(execResult) : element2;
         container.replaceWith(newNode);
         return;
       }

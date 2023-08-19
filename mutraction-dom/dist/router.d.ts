@@ -1,5 +1,5 @@
 type Route = {
-    pattern: RegExp;
+    pattern: RegExp | string;
     element: Node | ((match: RegExpExecArray) => Node);
 } | {
     element: Node | (() => Node);
