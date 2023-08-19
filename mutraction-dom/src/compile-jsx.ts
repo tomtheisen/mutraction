@@ -191,7 +191,8 @@ function JSXElement_exit(this: B.PluginPass, path: B.NodePath<BT.JSXElement>) {
                 break;
 
             case 'JSXSpreadAttribute':
-                throw path.buildCodeFrameError('JSX spread not supported.');
+                staticPropsForRuntime.push(t.spreadElement(attr.argument));
+                break;
 
             default:
                 throw path.buildCodeFrameError('Unsupported attribute type.');
@@ -229,8 +230,7 @@ function JSXElement_exit(this: B.PluginPass, path: B.NodePath<BT.JSXElement>) {
         }
 
         // type of chooseCall arg
-        /*
-        *  type ConditionalElement = {
+        /* type ConditionalElement = {
         *      nodeGetter: () => CharacterData;
         *      conditionGetter?: () => boolean;
         *  }

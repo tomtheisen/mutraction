@@ -1,6 +1,7 @@
 import { track, Router } from "mutraction-dom";
 import { todoApp } from "./todo.js";
 import { mu } from "./mulogo.js";
+import { binding } from "./binding.js";
 
 function welcome() {
     const model = track({ clicks: 0});
@@ -16,23 +17,6 @@ const about = (
         <p>This is all about the stuff.</p>
     </>
 );
-
-function twoWay() {
-    const model = track({ text: "", scrollPos: 0 });
-
-    return (
-        <>
-            <div>
-                <input mu:syncEvent="input" maxLength={10} value={ model.text } />
-                <input mu:syncEvent="input" maxLength={10} value={ model.text } />
-            </div>
-            <div>Scroll pos: {model.scrollPos}</div>
-            <div mu:syncEvent="scroll" scrollTop={model.scrollPos} style={{overflow: "scroll", maxHeight: "100px"}}>
-                <div style={{height: "200px"}}></div>
-            </div>
-        </>
-    );
-}
 
 const nav = (
     <nav>
@@ -50,7 +34,7 @@ const router = Router(
     { pattern: '#about', element: about },
     { pattern: '#todo', element: todoApp },
     { pattern: /#id=(\d+)/, element: match => <>You can match: {match[1]}</> },
-    { pattern: '#2way', element: twoWay() },
+    { pattern: '#2way', element: binding() },
     { pattern: /#.+/, element: match => <>No route found for {match[0]}</> },
     { element: welcome }
 );
