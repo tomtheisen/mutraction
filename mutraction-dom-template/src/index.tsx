@@ -1,5 +1,6 @@
 import { track, Router } from "mutraction-dom";
 import { todoApp } from "./todo.js";
+import { mu } from "./mulogo.js";
 
 function welcome() {
     const model = track({ clicks: 0});
@@ -10,7 +11,10 @@ function welcome() {
 }
 
 const about = (
-    <p>This is all about the stuff.</p>
+    <>
+        <h1>About</h1>
+        <p>This is all about the stuff.</p>
+    </>
 );
 
 const nav = (
@@ -31,4 +35,4 @@ const router = Router(
     { element: welcome }
 );
 
-document.getElementById("root")!.replaceChildren(nav, router);
+document.getElementById("root")!.replaceChildren(nav, router, mu);
