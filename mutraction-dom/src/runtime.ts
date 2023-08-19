@@ -142,7 +142,7 @@ export function element<E extends keyof HTMLElementTagNameMap>(
     el.append(...children);
 
     if (syncEvents && syncedProps?.length) {
-        for (const e of syncEvents.matchAll(/\S+/)) {
+        for (const e of syncEvents.matchAll(/\S+/g)) {
             el.addEventListener(e[0], () => {
                 for (const [name, propRef] of syncedProps) propRef.current = el[name];
             });

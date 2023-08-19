@@ -7,12 +7,14 @@ type Route = {
     element: Node | (() => Node);
 }
 
+const fragmentMap: WeakMap<DocumentFragment, ElementSpan> = new WeakMap;
 export function Router(...routes: Route[]): Node {
     if (routes.some(route => "pattern" in route && route.pattern instanceof RegExp && route.pattern.global))
         throw Error("Global-flagged route patterns not supported");
 
     const container = new ElementSpan();
 
+    let lastResolvedSpan: ElementSpan | undefined;
     function hashChangeHandler(url: string) {
         const { hash } = new URL(url);
 
@@ -26,11 +28,27 @@ export function Router(...routes: Route[]): Node {
             else {
                 match = true;
             }
-            const element = route.element;
 
             if (match) {
+                // preserve the imminently replaced fragment for future use
+                lastResolvedSpan?.removeAsFragment();
+                lastResolvedSpan = undefined;
+
+                const { element } = route;
                 const newNode = typeof element === "function" ? element(execResult!) : element;
-                container.replaceWith(newNode);
+
+                if (newNode instanceof DocumentFragment) {
+                    // wrap the fragment in ElementSpan for safe-keping
+                    // Normally fragments are ephemeral in that they retain their identity, but not contents
+                    let span = fragmentMap.get(newNode);
+                    if (!span) fragmentMap.set(newNode, span = new ElementSpan(newNode));
+                    lastResolvedSpan = span;
+                    container.replaceWith(span.removeAsFragment());
+                }
+                else {
+                    lastResolvedSpan = undefined;
+                    container.replaceWith(newNode);
+                }
                 return;
             }
         }

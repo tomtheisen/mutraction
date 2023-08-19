@@ -749,7 +749,7 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
   }
   el.append(...children);
   if (syncEvents && syncedProps?.length) {
-    for (const e of syncEvents.matchAll(/\S+/)) {
+    for (const e of syncEvents.matchAll(/\S+/g)) {
       el.addEventListener(e[0], () => {
         for (const [name2, propRef] of syncedProps)
           propRef.current = el[name2];
@@ -818,10 +818,12 @@ function choose(...choices) {
 }
 
 // out/router.js
+var fragmentMap = /* @__PURE__ */ new WeakMap();
 function Router(...routes) {
   if (routes.some((route) => "pattern" in route && route.pattern instanceof RegExp && route.pattern.global))
     throw Error("Global-flagged route patterns not supported");
   const container = new ElementSpan();
+  let lastResolvedSpan;
   function hashChangeHandler(url) {
     const { hash } = new URL(url);
     for (const route of routes) {
@@ -835,10 +837,21 @@ function Router(...routes) {
       } else {
         match = true;
       }
-      const element2 = route.element;
       if (match) {
+        lastResolvedSpan?.removeAsFragment();
+        lastResolvedSpan = void 0;
+        const { element: element2 } = route;
         const newNode = typeof element2 === "function" ? element2(execResult) : element2;
-        container.replaceWith(newNode);
+        if (newNode instanceof DocumentFragment) {
+          let span = fragmentMap.get(newNode);
+          if (!span)
+            fragmentMap.set(newNode, span = new ElementSpan(newNode));
+          lastResolvedSpan = span;
+          container.replaceWith(span.removeAsFragment());
+        } else {
+          lastResolvedSpan = void 0;
+          container.replaceWith(newNode);
+        }
         return;
       }
     }
