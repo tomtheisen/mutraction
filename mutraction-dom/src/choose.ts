@@ -14,15 +14,16 @@ export function choose(...choices: ConditionalElement[]): Node {
     for (const choice of choices) {
         if ("conditionGetter" in choice) {
             lazyChoices.push({
-                nodeGetter: memoize(choice.nodeGetter)
+                nodeGetter: memoize(choice.nodeGetter),
+                conditionGetter: choice.conditionGetter,
             });
-            foundUnconditional = true;
         }
         else {
             lazyChoices.push({ 
                 nodeGetter: memoize(choice.nodeGetter),
-                conditionGetter: choice.conditionGetter,
             });
+            foundUnconditional = true;
+            break;
         }
     }
     if (!foundUnconditional) {
@@ -31,16 +32,19 @@ export function choose(...choices: ConditionalElement[]): Node {
     }
 
     const container = document.createDocumentFragment();
-    let result: ChildNode = getMarker("choice-placeholder");
-    container.append(result);
+    let current: ChildNode = getMarker("choice-placeholder");
+    container.append(current);
 
     effectOrDo(() => {
         for (const { nodeGetter, conditionGetter } of choices) {
             if (!conditionGetter || conditionGetter()) {
-                result.replaceWith(nodeGetter());
+                const newNode = nodeGetter();
+                current.replaceWith(newNode);
+                current = newNode;
+                break;
             }
         }
     });
 
-    return result;
+    return container;
 }

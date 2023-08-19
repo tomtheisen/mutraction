@@ -1,4 +1,5 @@
 export { element, child, ForEach, ForEachPersist } from './runtime.js';
+export { choose } from './choose.js';
 export { setTracker, clearTracker } from './runtime.trackers.js';
 export { track, trackAsReadonlyDeep, isTracked } from './proxy.js';
 export { Tracker, TrackerOptions } from './tracker.js';

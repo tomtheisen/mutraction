@@ -189,10 +189,6 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
   const el = document.createElement(name);
   for (let [name2, value] of Object.entries(staticAttrs ?? {})) {
     switch (name2) {
-      case "mu:if":
-        if (!value)
-          return getMarker("optimized out");
-        break;
       case "style":
         Object.assign(el.style, value);
         break;
@@ -212,14 +208,6 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
     if (!tracker)
       throw Error("Cannot apply dynamic properties without scoped tracker");
     switch (name2) {
-      case "mu:if":
-        effectOrDo(() => {
-          if (getter())
-            blank?.replaceWith(el);
-          else
-            el.replaceWith(blank ??= getMarker("blank"));
-        });
-        break;
       case "style":
         effect(tracker, () => {
           Object.assign(el.style, getter());
@@ -258,6 +246,54 @@ function child(getter) {
   } else {
     return document.createTextNode(String(getter() ?? ""));
   }
+}
+
+// out/memoize.js
+function memoize(getter) {
+  let isResolved = false;
+  let value = void 0;
+  function resolveLazy() {
+    return isResolved ? value : (isResolved = true, value = getter());
+  }
+  return resolveLazy;
+}
+
+// out/choose.js
+function choose(...choices) {
+  const lazyChoices = [];
+  let foundUnconditional = false;
+  for (const choice of choices) {
+    if ("conditionGetter" in choice) {
+      lazyChoices.push({
+        nodeGetter: memoize(choice.nodeGetter),
+        conditionGetter: choice.conditionGetter
+      });
+    } else {
+      lazyChoices.push({
+        nodeGetter: memoize(choice.nodeGetter)
+      });
+      foundUnconditional = true;
+      break;
+    }
+  }
+  if (!foundUnconditional) {
+    const empty = getMarker("if:anti-consequent");
+    lazyChoices.push({ nodeGetter: () => empty });
+  }
+  const container = document.createDocumentFragment();
+  let current = getMarker("choice-placeholder");
+  container.append(current);
+  effectOrDo(() => {
+    for (const { nodeGetter, conditionGetter } of choices) {
+      if (!conditionGetter || conditionGetter()) {
+        const newNode = nodeGetter();
+        current.replaceWith(newNode);
+        current = newNode;
+        break;
+      }
+    }
+  });
+  return container;
 }
 
 // out/symbols.js
@@ -792,6 +828,7 @@ export {
   PropReference,
   Tracker,
   child,
+  choose,
   clearTracker,
   createOrRetrievePropRef,
   effect,

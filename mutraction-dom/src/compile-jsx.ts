@@ -29,13 +29,14 @@ function jsxChild(ctx: MuContext, child:
             [ t.arrowFunctionExpression([], child.expression) ]
         );
     }
-    else if (type === "JSXFragment") {
-        return child;
-    }
     else if (type === "JSXSpreadChild") {
         return t.stringLiteral("NIE spread child");
     }
-    throw Error("Unsupported child type " + type);
+    else {
+        // some of these children have already been transformed into unexpected types
+        // probably function calls
+        return child;
+    }
 }
 
 /**
@@ -117,11 +118,10 @@ function isMutractionNamespace(ns: BT.JSXIdentifier): boolean {
     return ns.name === "mu" || ns.name ==="µ";
 }
 
-/** runtime choose call for mu:if and mu:else */
-const jsxElementChoose: Map<BT.JSXElement, BT.CallExpression> = new Map;
-let lastJsxExited: BT.JSXElement | undefined = undefined;
+/** runtime choose call for mu:if and mu:else - this is where else expressions will be appended */
+const activeChooseForJsxParent: Map<BT.Node, BT.CallExpression> = new Map;
 
-function JSXElement_enter(path: B.NodePath<BT.JSXElement>) {
+function JSXElement_exit(this: B.PluginPass, path: B.NodePath<BT.JSXElement>) {
     const ctx = ensureImportsCreated(path);
 
     const { name } = path.node.openingElement;
@@ -236,44 +236,43 @@ function JSXElement_enter(path: B.NodePath<BT.JSXElement>) {
 
     // handle mu:if and mu:else
     if (hasElse) {
-        const chooseCall = lastJsxExited && jsxElementChoose.get(lastJsxExited);
+        const chooseCall = activeChooseForJsxParent.get(path.parent);
         if (!chooseCall) {
             throw path.buildCodeFrameError("Elements with mu:else must immediately follow one with mu:if");
         }
 
-        // type of choosecall arg
+        // type of chooseCall arg
         /*
         *  type ConditionalElement = {
         *      nodeGetter: () => CharacterData;
         *      conditionGetter?: () => boolean;
         *  }
         */
+        let newChooseArg : BT.ObjectExpression;
         if (ifExpression) {
-            jsxElementChoose.set(path.node, chooseCall); // continue the else-if chain
-            chooseCall.arguments.push(
-                t.objectExpression([
-                    t.objectProperty(
-                        t.identifier("nodeGetter"),
-                        renderFunc
-                    ),
-                    t.objectProperty(
-                        t.identifier("conditionGetter"),
-                        t.arrowFunctionExpression([], ifExpression)
-                    )
-                ])
-            );
+            newChooseArg = t.objectExpression([
+                t.objectProperty(
+                    t.identifier("nodeGetter"),
+                    t.arrowFunctionExpression([], renderFunc)
+                ),
+                t.objectProperty(
+                    t.identifier("conditionGetter"),
+                    t.arrowFunctionExpression([], ifExpression)
+                )
+            ]);
         }
         else {
-            chooseCall.arguments.push(
-                t.objectExpression([
-                    t.objectProperty(
-                        t.identifier("nodeGetter"),
-                        renderFunc
-                    )
-                ])
-            );
+            activeChooseForJsxParent.delete(path.parent); // this chain is broken
+            newChooseArg = t.objectExpression([
+                t.objectProperty(
+                    t.identifier("nodeGetter"),
+                    t.arrowFunctionExpression([], renderFunc)
+                )
+            ]);
         }
+        chooseCall.arguments.push(newChooseArg);
         path.remove();
+        return; // don't attempt to replace later
     }
     else if (ifExpression) {
         renderFunc = t.callExpression(
@@ -282,7 +281,7 @@ function JSXElement_enter(path: B.NodePath<BT.JSXElement>) {
                 t.objectExpression([
                     t.objectProperty(
                         t.identifier("nodeGetter"),
-                        renderFunc
+                        t.arrowFunctionExpression([], renderFunc)
                     ),
                     t.objectProperty(
                         t.identifier("conditionGetter"),
@@ -291,7 +290,7 @@ function JSXElement_enter(path: B.NodePath<BT.JSXElement>) {
                 ])
             ]
         );
-        jsxElementChoose.set(path.node, renderFunc);
+        activeChooseForJsxParent.set(path.parent, renderFunc);
     }
 
     if (trackerExpression) {
@@ -312,7 +311,7 @@ function JSXElement_enter(path: B.NodePath<BT.JSXElement>) {
     }
 }
 
-function JSXFragment_enter(path: B.NodePath<BT.JSXFragment>) {
+function JSXFragment_exit(path: B.NodePath<BT.JSXFragment>) {
     const ctx = ensureImportsCreated(path);
 
     const jsxChildren: BT.Expression[] = [];
@@ -358,13 +357,11 @@ const mutractPlugin: PluginObj = {
             exit(path) { clearImports(); }
         },
         JSXElement: {
-            enter: JSXElement_enter,
-            exit(path) { lastJsxExited = path.node; }
+            exit: JSXElement_exit,
         },
         JSXFragment: {
-            enter: JSXFragment_enter,
-            exit(path) { lastJsxExited = undefined; }
-        },
+            exit: JSXFragment_exit,
+        }
     }
 };
 

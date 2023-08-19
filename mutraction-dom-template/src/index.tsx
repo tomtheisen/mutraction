@@ -23,7 +23,7 @@ function itemRender(item: TodoItem) {
     return <>
         <li mu:if={!item.editing}>
             <button onclick={() => remove(item)}>❌</button>
-            <button onclick={() => item.editing=true }>✏️</button>
+            <button onclick={() => item.editing = true }>✏️</button>
             <label>
                 <input type="checkbox" checked={ item.done } onchange={ ev => item.done = (ev.target as any).checked } />
                 <span style={ { textDecoration: item.done ? "line-through" : "none" } }>{ item.title }</span>
