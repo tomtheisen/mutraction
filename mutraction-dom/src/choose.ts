@@ -31,10 +31,7 @@ export function choose(...choices: ConditionalElement[]): Node {
         lazyChoices.push({ nodeGetter: () => empty });
     }
 
-    const container = document.createDocumentFragment();
     let current: ChildNode = getMarker("choice-placeholder");
-    container.append(current);
-
     effectOrDo(() => {
         for (const { nodeGetter, conditionGetter } of choices) {
             if (!conditionGetter || conditionGetter()) {
@@ -46,5 +43,5 @@ export function choose(...choices: ConditionalElement[]): Node {
         }
     });
 
-    return container;
+    return current;
 }

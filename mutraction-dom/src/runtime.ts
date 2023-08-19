@@ -1,6 +1,6 @@
 import { effect } from "./effect.js"
 import { getMarker } from './getMarker.js';
-import { ElementSpan } from './ElementSpan.js';
+import { ElementSpan } from './ElementSpanx.js';
 import { trackers, effectOrDo } from "./runtime.trackers.js";
 
 export function ForEach<TIn, TOut extends Node>(array: TIn[], map: (e: TIn) => TOut): Node {
