@@ -32,7 +32,7 @@ function linkProxyToObject(obj: any, proxy: any) {
     obj[ProxyOf] = proxy;
 }
 
-function makeProxyHandler<TModel extends object>(model: TModel, tracker: Tracker) : ProxyHandler<TModel> {
+export function makeProxyHandler<TModel extends object>(model: TModel, tracker: Tracker) : ProxyHandler<TModel> {
     type TKey = (keyof TModel) & Key;
     
     function getOrdinary(target: TModel, name: TKey, receiver: TModel) {
@@ -177,17 +177,3 @@ function makeProxyHandler<TModel extends object>(model: TModel, tracker: Tracker
 export function isTracked(obj: object) {
     return typeof obj === "object" && !!(obj as any)[TrackerOf];
 }
-
-// turn on change tracking
-// returns a proxied model object, and tracker to control history
-export function track<TModel extends object>(model: TModel, options?: TrackerOptions): [TModel, Tracker] {
-    if (isTracked(model)) throw Error('Object already tracked');
-    const tracker = new Tracker(options);
-    const proxied = new Proxy(model, makeProxyHandler(model, tracker));
-    linkProxyToObject(model, proxied);
-    return [proxied, tracker];
-}
-
-export const trackAsReadonlyDeep: 
-    <TModel extends object>(model: TModel, options?: TrackerOptions) => [ReadonlyDeep<TModel>, Tracker] 
-    = track;

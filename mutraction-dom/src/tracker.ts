@@ -1,8 +1,9 @@
-import { RecordDependency, RecordMutation } from "./symbols.js";
+import { ProxyOf, RecordDependency, RecordMutation, TrackerOf } from "./symbols.js";
 import { DependencyList } from "./dependency.js";
 import { compactTransaction } from "./compactTransaction.js";
-import type { Mutation, SingleMutation, Transaction } from "./types.js";
+import type { Mutation, ReadonlyDeep, SingleMutation, Transaction } from "./types.js";
 import { PropReference, createOrRetrievePropRef } from "./propref.js";
+import { isTracked, makeProxyHandler } from "./proxy.js";
 
 type Subscriber = (mutation: SingleMutation | undefined) => void;
 
@@ -43,6 +44,26 @@ export class Tracker {
         this.options = Object.freeze(appliedOptions);
     }
 
+    // turn on change tracking
+    // returns a proxied model object, and tracker to control history
+    track<TModel extends object>(model: TModel): TModel {
+        if (isTracked(model)) throw Error('Object already tracked');
+        const proxied = new Proxy(model, makeProxyHandler(model, this));
+
+        Object.defineProperty(model, ProxyOf, {
+            enumerable: false,
+            writable: true,
+            configurable: false,
+        });
+        (model as any)[ProxyOf] = proxied;
+
+        return proxied;
+    }
+
+    trackAsReadonlyDeep<TModel extends object>(model: TModel): ReadonlyDeep<TModel> {
+        return this.track(model);
+    }
+    
     subscribe(callback: Subscriber) {
         this.#subscribers.add(callback);
         return { dispose: () => this.#subscribers.delete(callback) };
@@ -263,4 +284,10 @@ export class Tracker {
             this.#gettingPropRef = false;
         }
     }
+}
+
+export const defaultTracker: Tracker = new Tracker;
+
+export function track<TModel extends object>(model: TModel): TModel {
+    return defaultTracker.track(model);
 }

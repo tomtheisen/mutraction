@@ -1,6 +1,6 @@
 import { RecordDependency, RecordMutation } from "./symbols.js";
 import { DependencyList } from "./dependency.js";
-import type { Mutation, SingleMutation, Transaction } from "./types.js";
+import type { Mutation, ReadonlyDeep, SingleMutation, Transaction } from "./types.js";
 import { PropReference } from "./propref.js";
 type Subscriber = (mutation: SingleMutation | undefined) => void;
 declare const defaultTrackerOptions: {
@@ -14,6 +14,8 @@ export declare class Tracker {
     #private;
     options: Readonly<Required<TrackerOptions>>;
     constructor(options?: TrackerOptions);
+    track<TModel extends object>(model: TModel): TModel;
+    trackAsReadonlyDeep<TModel extends object>(model: TModel): ReadonlyDeep<TModel>;
     subscribe(callback: Subscriber): {
         dispose: () => boolean;
     };
@@ -51,4 +53,6 @@ export declare class Tracker {
      */
     getPropRef<T>(propGetter: () => T): PropReference<T>;
 }
+export declare const defaultTracker: Tracker;
+export declare function track<TModel extends object>(model: TModel): TModel;
 export {};

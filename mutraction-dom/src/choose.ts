@@ -1,6 +1,7 @@
+import { effect } from "./effect.js";
 import { getMarker } from "./getMarker.js";
 import { memoize } from "./memoize.js";
-import { effectOrDo } from "./runtime.trackers.js";
+import { defaultTracker } from "./tracker.js";
 
 type ConditionalElement = {
     nodeGetter: () => CharacterData;
@@ -32,7 +33,7 @@ export function choose(...choices: ConditionalElement[]): Node {
     }
 
     let current: ChildNode = getMarker("choice-placeholder");
-    effectOrDo(() => {
+    effect(defaultTracker, () => {
         for (const { nodeGetter, conditionGetter } of choices) {
             if (!conditionGetter || conditionGetter()) {
                 const newNode = nodeGetter();

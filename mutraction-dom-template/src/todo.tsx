@@ -1,10 +1,10 @@
-import { effect, track, ForEachPersist } from "mutraction-dom";
+import { defaultTracker, effect, track, ForEachPersist } from "mutraction-dom";
 
 type TodoItem = ReturnType<typeof makeItem>;
 function makeItem(title: string) {
     return { title, done: false, editing: false };
 }
-const [model, tracker] = track({
+const model = track({
     newItemTitle: "",
     items: [] as TodoItem[],
 });
@@ -14,7 +14,7 @@ function remove(item: TodoItem) {
 }
 function itemRender(item: TodoItem) {
     const editor = document.createElement("input");
-    effect(tracker, () => { editor.value = item.title; });
+    effect(defaultTracker, () => { editor.value = item.title; });
 
     return <>
         <li mu:if={!item.editing}>
@@ -41,7 +41,7 @@ function sort() {
     model.items.sort((a, b) => Number(a.done) - Number(b.done));
 }
 export const todoApp = (
-    <div mu:tracker={tracker}>
+    <div>
         <h1 title={model.newItemTitle}>To-do</h1>
         <button onclick={sort}>Sort by unfinished</button>
         <ul>

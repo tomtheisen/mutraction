@@ -1,5 +1,3 @@
-import { Tracker, TrackerOptions } from "./tracker.js";
-import type { ReadonlyDeep } from "./types.js";
+import { Tracker } from "./tracker.js";
+export declare function makeProxyHandler<TModel extends object>(model: TModel, tracker: Tracker): ProxyHandler<TModel>;
 export declare function isTracked(obj: object): boolean;
-export declare function track<TModel extends object>(model: TModel, options?: TrackerOptions): [TModel, Tracker];
-export declare const trackAsReadonlyDeep: <TModel extends object>(model: TModel, options?: TrackerOptions) => [ReadonlyDeep<TModel>, Tracker];

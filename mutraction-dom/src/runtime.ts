@@ -1,19 +1,25 @@
 import { effect } from "./effect.js"
 import { getMarker } from './getMarker.js';
 import { ElementSpan } from './elementSpan.js';
-import { trackers, effectOrDo } from "./runtime.trackers.js";
+import { defaultTracker } from "./tracker.js";
+import { DependencyList } from "./dependency.js";
+
+const suppress = { suppressUntrackedWarning: true };
+function effectDefault(sideEffect: (dep: DependencyList) => (void | (() => void))) {
+    effect(defaultTracker, sideEffect, suppress);
+}
 
 export function ForEach<TIn, TOut extends Node>(array: TIn[], map: (e: TIn) => TOut): Node {
     const result = new ElementSpan();
     const containers: ElementSpan[] = [];
 
-    effectOrDo(lengthDep => {
+    effectDefault(lengthDep => {
         // i is scoped to each loop body invocation
         for (let i = containers.length; i < array.length; i++) {
             const container = new ElementSpan();
             containers.push(container);
 
-            effectOrDo(itemDep => {
+            effectDefault(itemDep => {
                 const newNode = map(array[i]);
                 container.replaceWith(newNode);
             });
@@ -34,13 +40,13 @@ export function ForEachPersist<TIn extends object>(array: TIn[], map: (e: TIn) =
     const containers: ElementSpan[] = [];
     const outputMap = new WeakMap<TIn, HTMLElement | ElementSpan>;
 
-    effectOrDo(() => {
+    effectDefault(() => {
         // i is scoped to each loop body invocation
         for (let i = containers.length; i < array.length; i++) {
             const container = new ElementSpan();
             containers.push(container);
 
-            effectOrDo((dep) => {
+            effectDefault((dep) => {
                 // this is wild - just keep the contents together with a parent somewhere
                 container.emptyAsFragment();
 
@@ -123,27 +129,20 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 
     let blank: Text | undefined = undefined; // for mu:if
     for (let [name, getter] of Object.entries(dynamicAttrs ?? {})) {
-        const tracker = trackers[0];
-        if (!tracker) throw Error("Cannot apply dynamic properties without scoped tracker");
-
         switch (name) {
             case "style":
-                effect(tracker, () => { 
-                    Object.assign(el.style, getter());
-                }, { suppressUntrackedWarning: true });
+                effectDefault(() => { Object.assign(el.style, getter()); });
                 break;
 
             case "classList":
-                effect(tracker, () => { 
+                effectDefault(() => { 
                     const classMap = getter() as Record<string, boolean>;
                     for (const e of Object.entries(classMap)) el.classList.toggle(...e);
-                }, { suppressUntrackedWarning: true });
+                });
                 break;
 
             default:
-                effect(tracker, () => { 
-                    (el as any)[name] = getter();                
-                }, { suppressUntrackedWarning: true });
+                effectDefault(() => { (el as any)[name] = getter(); });
                 break;
         }
     }
@@ -156,18 +155,12 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 export function child(getter: () => number | string | bigint | null | undefined | HTMLElement | Text): ChildNode {
     const result = getter();
     if (result instanceof Node) return result;
-    const tracker = trackers[0];
     
-    if (tracker) {
-        let node = getMarker("placeholder");
-        effect(tracker, () => {
-            const newNode = document.createTextNode(String(getter() ?? ""));
-            node.replaceWith(newNode);
-            node = newNode;
-        }, { suppressUntrackedWarning: true });
-        return node;
-    }
-    else {
-        return document.createTextNode(String(getter() ?? ""));
-    }
+    let node = getMarker("placeholder");
+    effectDefault(() => {
+        const newNode = document.createTextNode(String(getter() ?? ""));
+        node.replaceWith(newNode);
+        node = newNode;
+    });
+    return node;
 }

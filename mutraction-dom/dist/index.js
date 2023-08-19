@@ -99,209 +99,168 @@ var ElementSpan = class _ElementSpan {
   }
 };
 
-// out/runtime.trackers.js
-var trackers = [];
-function setTracker(newTracker) {
-  if (trackers.length)
-    throw Error("Nested dom tracking is not supported. Apply the tracker attribute at the top level of your application.");
-  trackers.unshift(newTracker);
-}
-function clearTracker() {
-  if (trackers.length === 0)
-    throw Error("No tracker to clear");
-  if (trackers.length > 1)
-    throw Error("Internal error: too many trackers");
-  trackers.unshift();
-}
-function effectOrDo(sideEffect) {
-  const originalTracker = trackers[0];
-  if (originalTracker) {
-    let scopedEffect2 = function(dep) {
-      trackers.unshift(originalTracker);
-      sideEffect(dep);
-      trackers.shift();
-    };
-    var scopedEffect = scopedEffect2;
-    effect(originalTracker, scopedEffect2, { suppressUntrackedWarning: true });
-  } else {
-    sideEffect();
-  }
-}
-
-// out/runtime.js
-function ForEach(array, map) {
-  const result = new ElementSpan();
-  const containers = [];
-  effectOrDo((lengthDep) => {
-    for (let i = containers.length; i < array.length; i++) {
-      const container = new ElementSpan();
-      containers.push(container);
-      effectOrDo((itemDep) => {
-        const newNode = map(array[i]);
-        container.replaceWith(newNode);
-      });
-      result.append(container.removeAsFragment());
-    }
-    while (containers.length > array.length) {
-      containers.pop().removeAsFragment();
-    }
-  });
-  return result.removeAsFragment();
-}
-function ForEachPersist(array, map) {
-  const result = new ElementSpan();
-  const containers = [];
-  const outputMap = /* @__PURE__ */ new WeakMap();
-  effectOrDo(() => {
-    for (let i = containers.length; i < array.length; i++) {
-      const container = new ElementSpan();
-      containers.push(container);
-      effectOrDo((dep) => {
-        container.emptyAsFragment();
-        const item = array[i];
-        if (item == null)
-          return;
-        if (typeof item !== "object")
-          throw Error("Elements must be object in ForEachPersist");
-        let newContents = outputMap.get(item);
-        if (newContents == null) {
-          if (dep)
-            dep.active = false;
-          let newNode = map(item);
-          newContents = newNode instanceof HTMLElement ? newNode : new ElementSpan(newNode);
-          outputMap.set(item, newContents);
-          if (dep)
-            dep.active = true;
-        }
-        if (newContents instanceof HTMLElement) {
-          container.replaceWith(newContents);
-        } else {
-          container.replaceWith(newContents.removeAsFragment());
-        }
-      });
-      result.append(container.removeAsFragment());
-    }
-    while (containers.length > array.length) {
-      containers.pop().removeAsFragment();
-    }
-  });
-  return result.removeAsFragment();
-}
-function element(name, staticAttrs, dynamicAttrs, ...children) {
-  const el = document.createElement(name);
-  for (let [name2, value] of Object.entries(staticAttrs ?? {})) {
-    switch (name2) {
-      case "style":
-        Object.assign(el.style, value);
-        break;
-      case "classList":
-        const classMap = value;
-        for (const e of Object.entries(classMap))
-          el.classList.toggle(...e);
-        break;
-      default:
-        el[name2] = value;
-        break;
-    }
-  }
-  let blank = void 0;
-  for (let [name2, getter] of Object.entries(dynamicAttrs ?? {})) {
-    const tracker = trackers[0];
-    if (!tracker)
-      throw Error("Cannot apply dynamic properties without scoped tracker");
-    switch (name2) {
-      case "style":
-        effect(tracker, () => {
-          Object.assign(el.style, getter());
-        }, { suppressUntrackedWarning: true });
-        break;
-      case "classList":
-        effect(tracker, () => {
-          const classMap = getter();
-          for (const e of Object.entries(classMap))
-            el.classList.toggle(...e);
-        }, { suppressUntrackedWarning: true });
-        break;
-      default:
-        effect(tracker, () => {
-          el[name2] = getter();
-        }, { suppressUntrackedWarning: true });
-        break;
-    }
-  }
-  el.append(...children);
-  return blank ?? el;
-}
-function child(getter) {
-  const result = getter();
-  if (result instanceof Node)
-    return result;
-  const tracker = trackers[0];
-  if (tracker) {
-    let node = getMarker("placeholder");
-    effect(tracker, () => {
-      const newNode = document.createTextNode(String(getter() ?? ""));
-      node.replaceWith(newNode);
-      node = newNode;
-    }, { suppressUntrackedWarning: true });
-    return node;
-  } else {
-    return document.createTextNode(String(getter() ?? ""));
-  }
-}
-
-// out/memoize.js
-function memoize(getter) {
-  let isResolved = false;
-  let value = void 0;
-  function resolveLazy() {
-    return isResolved ? value : (isResolved = true, value = getter());
-  }
-  return resolveLazy;
-}
-
-// out/choose.js
-function choose(...choices) {
-  const lazyChoices = [];
-  let foundUnconditional = false;
-  for (const choice of choices) {
-    if ("conditionGetter" in choice) {
-      lazyChoices.push({
-        nodeGetter: memoize(choice.nodeGetter),
-        conditionGetter: choice.conditionGetter
-      });
-    } else {
-      lazyChoices.push({
-        nodeGetter: memoize(choice.nodeGetter)
-      });
-      foundUnconditional = true;
-      break;
-    }
-  }
-  if (!foundUnconditional) {
-    const empty = getMarker("if:anti-consequent");
-    lazyChoices.push({ nodeGetter: () => empty });
-  }
-  let current = getMarker("choice-placeholder");
-  effectOrDo(() => {
-    for (const { nodeGetter, conditionGetter } of choices) {
-      if (!conditionGetter || conditionGetter()) {
-        const newNode = nodeGetter();
-        current.replaceWith(newNode);
-        current = newNode;
-        break;
-      }
-    }
-  });
-  return current;
-}
-
 // out/symbols.js
 var RecordMutation = Symbol("RecordMutation");
 var TrackerOf = Symbol("TrackerOf");
 var ProxyOf = Symbol("ProxyOf");
 var RecordDependency = Symbol("RecordDependency");
 var GetOriginal = Symbol("GetOriginal");
+
+// out/proxy.js
+var mutatingArrayMethods = ["copyWithin", "fill", "pop", "push", "reverse", "shift", "sort", "splice", "unshift"];
+function isArrayLength(value) {
+  if (typeof value === "string")
+    return isArrayIndex(value);
+  return typeof value === "number" && (value & 2147483647) === value;
+}
+function isArrayIndex(name) {
+  if (typeof name !== "string")
+    return false;
+  if (!/^\d{1,10}$/.test(name))
+    return false;
+  return parseInt(name, 10) < 2147483647;
+}
+function isArguments(item) {
+  return Object.prototype.toString.call(item) === "[object Arguments]";
+}
+function linkProxyToObject(obj, proxy) {
+  Object.defineProperty(obj, ProxyOf, {
+    enumerable: false,
+    writable: true,
+    configurable: false
+  });
+  obj[ProxyOf] = proxy;
+}
+function makeProxyHandler(model, tracker) {
+  function getOrdinary(target, name, receiver) {
+    if (name === TrackerOf)
+      return tracker;
+    if (name === GetOriginal)
+      return target;
+    tracker[RecordDependency](createOrRetrievePropRef(target, name));
+    let result = Reflect.get(target, name, receiver);
+    if (typeof result === "object" && !isTracked(result)) {
+      const original = result;
+      const handler = makeProxyHandler(original, tracker);
+      result = target[name] = new Proxy(original, handler);
+      linkProxyToObject(original, result);
+    }
+    if (typeof result === "function" && tracker.options.autoTransactionalize && name !== "constructor") {
+      let proxyWrapped2 = function() {
+        const autoTransaction = tracker.startTransaction(original.name ?? "auto");
+        try {
+          const result2 = original.apply(receiver, arguments);
+          if (autoTransaction.operations.length > 0) {
+            tracker.commit(autoTransaction);
+          } else {
+            tracker.rollback(autoTransaction);
+          }
+          return result2;
+        } catch (er) {
+          tracker.rollback(autoTransaction);
+          throw er;
+        }
+      };
+      var proxyWrapped = proxyWrapped2;
+      const original = result;
+      return proxyWrapped2;
+    }
+    return result;
+  }
+  function getArrayTransactionShim(target, name, receiver) {
+    if (typeof name === "string" && mutatingArrayMethods.includes(name)) {
+      let proxyWrapped2 = function() {
+        const arrayTransaction = tracker.startTransaction(String(name));
+        const arrayResult = arrayFunction.apply(receiver, arguments);
+        tracker.commit(arrayTransaction);
+        return arrayResult;
+      };
+      var proxyWrapped = proxyWrapped2;
+      const arrayFunction = target[name];
+      return proxyWrapped2;
+    } else {
+      return getOrdinary(target, name, receiver);
+    }
+  }
+  let setsCompleted = 0;
+  function setOrdinary(target, name, newValue, receiver) {
+    if (typeof newValue === "object" && !newValue[TrackerOf]) {
+      const handler = makeProxyHandler(newValue, tracker);
+      newValue = new Proxy(newValue, handler);
+    }
+    const mutation = name in target ? { type: "change", target, name, oldValue: model[name], newValue } : { type: "create", target, name, newValue };
+    const initialSets = setsCompleted;
+    const wasSet = Reflect.set(target, name, newValue, receiver);
+    if (wasSet && initialSets == setsCompleted++) {
+      tracker[RecordMutation](mutation);
+    }
+    return wasSet;
+  }
+  function setArray(target, name, newValue, receiver) {
+    if (!Array.isArray(target)) {
+      throw Error("This object used to be an array.  Expected an array.");
+    }
+    if (name === "length") {
+      if (!isArrayLength(newValue))
+        target.length = newValue;
+      const oldLength = target.length;
+      const newLength = parseInt(newValue, 10);
+      if (newLength < oldLength) {
+        const removed = Object.freeze(target.slice(newLength, oldLength));
+        const shorten = {
+          type: "arrayshorten",
+          target,
+          name,
+          oldLength,
+          newLength,
+          removed
+        };
+        const wasSet = Reflect.set(target, name, newValue, receiver);
+        tracker[RecordMutation](shorten);
+        ++setsCompleted;
+        return wasSet;
+      }
+    }
+    if (isArrayIndex(name)) {
+      const index = parseInt(name, 10);
+      if (index >= target.length) {
+        const extension = {
+          type: "arrayextend",
+          target,
+          name,
+          oldLength: target.length,
+          newIndex: index,
+          newValue
+        };
+        const wasSet = Reflect.set(target, name, newValue, receiver);
+        tracker[RecordMutation](extension);
+        ++setsCompleted;
+        return wasSet;
+      }
+    }
+    return setOrdinary(target, name, newValue, receiver);
+  }
+  function deleteProperty(target, name) {
+    const mutation = { type: "delete", target, name, oldValue: model[name] };
+    const wasDeleted = Reflect.deleteProperty(target, name);
+    if (wasDeleted) {
+      tracker[RecordMutation](mutation);
+    }
+    return wasDeleted;
+  }
+  let set = setOrdinary, get = getOrdinary;
+  if (Array.isArray(model)) {
+    set = setArray;
+    if (tracker.options.trackHistory)
+      get = getArrayTransactionShim;
+  }
+  if (isArguments(model))
+    throw Error("Tracking of exotic arguments objects not supported");
+  return { get, set, deleteProperty };
+}
+function isTracked(obj) {
+  return typeof obj === "object" && !!obj[TrackerOf];
+}
 
 // out/propref.js
 var PropReference = class {
@@ -451,6 +410,23 @@ var Tracker = class {
       this.#rootTransaction = this.#transaction = { type: "transaction", operations: [] };
     }
     this.options = Object.freeze(appliedOptions);
+  }
+  // turn on change tracking
+  // returns a proxied model object, and tracker to control history
+  track(model) {
+    if (isTracked(model))
+      throw Error("Object already tracked");
+    const proxied = new Proxy(model, makeProxyHandler(model, this));
+    Object.defineProperty(model, ProxyOf, {
+      enumerable: false,
+      writable: true,
+      configurable: false
+    });
+    model[ProxyOf] = proxied;
+    return proxied;
+  }
+  trackAsReadonlyDeep(model) {
+    return this.track(model);
   }
   subscribe(callback) {
     this.#subscribers.add(callback);
@@ -656,171 +632,174 @@ var Tracker = class {
     }
   }
 };
+var defaultTracker = new Tracker();
+function track(model) {
+  return defaultTracker.track(model);
+}
 
-// out/proxy.js
-var mutatingArrayMethods = ["copyWithin", "fill", "pop", "push", "reverse", "shift", "sort", "splice", "unshift"];
-function isArrayLength(value) {
-  if (typeof value === "string")
-    return isArrayIndex(value);
-  return typeof value === "number" && (value & 2147483647) === value;
+// out/runtime.js
+var suppress = { suppressUntrackedWarning: true };
+function effectDefault(sideEffect) {
+  effect(defaultTracker, sideEffect, suppress);
 }
-function isArrayIndex(name) {
-  if (typeof name !== "string")
-    return false;
-  if (!/^\d{1,10}$/.test(name))
-    return false;
-  return parseInt(name, 10) < 2147483647;
-}
-function isArguments(item) {
-  return Object.prototype.toString.call(item) === "[object Arguments]";
-}
-function linkProxyToObject(obj, proxy) {
-  Object.defineProperty(obj, ProxyOf, {
-    enumerable: false,
-    writable: true,
-    configurable: false
+function ForEach(array, map) {
+  const result = new ElementSpan();
+  const containers = [];
+  effectDefault((lengthDep) => {
+    for (let i = containers.length; i < array.length; i++) {
+      const container = new ElementSpan();
+      containers.push(container);
+      effectDefault((itemDep) => {
+        const newNode = map(array[i]);
+        container.replaceWith(newNode);
+      });
+      result.append(container.removeAsFragment());
+    }
+    while (containers.length > array.length) {
+      containers.pop().removeAsFragment();
+    }
   });
-  obj[ProxyOf] = proxy;
+  return result.removeAsFragment();
 }
-function makeProxyHandler(model, tracker) {
-  function getOrdinary(target, name, receiver) {
-    if (name === TrackerOf)
-      return tracker;
-    if (name === GetOriginal)
-      return target;
-    tracker[RecordDependency](createOrRetrievePropRef(target, name));
-    let result = Reflect.get(target, name, receiver);
-    if (typeof result === "object" && !isTracked(result)) {
-      const original = result;
-      const handler = makeProxyHandler(original, tracker);
-      result = target[name] = new Proxy(original, handler);
-      linkProxyToObject(original, result);
-    }
-    if (typeof result === "function" && tracker.options.autoTransactionalize && name !== "constructor") {
-      let proxyWrapped2 = function() {
-        const autoTransaction = tracker.startTransaction(original.name ?? "auto");
-        try {
-          const result2 = original.apply(receiver, arguments);
-          if (autoTransaction.operations.length > 0) {
-            tracker.commit(autoTransaction);
-          } else {
-            tracker.rollback(autoTransaction);
-          }
-          return result2;
-        } catch (er) {
-          tracker.rollback(autoTransaction);
-          throw er;
+function ForEachPersist(array, map) {
+  const result = new ElementSpan();
+  const containers = [];
+  const outputMap = /* @__PURE__ */ new WeakMap();
+  effectDefault(() => {
+    for (let i = containers.length; i < array.length; i++) {
+      const container = new ElementSpan();
+      containers.push(container);
+      effectDefault((dep) => {
+        container.emptyAsFragment();
+        const item = array[i];
+        if (item == null)
+          return;
+        if (typeof item !== "object")
+          throw Error("Elements must be object in ForEachPersist");
+        let newContents = outputMap.get(item);
+        if (newContents == null) {
+          if (dep)
+            dep.active = false;
+          let newNode = map(item);
+          newContents = newNode instanceof HTMLElement ? newNode : new ElementSpan(newNode);
+          outputMap.set(item, newContents);
+          if (dep)
+            dep.active = true;
         }
-      };
-      var proxyWrapped = proxyWrapped2;
-      const original = result;
-      return proxyWrapped2;
+        if (newContents instanceof HTMLElement) {
+          container.replaceWith(newContents);
+        } else {
+          container.replaceWith(newContents.removeAsFragment());
+        }
+      });
+      result.append(container.removeAsFragment());
     }
+    while (containers.length > array.length) {
+      containers.pop().removeAsFragment();
+    }
+  });
+  return result.removeAsFragment();
+}
+function element(name, staticAttrs, dynamicAttrs, ...children) {
+  const el = document.createElement(name);
+  for (let [name2, value] of Object.entries(staticAttrs ?? {})) {
+    switch (name2) {
+      case "style":
+        Object.assign(el.style, value);
+        break;
+      case "classList":
+        const classMap = value;
+        for (const e of Object.entries(classMap))
+          el.classList.toggle(...e);
+        break;
+      default:
+        el[name2] = value;
+        break;
+    }
+  }
+  let blank = void 0;
+  for (let [name2, getter] of Object.entries(dynamicAttrs ?? {})) {
+    switch (name2) {
+      case "style":
+        effectDefault(() => {
+          Object.assign(el.style, getter());
+        });
+        break;
+      case "classList":
+        effectDefault(() => {
+          const classMap = getter();
+          for (const e of Object.entries(classMap))
+            el.classList.toggle(...e);
+        });
+        break;
+      default:
+        effectDefault(() => {
+          el[name2] = getter();
+        });
+        break;
+    }
+  }
+  el.append(...children);
+  return blank ?? el;
+}
+function child(getter) {
+  const result = getter();
+  if (result instanceof Node)
     return result;
+  let node = getMarker("placeholder");
+  effectDefault(() => {
+    const newNode = document.createTextNode(String(getter() ?? ""));
+    node.replaceWith(newNode);
+    node = newNode;
+  });
+  return node;
+}
+
+// out/memoize.js
+function memoize(getter) {
+  let isResolved = false;
+  let value = void 0;
+  function resolveLazy() {
+    return isResolved ? value : (isResolved = true, value = getter());
   }
-  function getArrayTransactionShim(target, name, receiver) {
-    if (typeof name === "string" && mutatingArrayMethods.includes(name)) {
-      let proxyWrapped2 = function() {
-        const arrayTransaction = tracker.startTransaction(String(name));
-        const arrayResult = arrayFunction.apply(receiver, arguments);
-        tracker.commit(arrayTransaction);
-        return arrayResult;
-      };
-      var proxyWrapped = proxyWrapped2;
-      const arrayFunction = target[name];
-      return proxyWrapped2;
+  return resolveLazy;
+}
+
+// out/choose.js
+function choose(...choices) {
+  const lazyChoices = [];
+  let foundUnconditional = false;
+  for (const choice of choices) {
+    if ("conditionGetter" in choice) {
+      lazyChoices.push({
+        nodeGetter: memoize(choice.nodeGetter),
+        conditionGetter: choice.conditionGetter
+      });
     } else {
-      return getOrdinary(target, name, receiver);
+      lazyChoices.push({
+        nodeGetter: memoize(choice.nodeGetter)
+      });
+      foundUnconditional = true;
+      break;
     }
   }
-  let setsCompleted = 0;
-  function setOrdinary(target, name, newValue, receiver) {
-    if (typeof newValue === "object" && !newValue[TrackerOf]) {
-      const handler = makeProxyHandler(newValue, tracker);
-      newValue = new Proxy(newValue, handler);
-    }
-    const mutation = name in target ? { type: "change", target, name, oldValue: model[name], newValue } : { type: "create", target, name, newValue };
-    const initialSets = setsCompleted;
-    const wasSet = Reflect.set(target, name, newValue, receiver);
-    if (wasSet && initialSets == setsCompleted++) {
-      tracker[RecordMutation](mutation);
-    }
-    return wasSet;
+  if (!foundUnconditional) {
+    const empty = getMarker("if:anti-consequent");
+    lazyChoices.push({ nodeGetter: () => empty });
   }
-  function setArray(target, name, newValue, receiver) {
-    if (!Array.isArray(target)) {
-      throw Error("This object used to be an array.  Expected an array.");
-    }
-    if (name === "length") {
-      if (!isArrayLength(newValue))
-        target.length = newValue;
-      const oldLength = target.length;
-      const newLength = parseInt(newValue, 10);
-      if (newLength < oldLength) {
-        const removed = Object.freeze(target.slice(newLength, oldLength));
-        const shorten = {
-          type: "arrayshorten",
-          target,
-          name,
-          oldLength,
-          newLength,
-          removed
-        };
-        const wasSet = Reflect.set(target, name, newValue, receiver);
-        tracker[RecordMutation](shorten);
-        ++setsCompleted;
-        return wasSet;
+  let current = getMarker("choice-placeholder");
+  effect(defaultTracker, () => {
+    for (const { nodeGetter, conditionGetter } of choices) {
+      if (!conditionGetter || conditionGetter()) {
+        const newNode = nodeGetter();
+        current.replaceWith(newNode);
+        current = newNode;
+        break;
       }
     }
-    if (isArrayIndex(name)) {
-      const index = parseInt(name, 10);
-      if (index >= target.length) {
-        const extension = {
-          type: "arrayextend",
-          target,
-          name,
-          oldLength: target.length,
-          newIndex: index,
-          newValue
-        };
-        const wasSet = Reflect.set(target, name, newValue, receiver);
-        tracker[RecordMutation](extension);
-        ++setsCompleted;
-        return wasSet;
-      }
-    }
-    return setOrdinary(target, name, newValue, receiver);
-  }
-  function deleteProperty(target, name) {
-    const mutation = { type: "delete", target, name, oldValue: model[name] };
-    const wasDeleted = Reflect.deleteProperty(target, name);
-    if (wasDeleted) {
-      tracker[RecordMutation](mutation);
-    }
-    return wasDeleted;
-  }
-  let set = setOrdinary, get = getOrdinary;
-  if (Array.isArray(model)) {
-    set = setArray;
-    if (tracker.options.trackHistory)
-      get = getArrayTransactionShim;
-  }
-  if (isArguments(model))
-    throw Error("Tracking of exotic arguments objects not supported");
-  return { get, set, deleteProperty };
+  });
+  return current;
 }
-function isTracked(obj) {
-  return typeof obj === "object" && !!obj[TrackerOf];
-}
-function track(model, options) {
-  if (isTracked(model))
-    throw Error("Object already tracked");
-  const tracker = new Tracker(options);
-  const proxied = new Proxy(model, makeProxyHandler(model, tracker));
-  linkProxyToObject(model, proxied);
-  return [proxied, tracker];
-}
-var trackAsReadonlyDeep = track;
 
 // out/router.js
 function Router(...routes) {
@@ -854,12 +833,10 @@ export {
   Tracker,
   child,
   choose,
-  clearTracker,
   createOrRetrievePropRef,
+  defaultTracker,
   effect,
   element,
   isTracked,
-  setTracker,
-  track,
-  trackAsReadonlyDeep
+  track
 };

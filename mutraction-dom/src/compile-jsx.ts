@@ -72,8 +72,6 @@ type MuContext = {
     elementFnName: string;
     childFnName: string;
     chooseFnName: string;
-    setTrackerFnName: string;
-    clearTrackerFnName: string;
 }
 
 function isProgram(path: B.NodePath | null): path is B.NodePath<BT.Program> {
@@ -95,8 +93,6 @@ function ensureImportsCreated(path: B.NodePath) {
     const elementFnName = programPath.scope.generateUid("mu_element");
     const childFnName = programPath.scope.generateUid("mu_child");
     const chooseFnName = programPath.scope.generateUid("mu_choose");
-    const setTrackerFnName = programPath.scope.generateUid("mu_setTracker");
-    const clearTrackerFnName = programPath.scope.generateUid("mu_clearTracker");
 
     programPath.node.body.unshift(
         t.importDeclaration(
@@ -104,14 +100,12 @@ function ensureImportsCreated(path: B.NodePath) {
                 t.importSpecifier(t.identifier(elementFnName), t.identifier("element")),
                 t.importSpecifier(t.identifier(childFnName), t.identifier("child")),
                 t.importSpecifier(t.identifier(chooseFnName), t.identifier("choose")),
-                t.importSpecifier(t.identifier(setTrackerFnName), t.identifier("setTracker")),
-                t.importSpecifier(t.identifier(clearTrackerFnName), t.identifier("clearTracker")),
             ],
             t.stringLiteral("mutraction-dom")
         )
     );
 
-    return _ctx = { elementFnName, childFnName, chooseFnName, setTrackerFnName, clearTrackerFnName };
+    return _ctx = { elementFnName, childFnName, chooseFnName };
 }
 
 function isMutractionNamespace(ns: BT.JSXIdentifier): boolean {
@@ -129,7 +123,6 @@ function JSXElement_exit(this: B.PluginPass, path: B.NodePath<BT.JSXElement>) {
     if (name.type === "JSXNamespacedName")
         throw path.buildCodeFrameError("JSXNamespacedName JSX element type is not supported");
 
-    let trackerExpression: BT.Expression | undefined = undefined;
     let ifExpression: BT.Expression | undefined = undefined;
     let hasElse = false;
 
@@ -149,15 +142,6 @@ function JSXElement_exit(this: B.PluginPass, path: B.NodePath<BT.JSXElement>) {
                             throw path.buildCodeFrameError(`Unsupported namespace ${ name.namespace.name } in JSX attribute`);
                         
                         switch (name.name.name) { // lol babel
-                            case "tracker":
-                                if (value?.type !== "JSXExpressionContainer")
-                                throw path.buildCodeFrameError(`Expression value expected for '${name.name.name}'`);
-            
-                                if (value.expression.type !== "JSXEmptyExpression") {
-                                    trackerExpression = value.expression;
-                                }                                
-                                break;
-
                             case "if":
                                 if (value?.type !== "JSXExpressionContainer") 
                                     throw path.buildCodeFrameError(`Expression value expected for '${ name.name.name }'`);
@@ -293,22 +277,7 @@ function JSXElement_exit(this: B.PluginPass, path: B.NodePath<BT.JSXElement>) {
         activeChooseForJsxParent.set(path.parent, renderFunc);
     }
 
-    if (trackerExpression) {
-        // e.g. [setTracker(...), element(...), clearTracker()][1]
-        const trackedRoot =  t.memberExpression(
-            t.arrayExpression([
-                t.callExpression(t.identifier(ctx.setTrackerFnName), [trackerExpression]),
-                renderFunc,
-                t.callExpression(t.identifier(ctx.clearTrackerFnName), [])
-            ]),
-            t.numericLiteral(1),
-            true /* computed */
-        );
-        path.replaceWith(trackedRoot);
-    }
-    else {
-        path.replaceWith(renderFunc);
-    }
+    path.replaceWith(renderFunc);
 }
 
 function JSXFragment_exit(path: B.NodePath<BT.JSXFragment>) {

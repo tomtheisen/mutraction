@@ -16,7 +16,6 @@ export namespace JSX {
     & {
         "mu:if"?: boolean;
         "mu:else"?: boolean;
-        "mu:tracker"?: Tracker;
     };
 
     export type IntrinsicElements = {
