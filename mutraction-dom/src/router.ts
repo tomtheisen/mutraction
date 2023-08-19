@@ -1,4 +1,4 @@
-import { ElementSpan } from './ElementSpanx.js';
+import { ElementSpan } from './elementSpan.js';
 
 type Route = {
     pattern: RegExp;
