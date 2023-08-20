@@ -1,4 +1,4 @@
-import { Tracker, TrackerOptions } from "./tracker.js";
+import { Tracker } from "./tracker.js";
 import { TrackerOf, RecordDependency, RecordMutation, ProxyOf, GetOriginal } from "./symbols.js";
 import type { ArrayExtend, ArrayShorten, DeleteProperty, Key, ReadonlyDeep, SingleMutation } from "./types.js";
 import { createOrRetrievePropRef } from "./propref.js";

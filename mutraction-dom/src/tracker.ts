@@ -224,7 +224,14 @@ export class Tracker {
         this.#transaction?.operations.push(Object.freeze(mutation));
 
         this.clearRedos();
+
+        // notify granular prop subscribers
         createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
+        if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
+            createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
+        }
+
+        // notify history subcribers
         this.#notifySubscribers(mutation);
 
         this.#historyPropRef?.notifySubscribers();
