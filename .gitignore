@@ -1,8 +1,9 @@
 node_modules
 **/out
-mutraction-dom-template/dist
 scratch.*
 *.js
 *.map
 !**/dist/*.js
-!**/dist/*.js.map
+
+mutraction-dom-template/dist
+mutraction-dom-docs/dist
