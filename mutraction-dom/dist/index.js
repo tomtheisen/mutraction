@@ -426,7 +426,7 @@ var Tracker = class {
         default:
           mutation;
       }
-      this.#notifySubscribers(mutation);
+      createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
     }
   }
   /** repeat last undone mutation  */
@@ -463,7 +463,7 @@ var Tracker = class {
         default:
           mutation;
       }
-      this.#notifySubscribers(mutation);
+      createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
     }
   }
   /** clear the redo stack */

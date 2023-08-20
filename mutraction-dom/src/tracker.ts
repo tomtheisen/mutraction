@@ -170,7 +170,7 @@ export class Tracker {
                 case 'arrayshorten': targetAny.push(...mutation.removed); break;
                 default: mutation satisfies never;
             }
-            this.#notifySubscribers(mutation);
+            createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
         }
     }
 
@@ -200,7 +200,7 @@ export class Tracker {
                 case 'arrayshorten': targetAny.length = mutation.newLength; break;
                 default: mutation satisfies never;
             }
-            this.#notifySubscribers(mutation);
+            createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
         }
     }
 

@@ -1,4 +1,4 @@
-import { track, defaultTracker as tracker, Tracker } from '../src/index.js';
+import { effect, track, defaultTracker as tracker, Tracker } from '../src/index.js';
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
@@ -32,8 +32,12 @@ test('array extend', () => {
 test('array shift rollback test', () => {
     const model = track(['a','b','c'] as any);
 
+    console.log("asrt 1");
+
     model.shift();
     assert.equal(model, ['b', 'c']);
+
+    console.log("asrt 2");
     
     tracker.rollback();
     assert.equal(model, ['a', 'b', 'c']);
@@ -124,6 +128,37 @@ test('callback immediate', () => {
     model.b = 2;
 
     assert.equal(callbacks, 2);
+});
+
+test('undo notifies', () => {
+    const tr = new Tracker();
+    const model = tr.track({ current: 0 });
+
+    let cached = -1;
+    effect(() => { cached = model.current; }, { tracker: tr });
+
+    model.current = 1;
+    model.current = 2;
+    assert.equal(cached, 2);
+
+    tr.undo();
+    assert.equal(cached, 1);
+});
+
+test('undo delete notifies', () => {
+    const tr = new Tracker();
+    const model = tr.track({ foo: 123 } as any);
+
+    let cached: any;
+    effect(() => { cached = model.foo; }, { tracker: tr });
+
+    assert.equal(cached, 123);
+
+    delete model.foo;
+    assert.equal(cached, undefined);
+
+    tr.undo();
+    assert.equal(cached, 123);
 });
 
 test.run();
