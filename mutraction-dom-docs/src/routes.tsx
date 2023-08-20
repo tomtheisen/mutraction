@@ -6,6 +6,7 @@ import { intro } from "./intro.js";
 import { notFound } from "./notFound.js";
 import { tracking } from "./tracking.js";
 import { jsx } from "./jsx.js";
+import { events } from "./events.js";
 
 export const routes = Router(
     { pattern: '#start', element: getStarted() },
@@ -13,6 +14,7 @@ export const routes = Router(
     { pattern: '#topics/tracking', element: tracking },
     { pattern: '#topics/jsx', element: jsx() },
     { pattern: '#topics/two-way', element: twoWay() },
+    { pattern: '#topics/events', element: events() },
 
     { pattern: /#id=(\d+)/, element: match => <>You can match: {match[1]}</> },
     { pattern: /#.+/, element: match => notFound(match[0]) },
