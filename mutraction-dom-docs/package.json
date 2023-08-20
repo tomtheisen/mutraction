@@ -1,0 +1,25 @@
+{
+  "name": "mutraction-dom-docs",
+  "type": "module",
+  "version": "0.14.1",
+  "description": "Documentation for mutraction-dom",
+  "main": "index.js",
+  "scripts": {
+    "build": "npx tsc && npm run transform && npm run bundle && npm run cleanout",
+    "transform": "npx babel out -d out2",
+    "bundle": "npx esbuild out2/index.js --bundle --format=esm --outfile=dist/index.js",
+    "cleanout": "rd /Q /S out && rd /Q /S out2"
+  },
+  "author": "Tom Theisen",
+  "license": "MIT",
+  "devDependencies": {
+    "@babel/cli": "^7.22.10",
+    "@babel/core": "^7.22.10",
+    "@babel/preset-env": "^7.22.10",
+    "esbuild": "^0.19.1",
+    "typescript": "^5.1.6"
+  },
+  "dependencies": {
+    "mutraction-dom": "^0.14.1"
+  }
+}
