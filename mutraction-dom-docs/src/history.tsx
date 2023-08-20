@@ -9,7 +9,7 @@ function ex1() {
             <p>The current value is { model.current }</p>
             <button onclick={ () => model.current += 1 }>+1</button>
             <button onclick={ () => model.current += 10 }>+10</button>
-            <button onclick={ () => defaultTracker.undo() } >Undo</button>
+            <button onclick={ () => defaultTracker.undo() }>Undo</button>
         </>
     );
 
@@ -38,11 +38,18 @@ export function history() {
                         <p>The current value is { model.current }</p>
                         <button onclick={ () => model.current += 1 }>+1</button>
                         <button onclick={ () => model.current += 10 }>+10</button>
-                        <button onclick={ () => defaultTracker.undo() } >Undo</button>
+                        <button onclick={ () => defaultTracker.undo() }>Undo</button>
                     </>
                 );
                 `, ex1()
             ) }
+
+            <h2>Transactions</h2>
+            <p>
+                It's possible to include several model mutations in a single atomic operation.
+                History manipulation will treat these as single operations.
+                This can be controlled using the <a href="#ref/Tracker"><code>Tracker</code> object</a>.
+            </p>
         </>
     )
 }

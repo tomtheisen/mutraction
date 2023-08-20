@@ -2,7 +2,7 @@ export const nav =
     <nav>
         <ul style={{ position: "sticky", top: "1em", paddingLeft: "0" }}>
             <li><a href="?">Introduction</a></li>
-            <li><a href="#tryit">Try it</a></li>
+            {/* <li><a href="#tryit">Try it</a></li> */}
             <li><a href="#start">Getting Started</a></li>
             <li>
                 <details open={true}>
@@ -13,11 +13,7 @@ export const nav =
                         <li><a href="#topics/events">Events</a></li>
                         <li><a href="#topics/two-way">Two-way binding</a></li>
                         <li><a href="#topics/history">Mutation history</a></li>
-                        <li><a href="#topics/history">Transactions</a></li>
-                        <li><a href="#topics/styles">Inline styles</a></li>
-                        <li><a href="#topics/classes">CSS classes</a></li>
-                        {/* <li><a href="#topics/deps">Dependencies</a></li>
-                        <li><a href="#topics/proprefs">Property references</a></li> */}
+                        <li><a href="#topics/styles">Styles and classes</a></li>
                     </ul>
                 </details>
             </li>
@@ -32,7 +28,6 @@ export const nav =
                         <li><a href="#ref/track">track</a></li>
                         <li><a href="#ref/effect">effect</a></li>
                         <li><a href="#ref/Router">Router</a></li>
-                        {/* <li><a href="#ref/">Property references</a></li> */}
                         <li><a href="#ref/Tracker">Tracker</a></li>
                     </ul>
                 </details>
