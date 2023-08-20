@@ -2,6 +2,7 @@
   "name": "mutraction-packages",
   "workspaces": [
     "mutraction-dom",
+    "mutraction-dom-docs",
     "mutraction-dom-template"
   ]
 }
