@@ -7,6 +7,7 @@ function ex1() {
     input.addEventListener("input", () => model.current = input.value );
     const app = (
         <>
+            {/* This is a comment */}
             { input }
             <p>The current value: { model.current }</p>
         </>
@@ -42,6 +43,22 @@ function ex3() {
     return app;
 }
 
+function ex4() {
+    const model = track({ items: [{ name: "bongo" }] });
+    function FC(item: typeof model.items[number]) {
+        return <>Name: { item.name }</>;
+    }
+
+    const app = (
+        <div>
+            <p>This is part of the outer component.</p>
+            { FC(model.items[0]) }
+        </div>
+    );
+
+    return app;
+}
+
 export function jsx() {
     return <>
         <h1>Mutraction JSX</h1>
@@ -58,6 +75,7 @@ export function jsx() {
             input.addEventListener("input", () => model.current = input.value );
             const app = (
                 <>
+                    {/* This is a comment */}
                     { input }
                     <p>The current value: { model.current }</p>
                 </>
@@ -128,5 +146,24 @@ export function jsx() {
         ) }
 
         <h2>Function components</h2>
+        <p>
+            There are none!  At least, there's no special syntax for these in JSX.
+            Since JSX elements evaluate to DOM elements, and JSX expression children can be DOM elements, there's no need for a special case.
+        </p>
+        { codeSample(`
+            const model = track({ items: [{ name: "bongo" }] });
+            
+            function FC(item: typeof model.items[number]) {
+                return <>Name: { item.name }</>;
+            }
+
+            const app = (
+                <div>
+                    <p>This is part of the outer component.</p>
+                    { FC(model.items[0]) }
+                </div>
+            );        
+            `, ex4()
+        ) }
     </>;
 }
