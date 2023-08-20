@@ -1,46 +1,45 @@
-const treads = 32;
-let stops = "";
+export function muLogo(size: number){
+    const treads = 32;
+    let stops = "";
 
-for (let i = 0; i < treads; i++) {
-  const color = i % 2 ? "#0000" : "#000";
-  stops += `\n , ${ color } ${ i / treads }turn, ${ color } ${ (i+1) / treads }turn`;
-}
+    for (let i = 0; i < treads; i++) {
+        const color = i % 2 ? "#0000" : "#000";
+        stops += `\n , ${ color } ${ i / treads }turn, ${ color } ${ (i+1) / treads }turn`;
+    }
 
-const styles = `
-  .tread {
-    display: inline-block;
-    width:200px;
-    height:200px;
-    border-radius:100%;
-    background: 
-      radial-gradient(#fff 40%, #000 41%, #000 63%, #0000 64%),
-      conic-gradient(from 90deg at 50% 50%
-      ${ stops }
+    const logoStyles: Partial<CSSStyleDeclaration> = {
+        position: "relative",
+        width: `${ size }px`,
+        height: `${ size }px`,
+        display: "inline-block",
+    };
+
+    const treadStyles: Partial<CSSStyleDeclaration> = {
+        position: "absolute",
+        display: "inline-block",
+        width: "100%",
+        height: "100%",
+        borderRadius: "100%",
+        background: `
+            radial-gradient(#fff 40%, #000 41%, #000 63%, #0000 64%),
+            conic-gradient(from 90deg at 50% 50%
+            ${ stops }`,
+        animation: "rotating 20s linear infinite",
+    };
+
+    const muStyles: Partial<CSSStyleDeclaration> = {
+        position: "relative",
+        left: "26%",
+        top: "41%",
+        color: "var(--primary-color)",
+        font: `italic bold ${ size * 0.8 }px "Calibri", "Arial", "Helvetica", sans-serif`,
+        lineHeight: "0",
+    };
+
+    return (
+        <div style={logoStyles}>
+            <div style={treadStyles}/>
+            <div className="primary" style={muStyles}>μ</div>
+        </div>
     );
-  }
-
-  .mu {
-    width: 100%;
-    height: 100%;
-    padding: 83px 52px;
-    color: #0256ff;
-    font: italic bold 1000% "Calibri", "Arial", "Helvetica", sans-serif;
-    line-height: 0;
-  }
-
-  @keyframes rotating {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-  .rotating         { animation: rotating 20s linear infinite; }
-  .rotating-reverse { animation: rotating 20s linear infinite reverse; }
-`;
-
-export const mu = <>
-    <div className="tread rotating">
-      <div className="mu rotating-reverse">μ</div>
-    </div>
-    <style>
-        {styles}
-    </style>
-</>;
+}
