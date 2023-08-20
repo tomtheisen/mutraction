@@ -12,13 +12,12 @@ export const nav =
                         <li><a href="#topics/jsx">JSX</a></li>
                         <li><a href="#topics/events">Events</a></li>
                         <li><a href="#topics/two-way">Two-way binding</a></li>
-                        <li><a href="#">Change history</a></li>
-                        <li><a href="#">Transactions</a></li>
-                        <li><a href="#">Components</a></li>
-                        <li><a href="#">Inline styles</a></li>
-                        <li><a href="#">CSS classes</a></li>
-                        <li><a href="#">Dependencies</a></li>
-                        <li><a href="#">Property references</a></li>
+                        <li><a href="#topics/history">Mutation history</a></li>
+                        <li><a href="#topics/history">Transactions</a></li>
+                        <li><a href="#topics/styles">Inline styles</a></li>
+                        <li><a href="#topics/classes">CSS classes</a></li>
+                        {/* <li><a href="#topics/deps">Dependencies</a></li>
+                        <li><a href="#topics/proprefs">Property references</a></li> */}
                     </ul>
                 </details>
             </li>
@@ -26,19 +25,19 @@ export const nav =
                 <details open={true}>
                     <summary><a>Reference</a></summary>
                     <ul>
-                        <li><a href="#">mu:if / mu:else</a></li>
-                        <li><a href="#">mu:syncEvent</a></li>
-                        <li><a href="#">ForEach</a></li>
-                        <li><a href="#">ForEachPersist</a></li>
-                        <li><a href="#">track</a></li>
-                        <li><a href="#">effect</a></li>
-                        <li><a href="#">Router</a></li>
-                        <li><a href="#">Property references</a></li>
-                        <li><a href="#">Tracker</a></li>
+                        <li><a href="#ref/ifelse">mu:if / mu:else</a></li>
+                        <li><a href="#ref/syncEvent">mu:syncEvent</a></li>
+                        <li><a href="#ref/ForEach">ForEach</a></li>
+                        <li><a href="#ref/ForEachPersist">ForEachPersist</a></li>
+                        <li><a href="#ref/track">track</a></li>
+                        <li><a href="#ref/effect">effect</a></li>
+                        <li><a href="#ref/Router">Router</a></li>
+                        {/* <li><a href="#ref/">Property references</a></li> */}
+                        <li><a href="#ref/Tracker">Tracker</a></li>
                     </ul>
                 </details>
             </li>
-            <li><a href="#">Why mutraction</a></li>
-            <li><a href="#">Troubleshooting</a></li>
+            <li><a href="#why">Why mutraction</a></li>
+            {/* <li><a href="#faq">FAQ</a></li> */}
         </ul>
     </nav>;
