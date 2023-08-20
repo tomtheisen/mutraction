@@ -50,9 +50,12 @@ main {
 }
 
 a {
+    cursor: pointer;
+}
+
+:link, :visited {
     color: hsl(var(--brand-hue), 50%, 80%);
     text-decoration: none;
-    cursor: pointer;
 }
 
 nav ol, nav ul {

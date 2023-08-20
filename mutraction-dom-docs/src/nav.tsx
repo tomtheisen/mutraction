@@ -7,7 +7,7 @@ export const nav =
                 <details open={true}>
                     <summary><a>Topics</a></summary>
                     <ul>
-                        <li><a href="#">Model tracking</a></li>
+                        <li><a href="#tracking">Model tracking</a></li>
                         <li><a href="#">Dependencies</a></li>
                         <li><a href="#">Property references</a></li>
                         <li><a href="#">Two-way binding</a></li>
