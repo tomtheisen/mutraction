@@ -65,7 +65,7 @@ test('array pop length visible in effect', () => {
     const model = track([1,2,3]);
 
     let length = 0;
-    effect(tracker, () => { length = model.length; });
+    effect(() => { length = model.length; }, { tracker });
 
     model.pop();
 

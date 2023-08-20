@@ -35,7 +35,7 @@ export function choose(...choices: ConditionalElement[]): Node {
     }
 
     let current: ChildNode = getMarker("choice-placeholder");
-    effect(defaultTracker, () => {
+    effect(() => {
         for (const { nodeGetter, conditionGetter } of choices) {
             if (!conditionGetter || conditionGetter()) {
                 const newNode = nodeGetter();

@@ -1,104 +1,3 @@
-// out/effect.js
-var emptyEffect = { dispose: () => {
-} };
-function effect(tracker, sideEffect, options = {}) {
-  let dep = tracker.startDependencyTrack();
-  let lastResult = sideEffect(dep);
-  dep.endDependencyTrack();
-  if (dep.trackedProperties.length === 0) {
-    if (!options.suppressUntrackedWarning) {
-      console.warn("effect() callback has no dependencies on any tracked properties.  It will not fire again.");
-    }
-    return emptyEffect;
-  }
-  let subscription = dep.subscribe(effectDependencyChanged);
-  const dispose = () => {
-    dep.untrackAll();
-    subscription.dispose();
-  };
-  function effectDependencyChanged() {
-    lastResult?.();
-    dispose();
-    dep = tracker.startDependencyTrack();
-    lastResult = sideEffect(dep);
-    dep.endDependencyTrack();
-    subscription = dep.subscribe(effectDependencyChanged);
-  }
-  return { dispose };
-}
-
-// out/config.js
-function getConfig(name) {
-  const meta = globalThis.document?.querySelector(`meta[name=${name.replace(/\W/g, "\\$&")}]`);
-  return meta?.getAttribute("value") ?? void 0;
-}
-var showMarkers = !!getConfig("mu:show-markers");
-
-// out/getMarker.js
-function getMarker(mark) {
-  return document.createTextNode(showMarkers ? `\u27EA${mark}\u27EB` : "");
-}
-
-// out/elementSpan.js
-var ElementSpan = class _ElementSpan {
-  static id = 0;
-  startMarker = getMarker("start:" + ++_ElementSpan.id);
-  endMarker = getMarker("end:" + _ElementSpan.id);
-  constructor(...node) {
-    const frag = document.createDocumentFragment();
-    frag.append(this.startMarker, ...node, this.endMarker);
-  }
-  /** extracts the entire span as a fragment */
-  removeAsFragment() {
-    if (this.startMarker.parentNode instanceof DocumentFragment) {
-      return this.startMarker.parentNode;
-    }
-    const nodes = [];
-    for (let walk = this.startMarker; ; walk = walk?.nextSibling) {
-      if (walk == null)
-        throw Error("End marker not found as subsequent document sibling as start marker");
-      nodes.push(walk);
-      if (Object.is(walk, this.endMarker))
-        break;
-    }
-    const result = document.createDocumentFragment();
-    result.append(...nodes);
-    return result;
-  }
-  /** extracts the interior of the span into a fragment, leaving the span container empty */
-  emptyAsFragment() {
-    const nodes = [];
-    for (let walk = this.startMarker.nextSibling; ; walk = walk?.nextSibling) {
-      if (walk == null)
-        throw Error("End marker not found as subsequent document sibling as start marker");
-      if (Object.is(walk, this.endMarker))
-        break;
-      nodes.push(walk);
-    }
-    const result = document.createDocumentFragment();
-    result.append(...nodes);
-    return result;
-  }
-  clear() {
-    while (!Object.is(this.startMarker.nextSibling, this.endMarker)) {
-      if (this.startMarker.nextSibling == null)
-        throw Error("End marker not found as subsequent document sibling as start marker");
-      this.startMarker.nextSibling.remove();
-    }
-  }
-  replaceWith(...nodes) {
-    this.clear();
-    this.append(...nodes);
-  }
-  append(...nodes) {
-    const frag = document.createDocumentFragment();
-    frag.append(...nodes);
-    if (!this.endMarker.parentNode)
-      throw Error("End marker of ElementSpan has no parent");
-    this.endMarker.parentNode.insertBefore(frag, this.endMarker);
-  }
-};
-
 // out/symbols.js
 var RecordMutation = Symbol("RecordMutation");
 var TrackerOf = Symbol("TrackerOf");
@@ -584,6 +483,9 @@ var Tracker = class {
     this.#transaction?.operations.push(Object.freeze(mutation));
     this.clearRedos();
     createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
+    if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
+      createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
+    }
     this.#notifySubscribers(mutation);
     this.#historyPropRef?.notifySubscribers();
   }
@@ -643,10 +545,112 @@ function track(model) {
   return defaultTracker.track(model);
 }
 
+// out/effect.js
+var emptyEffect = { dispose: () => {
+} };
+function effect(sideEffect, options = {}) {
+  const { tracker = defaultTracker, suppressUntrackedWarning = false } = options;
+  let dep = tracker.startDependencyTrack();
+  let lastResult = sideEffect(dep);
+  dep.endDependencyTrack();
+  if (dep.trackedProperties.length === 0) {
+    if (!suppressUntrackedWarning) {
+      console.warn("effect() callback has no dependencies on any tracked properties.  It will not fire again.");
+    }
+    return emptyEffect;
+  }
+  let subscription = dep.subscribe(effectDependencyChanged);
+  const dispose = () => {
+    dep.untrackAll();
+    subscription.dispose();
+  };
+  function effectDependencyChanged() {
+    lastResult?.();
+    dispose();
+    dep = tracker.startDependencyTrack();
+    lastResult = sideEffect(dep);
+    dep.endDependencyTrack();
+    subscription = dep.subscribe(effectDependencyChanged);
+  }
+  return { dispose };
+}
+
+// out/config.js
+function getConfig(name) {
+  const meta = globalThis.document?.querySelector(`meta[name=${name.replace(/\W/g, "\\$&")}]`);
+  return meta?.getAttribute("value") ?? void 0;
+}
+var showMarkers = !!getConfig("mu:show-markers");
+
+// out/getMarker.js
+function getMarker(mark) {
+  return document.createTextNode(showMarkers ? `\u27EA${mark}\u27EB` : "");
+}
+
+// out/elementSpan.js
+var ElementSpan = class _ElementSpan {
+  static id = 0;
+  startMarker = getMarker("start:" + ++_ElementSpan.id);
+  endMarker = getMarker("end:" + _ElementSpan.id);
+  constructor(...node) {
+    const frag = document.createDocumentFragment();
+    frag.append(this.startMarker, ...node, this.endMarker);
+  }
+  /** extracts the entire span as a fragment */
+  removeAsFragment() {
+    if (this.startMarker.parentNode instanceof DocumentFragment) {
+      return this.startMarker.parentNode;
+    }
+    const nodes = [];
+    for (let walk = this.startMarker; ; walk = walk?.nextSibling) {
+      if (walk == null)
+        throw Error("End marker not found as subsequent document sibling as start marker");
+      nodes.push(walk);
+      if (Object.is(walk, this.endMarker))
+        break;
+    }
+    const result = document.createDocumentFragment();
+    result.append(...nodes);
+    return result;
+  }
+  /** extracts the interior of the span into a fragment, leaving the span container empty */
+  emptyAsFragment() {
+    const nodes = [];
+    for (let walk = this.startMarker.nextSibling; ; walk = walk?.nextSibling) {
+      if (walk == null)
+        throw Error("End marker not found as subsequent document sibling as start marker");
+      if (Object.is(walk, this.endMarker))
+        break;
+      nodes.push(walk);
+    }
+    const result = document.createDocumentFragment();
+    result.append(...nodes);
+    return result;
+  }
+  clear() {
+    while (!Object.is(this.startMarker.nextSibling, this.endMarker)) {
+      if (this.startMarker.nextSibling == null)
+        throw Error("End marker not found as subsequent document sibling as start marker");
+      this.startMarker.nextSibling.remove();
+    }
+  }
+  replaceWith(...nodes) {
+    this.clear();
+    this.append(...nodes);
+  }
+  append(...nodes) {
+    const frag = document.createDocumentFragment();
+    frag.append(...nodes);
+    if (!this.endMarker.parentNode)
+      throw Error("End marker of ElementSpan has no parent");
+    this.endMarker.parentNode.insertBefore(frag, this.endMarker);
+  }
+};
+
 // out/runtime.js
 var suppress = { suppressUntrackedWarning: true };
 function effectDefault(sideEffect) {
-  effect(defaultTracker, sideEffect, suppress);
+  effect(sideEffect, suppress);
 }
 function ForEach(array, map) {
   const result = new ElementSpan();
@@ -805,7 +809,7 @@ function choose(...choices) {
     lazyChoices.push({ nodeGetter: () => empty });
   }
   let current = getMarker("choice-placeholder");
-  effect(defaultTracker, () => {
+  effect(() => {
     for (const { nodeGetter, conditionGetter } of choices) {
       if (!conditionGetter || conditionGetter()) {
         const newNode = nodeGetter();

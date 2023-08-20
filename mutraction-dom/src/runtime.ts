@@ -7,7 +7,7 @@ import { PropReference } from "./propref.js";
 
 const suppress = { suppressUntrackedWarning: true };
 function effectDefault(sideEffect: (dep: DependencyList) => (void | (() => void))) {
-    effect(defaultTracker, sideEffect, suppress);
+    effect(sideEffect, suppress);
 }
 
 export function ForEach<TIn, TOut extends Node>(array: TIn[], map: (e: TIn) => TOut): Node {

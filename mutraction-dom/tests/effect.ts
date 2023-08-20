@@ -6,7 +6,7 @@ test('effect is selective', () => {
     const model = track({x:1,y:2,z:3});
     const effectLog: string[] = [];
 
-    effect(tracker, () => { effectLog.push(`${model.x},${model.y}`); });
+    effect(() => { effectLog.push(`${model.x},${model.y}`); }, { tracker });
     
     model.x += 10;
     model.y += 10;
@@ -19,9 +19,9 @@ test('dependencies update after effect runs', () => {
     const model = track({cond1: false, cond2: false});
     let target = false;
 
-    effect(tracker, () => {
+    effect(() => {
         if (model.cond1) if (model.cond2) target = true;
-    });
+    }, { tracker });
 
     model.cond1 = true;
     assert.not.ok(target);
@@ -34,7 +34,7 @@ test('effect dispose', () => {
     const model = track({a:999} as any);
 
     let runs = 0;
-    const fx = effect(tracker, () => { (model.a, ++runs) });
+    const fx = effect(() => { (model.a, ++runs) }, { tracker });
     assert.equal(runs, 1);
 
     model.a++;
@@ -52,11 +52,11 @@ test('effect exit', () => {
     const model = track({p: 44});
     const effectLog: string[] = [];
 
-    effect(tracker, () => {
+    effect(() => {
         const p = model.p;
         effectLog.push("in:" + p);
         return () => { effectLog.push("out:" + p); };
-    });
+    }, { tracker });
 
     model.p = 55;
     model.p = 66;
@@ -69,15 +69,15 @@ test('inner effect runs without outer', () => {
 
     let times1 = 0, times2 = 0;
 
-    effect(tracker, () => {
+    effect(() => {
         model.a;
-        effect(tracker, () => {
+        effect(() => {
             model.b;
             ++times2;
-        });
+        }, { tracker });
         model.c;
         ++times1;
-    });
+    }, { tracker });
 
     assert.equal(times1, 1);
     assert.equal(times2, 1);
@@ -92,18 +92,18 @@ test('inner conditional effect', () => {
 
     let t1 = 0, t2 = 0, t3 = 0, t4 = 0;
 
-    effect(tracker, () => {
+    effect(() => {
         ++t1;
         if (model.a) {
             ++t2;
-            effect(tracker, () => {
+            effect(() => {
                 ++t3;
                 if (model.b) {
                     ++t4;
                 }
-            });
+            }, { tracker });
         }
-    });
+    }, { tracker });
     assert.equal([t1,t2,t3,t4], [1, 0, 0, 0]);
 
     model.a = true;
@@ -117,14 +117,14 @@ test('dependency suspension', () => {
     const model = track({ a: 1, b: 2, c: 3 });
 
     let runs = 0;
-    effect(tracker, dep => {
+    effect(dep => {
         model.a;
         dep.active = false;
         model.b;
         dep.active = true;
         model.c;
         ++runs;
-    });
+    }, { tracker });
     assert.equal(runs, 1);
 
     model.a = 111;
@@ -141,7 +141,7 @@ test('exotic array effect', () => {
     const model = track([] as string[]);
     const lengths: number[] = [];
 
-    effect(defaultTracker, () => {
+    effect(() => {
         lengths.push(model.length);
     });
 

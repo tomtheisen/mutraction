@@ -1,19 +1,22 @@
 import { DependencyList } from "./dependency.js";
-import { Tracker } from "./tracker.js";
+import { Tracker, defaultTracker } from "./tracker.js";
 import { Subscription } from "./types.js";
 
 const emptyEffect: Subscription = { dispose: () => {} };
 
 type EffectOptions = {
     suppressUntrackedWarning?: boolean;
+    tracker?: Tracker;
 }
-export function effect(tracker: Tracker, sideEffect: (dep: DependencyList) => (void | (() => void)), options: EffectOptions = {}): Subscription {
+
+export function effect(sideEffect: (dep: DependencyList) => (void | (() => void)), options: EffectOptions = {}): Subscription {
+    const { tracker = defaultTracker, suppressUntrackedWarning = false } = options;
     let dep = tracker.startDependencyTrack();
     let lastResult = sideEffect(dep);
     dep.endDependencyTrack();
 
     if (dep.trackedProperties.length === 0) {
-        if(!options.suppressUntrackedWarning) {
+        if(!suppressUntrackedWarning) {
             console.warn("effect() callback has no dependencies on any tracked properties.  It will not fire again.");
         }
         return emptyEffect;

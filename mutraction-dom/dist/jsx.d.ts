@@ -1,4 +1,4 @@
-import type { Tracker } from "mutraction";
+import type { Tracker } from "mutraction-dom";
 
 type PartialIfObject<T> = T extends undefined | string | number | boolean | bigint | symbol | any[] | Function
     ? T
