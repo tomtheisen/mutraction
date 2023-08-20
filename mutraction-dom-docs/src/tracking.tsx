@@ -7,7 +7,7 @@ export const tracking = (
             The central premise of mutraction is that property changes are <em>observable</em>.
             This means that it's possible to subscribe to a particular object property and be notified when it changes.
             It's similar in concept to an event, although the implementation details differ.
-            So code that <em>reads</em> an object property is automatically notified when other code <em>sets</em> that property.
+            So code that <em>reads</em> an object property is automatically notified when other code <em>writes</em> that property.
         </p>
         { codeSample(`
             // wrap model in a tracking proxy
