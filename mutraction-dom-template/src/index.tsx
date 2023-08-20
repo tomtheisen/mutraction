@@ -1,35 +1,8 @@
-import { track, Router } from "mutraction-dom";
+import { Router } from "mutraction-dom";
 import { todoApp } from "./todo.js";
 import { muLogo } from "./mulogo.js";
 import { binding } from "./binding.js";
-
-function dedent(s: string) {
-    const prefix = /\n[ \t]*$/.exec(s)!;
-    return s.replaceAll(prefix[0], "\n").trim();
-}
-
-function welcome() {
-    const model = track({ clicks: 0});
-
-    return <div>
-        <h1>Mutraction</h1>
-        <h2>Reactive UI in Typescript and JSX</h2>
-        <p>Lorem ipsum, dolor sit amet consectetur adipisicing elit. Optio quas, corporis delectus quos, velit eaque molestias natus vitae culpa, assumenda eveniet quis dolor excepturi aliquam repudiandae! Quisquam a quam quasi!</p>
-        <figure>
-            <code>
-                {dedent(`
-                const model = track({ clicks: 0});
-                <button onclick={() => ++model.clicks }>+1</button>
-                <p>Clicks: {model.clicks}</p>                
-                `)}
-            </code>
-            <output>
-                <button onclick={() => ++model.clicks }>+1</button>
-                Clicks: {model.clicks}
-            </output>
-        </figure>
-    </div>;
-}
+import { intro } from "./intro.js";
 
 const about = (
     <>
@@ -44,20 +17,25 @@ const router = Router(
     { pattern: /#id=(\d+)/, element: match => <>You can match: {match[1]}</> },
     { pattern: '#2way', element: binding() },
     { pattern: /#.+/, element: match => <>No route found for {match[0]}</> },
-    { element: welcome }
+    { element: intro }
 );
 
 const app = (
     <>
         <header>
-            <h1><span className="primary" style={{fontStyle: "italic"}}>μ</span>traction</h1>
-            { muLogo(50) }
+            <div style={{ position: "relative", top: "4px" }}>{ muLogo(50) }</div>
+            <h1>traction</h1>
             <a href="https://github.com/tomtheisen/mutraction"><img src="assets/github-logo.svg" style={{height: "34px"}} /></a>
         </header>
         <div className="layout">
             <nav>
                 <ul style={{ position: "sticky", top: "1em" }}>
-                    <li><a href="#">Welcome</a></li>
+                    <li><a href="#">Introduction</a></li>
+                    <li><a href="#start">Getting Started</a></li>
+                    <li><a href="#">Reference</a></li>
+                    <li><a href="#">Introduction</a></li>
+                    <li><a href="#">Introduction</a></li>
+                    <li><a href="#">Introduction</a></li>
                     <li><a href="#about">About</a></li>
                     <li><a href="#todo">To-do</a></li>
                     <li><a href="#2way">Two way</a></li>

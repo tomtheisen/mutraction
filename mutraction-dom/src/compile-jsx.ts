@@ -333,7 +333,14 @@ const mutractPlugin: PluginObj = {
         },
         JSXFragment: {
             exit: JSXFragment_exit,
-        }
+        },
+        JSXText(path) {
+            // strip leading or trailing whitespace, but only if it contains a newline
+            let { value } = path.node;
+            value = value.replace(/^[ \t]*\n\s*/, '');
+            value = value.replace(/\s*\n[ \t]*$/, '');
+            path.replaceWith(t.stringLiteral(value));
+        },
     }
 };
 
