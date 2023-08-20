@@ -12,10 +12,13 @@ export function muLogo(size: number){
         width: `${ size }px`,
         height: `${ size }px`,
         display: "inline-block",
+        textAlign: "left",
     };
 
     const treadStyles: Partial<CSSStyleDeclaration> = {
         position: "absolute",
+        left: "0",
+        top: "0",
         display: "inline-block",
         width: "100%",
         height: "100%",

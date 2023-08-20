@@ -1,5 +1,6 @@
 import { track } from "mutraction-dom";
 import { codeSample } from "./codesample.js";
+import { muLogo } from "./mulogo.js";
 
 export function intro() {
     const model = track({ clicks: 0 });
@@ -10,6 +11,7 @@ export function intro() {
     );
 
     return <div>
+        <div style={{ textAlign: "center" }}>{ muLogo(300) }</div>
         <hgroup>
             <h1>Mutraction</h1>
             <h2>Reactive UI in Typescript and JSX</h2>

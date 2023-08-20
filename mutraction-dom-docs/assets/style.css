@@ -55,7 +55,7 @@ a {
     cursor: pointer;
 }
 
-ol, ul {
+nav ol, nav ul {
     list-style: none;
     padding-left: 16px;
 }
@@ -69,6 +69,16 @@ figure {
     border-radius: 0.2em;
     overflow: hidden;
     margin: 2em;
+}
+
+figcaption {
+    padding: 0.5em 1em;
+    font: 1.2em monospace;
+}
+
+code {
+    background-color: #333;
+    padding: 0.2em;
 }
 
 figure code {
