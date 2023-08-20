@@ -1,24 +1,6 @@
 import { track } from "mutraction-dom";
 import { codeSample } from "./codesample.js";
 
-function scroll() {
-    const model = track({ text: "initial", scrollPos: 0 });
-    return (
-        <>
-            <div>
-                <input mu:syncEvent="input" maxLength={10} value={model.text} />
-                <input mu:syncEvent="input" maxLength={10} value={model.text} />
-                <input maxLength={10} value={model.text} />
-                <input maxLength={10} {...{value: model.text}} />
-            </div>
-            <div>Scroll pos: {model.scrollPos}</div>
-            <div mu:syncEvent="scroll" scrollTop={model.scrollPos} style={{ overflow: "scroll", maxHeight: "100px" }}>
-                <div style={{ height: "200px" }}></div>
-            </div>
-        </>
-    );
-}
-
 function ex1() {
     const model = track({ text: "initial" });
     function update() {

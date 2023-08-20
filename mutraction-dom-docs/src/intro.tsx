@@ -34,5 +34,8 @@ export function intro() {
             document.body.append(app);
             `, app
         )}
+        <p>
+            Mutraction supports typescript and modern browsers.
+        </p>
     </div>;
 }
