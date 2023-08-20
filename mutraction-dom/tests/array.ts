@@ -31,7 +31,7 @@ test('array detection', () => {
 });
 
 test('no history arrays', () => {
-    const tr = new Tracker({ trackHistory: false })
+    const tr = new Tracker({ trackHistory: false, autoTransactionalize: false })
     const arr = tr.track([1]);
 
     arr.push(2);

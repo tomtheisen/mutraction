@@ -79,7 +79,7 @@ test('clear history', () => {
 });
 
 test('no history', () => {
-    const tr = new Tracker({ trackHistory: false });
+    const tr = new Tracker({ trackHistory: false, autoTransactionalize: false });
     const model = tr.track({} as any);
 
     model.foo = 7;

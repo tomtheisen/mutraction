@@ -1,4 +1,4 @@
-import { track, defaultTracker as tracker, effect } from '../src/index.js';
+import { track, defaultTracker as tracker, effect, defaultTracker } from '../src/index.js';
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
@@ -136,5 +136,18 @@ test('dependency suspension', () => {
     model.a = 333;
     assert.equal(runs, 3);
 });
+
+test('exotic array effect', () => {
+    const model = track([] as string[]);
+    const lengths: number[] = [];
+
+    effect(defaultTracker, () => {
+        lengths.push(model.length);
+    });
+
+    model[57] = "asdf";
+
+    assert.equal(lengths, [0, 58]);
+})
 
 test.run();
