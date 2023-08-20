@@ -8,6 +8,8 @@ type ConditionalElement = {
     conditionGetter?: () => boolean;
 }
 
+const suppress = { suppressUntrackedWarning: true } as const;
+
 export function choose(...choices: ConditionalElement[]): Node {
     const lazyChoices: ConditionalElement[] = [];
     let foundUnconditional = false;
@@ -42,7 +44,7 @@ export function choose(...choices: ConditionalElement[]): Node {
                 break;
             }
         }
-    });
+    }, suppress);
 
     return current;
 }

@@ -30,6 +30,7 @@ export function intro() {
             );
 
             document.body.append(app);
-            `, app)}
+            `, app
+        )}
     </div>;
 }

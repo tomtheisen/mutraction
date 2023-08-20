@@ -782,6 +782,7 @@ function memoize(getter) {
 }
 
 // out/choose.js
+var suppress2 = { suppressUntrackedWarning: true };
 function choose(...choices) {
   const lazyChoices = [];
   let foundUnconditional = false;
@@ -813,7 +814,7 @@ function choose(...choices) {
         break;
       }
     }
-  });
+  }, suppress2);
   return current;
 }
 

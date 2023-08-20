@@ -1,7 +1,7 @@
 :root {
     --brand-hue: 215;
     --primary-color: hsl(var(--brand-hue), 100%, 50%);
-    --header-height: 
+    --header-height: 3.5em;
 }
 
 .primary {
@@ -25,6 +25,7 @@ header {
     display: flex;
     align-items: center;
     justify-content: space-around;
+    height: var(--header-height);
 }
 
 header h1 {
@@ -40,6 +41,7 @@ nav {
     flex-shrink: 0;
     padding: 1em;
     background: #222;
+    min-height: calc(100vh - var(--header-height));
 }
 
 main {
@@ -50,12 +52,12 @@ main {
 a {
     color: hsl(var(--brand-hue), 50%, 80%);
     text-decoration: none;
+    cursor: pointer;
 }
 
 ol, ul {
     list-style: none;
-    padding: 0;
-    margin: 0;
+    padding-left: 16px;
 }
 
 h1 {

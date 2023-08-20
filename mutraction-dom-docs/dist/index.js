@@ -739,6 +739,7 @@ function memoize(getter) {
   }
   return resolveLazy;
 }
+var suppress2 = { suppressUntrackedWarning: true };
 function choose(...choices) {
   const lazyChoices = [];
   let foundUnconditional = false;
@@ -770,7 +771,7 @@ function choose(...choices) {
         break;
       }
     }
-  });
+  }, suppress2);
   return current;
 }
 var fragmentMap = /* @__PURE__ */ new WeakMap();
@@ -977,7 +978,10 @@ function dedent(s) {
   return s.replaceAll(prefix[0], "\n").trim();
 }
 function codeSample(code, output) {
-  return element("figure", {}, {}, "", element("code", {}, {}, child(() => dedent(code))), "", element("output", {}, {}, child(() => output)), "");
+  return element("figure", {}, {}, "", element("code", {}, {}, child(() => dedent(code))), "", choose({
+    nodeGetter: () => element("output", {}, {}, child(() => output)),
+    conditionGetter: () => output != null
+  }), "");
 }
 
 // out2/intro.js
@@ -1000,11 +1004,26 @@ function intro() {
             `, app2)), "");
 }
 
+// out2/getStarted.js
+function getStarted() {
+  var _frag2;
+  return _frag2 = document.createDocumentFragment(), _frag2.append("", element("h1", {}, {}, "Getting Started"), "", element("p", {}, {}, "To get started, you'll need a current ", element("a", {
+    href: "https://nodejs.org/"
+  }, {}, "NPM"), " installed.\n                Then run these in an empty directory."), "", child(() => codeSample(`
+                npx degit github:tomtheisen/mutraction/mutraction-dom-template
+                npm install
+                npm run build
+                `)), "", element("p", {}, {}, "Then open up ", element("code", {}, {}, "index.html"), " right from the file system.\n                No fancy servers or whatever."), ""), _frag2;
+}
+
 // out2/index.js
 var _frag;
 var _frag4;
 var about = (_frag = document.createDocumentFragment(), _frag.append("", element("h1", {}, {}, "About"), "", element("p", {}, {}, "This is all about the stuff."), ""), _frag);
 var router = Router({
+  pattern: "#start",
+  element: getStarted()
+}, {
   pattern: "#about",
   element: about
 }, {
@@ -1046,17 +1065,18 @@ var app = (_frag4 = document.createDocumentFragment(), _frag4.append("", element
 }, {}, "", element("nav", {}, {}, "", element("ul", {}, {
   style: () => ({
     position: "sticky",
-    top: "1em"
+    top: "1em",
+    paddingLeft: "0"
   })
 }, "", element("li", {}, {}, element("a", {
   href: "#"
 }, {}, "Introduction")), "", element("li", {}, {}, element("a", {
   href: "#start"
-}, {}, "Getting Started")), "", element("li", {}, {}, element("a", {
-  href: "#"
-}, {}, "Reference")), "", element("li", {}, {}, element("a", {
-  href: "#"
-}, {}, "Introduction")), "", element("li", {}, {}, element("a", {
+}, {}, "Getting Started")), "", element("li", {}, {}, "", element("details", {}, {
+  open: () => true
+}, "", element("summary", {}, {}, element("a", {}, {}, "Topics")), "", element("ul", {}, {}, "", element("li", {}, {}, "Model tracking"), "", element("li", {}, {}, "Dependencies"), "", element("li", {}, {}, "Property references"), "", element("li", {}, {}, "2-way binding"), ""), ""), ""), "", element("li", {}, {}, "", element("details", {}, {
+  open: () => true
+}, "", element("summary", {}, {}, element("a", {}, {}, "Reference")), "", element("ul", {}, {}, "", element("li", {}, {}, "mu:if / mu:else"), "", element("li", {}, {}, "mu:syncEvent"), "", element("li", {}, {}, "Property references"), "", element("li", {}, {}, "ForEach / ForEachPersist"), "", element("li", {}, {}, "track"), "", element("li", {}, {}, "Tracker"), "", element("li", {}, {}, "effect"), "", element("li", {}, {}, "Router"), ""), ""), ""), "", element("li", {}, {}, element("a", {
   href: "#"
 }, {}, "Introduction")), "", element("li", {}, {}, element("a", {
   href: "#"
