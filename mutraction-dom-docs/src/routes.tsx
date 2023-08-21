@@ -9,6 +9,7 @@ import { jsx } from "./jsx.js";
 import { events } from "./events.js";
 import { history } from "./history.js";
 import { styles } from "./styles.js";
+import { why } from "./why.js";
 
 import { ifelse } from "./ifelse.js"
 import { syncEvent } from "./syncEvent.js";
@@ -38,6 +39,8 @@ export const routes = Router(
     { pattern: '#ref/effect', element: effectDoc },
     { pattern: '#ref/Router', element: routerDoc },
     { pattern: '#ref/Tracker', element: trackerDoc },
+
+    { pattern: '#why', element: why },
 
     { pattern: '#clock', element: () => <>{ new Date }</> },
     { pattern: /#id=(\d+)/, element: match => <>Id match: {match[1]}</> },
