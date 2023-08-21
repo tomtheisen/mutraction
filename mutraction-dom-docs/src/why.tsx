@@ -34,6 +34,8 @@ export function why() {
             <h2>Mutations are sometimes convenient</h2>
             <p>
                 Just compare these two code blocks.
+                I don't doubt that you can figure out what they both do.
+                But at what cost?
             </p>
 
             { codeSample(`
@@ -42,10 +44,10 @@ export function why() {
             ) }
 
             { codeSample(`
-                items = items.map((e, i) => 
-                    i == idx ? { ...e, status: "complete" } : e);
+                items = items.map((e, i) => i == idx ? { ...e, status: "complete" } : e);
                 `
             ) }
+            
         </>
     )
 }
