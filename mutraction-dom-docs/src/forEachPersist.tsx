@@ -21,7 +21,7 @@ function ex1() {
 export function forEachPersist() {
     return (
         <>
-            <h1><code>ForEachPersist</code></h1>
+            <h1><code>ForEachPersist()</code></h1>
             <p>
                 <code>ForEachPersist</code> is similar to its cousin <code>ForEach</code>.  
                 In many cases, it behaves identically.  The main difference between the two
@@ -34,6 +34,26 @@ export function forEachPersist() {
                 It's not necessary to specify a key property.  Object reference identity
                 serves to identify each object.
             </p>
+
+            <h2>Arguments</h2>
+            <ul>
+                <li>
+                    <code>items</code>
+                    <p>
+                        This is the array of items to be mapped into DOM nodes.
+                        It must be an array of objects, not primitives.
+                    </p>
+                </li>
+                <li>
+                    <code>mapFunction</code>
+                    <p>
+                        This is a function that converts each item into a DOM node.
+                        It will be called repeatedly to convert each item.
+                        As items are replaced or added to the array, it will be called again.
+                        It will never be called more than once for each item.
+                    </p>
+                </li>
+            </ul>
 
             <p>
                 In the following example, note that the <code>&lt;input&gt;</code>s have no

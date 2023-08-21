@@ -14,6 +14,7 @@ import { ifelse } from "./ifelse.js"
 import { syncEvent } from "./syncEvent.js";
 import { forEach } from "./forEach.js";
 import { forEachPersist } from "./forEachPersist.js";
+import { track } from "./track.js";
 
 export const routes = Router(
     { pattern: '#start', element: getStarted },
@@ -30,6 +31,7 @@ export const routes = Router(
     { pattern: '#ref/syncEvent', element: syncEvent },
     { pattern: '#ref/ForEach', element: forEach },
     { pattern: '#ref/ForEachPersist', element: forEachPersist },
+    { pattern: '#ref/track', element: track },
 
 
     { pattern: /#id=(\d+)/, element: match => <>You can match: {match[1]}</> },
