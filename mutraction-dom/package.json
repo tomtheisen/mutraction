@@ -1,7 +1,7 @@
 {
   "name": "mutraction-dom",
   "type": "module",
-  "version": "0.14.1",
+  "version": "0.15",
   "description": "DOM synchronization for mutable models ",
   "main": "index.js",
   "repository": {
