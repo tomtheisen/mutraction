@@ -17,6 +17,7 @@ import { forEachPersist } from "./forEachPersist.js";
 import { trackDoc } from "./trackDoc.js";
 import { effectDoc } from "./effectDoc.js";
 import { routerDoc } from "./routerDoc.js";
+import { trackerDoc } from "./trackerDoc.js";
 
 export const routes = Router(
     { pattern: '#start', element: getStarted },
@@ -36,6 +37,7 @@ export const routes = Router(
     { pattern: '#ref/track', element: trackDoc },
     { pattern: '#ref/effect', element: effectDoc },
     { pattern: '#ref/Router', element: routerDoc },
+    { pattern: '#ref/Tracker', element: trackerDoc },
 
     { pattern: '#clock', element: () => <>{ new Date }</> },
     { pattern: /#id=(\d+)/, element: match => <>Id match: {match[1]}</> },
