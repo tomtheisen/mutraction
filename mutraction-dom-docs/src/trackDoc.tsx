@@ -1,4 +1,4 @@
-export function track() {
+export function trackDoc() {
     return (
         <>
             <h1><code>track()</code></h1>

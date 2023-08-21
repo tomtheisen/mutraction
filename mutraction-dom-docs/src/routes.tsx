@@ -14,7 +14,9 @@ import { ifelse } from "./ifelse.js"
 import { syncEvent } from "./syncEvent.js";
 import { forEach } from "./forEach.js";
 import { forEachPersist } from "./forEachPersist.js";
-import { track } from "./track.js";
+import { trackDoc } from "./trackDoc.js";
+import { effectDoc } from "./effectDoc.js";
+import { routerDoc } from "./routerDoc.js";
 
 export const routes = Router(
     { pattern: '#start', element: getStarted },
@@ -31,10 +33,13 @@ export const routes = Router(
     { pattern: '#ref/syncEvent', element: syncEvent },
     { pattern: '#ref/ForEach', element: forEach },
     { pattern: '#ref/ForEachPersist', element: forEachPersist },
-    { pattern: '#ref/track', element: track },
+    { pattern: '#ref/track', element: trackDoc },
+    { pattern: '#ref/effect', element: effectDoc },
+    { pattern: '#ref/Router', element: routerDoc },
 
+    { pattern: '#clock', element: () => <>{ new Date }</> },
+    { pattern: /#id=(\d+)/, element: match => <>Id match: {match[1]}</> },
 
-    { pattern: /#id=(\d+)/, element: match => <>You can match: {match[1]}</> },
     { pattern: /#.+/, element: match => notFound(match[0]) },
 
     { pattern: '#todo', element: todoApp },
