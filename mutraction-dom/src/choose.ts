@@ -36,7 +36,7 @@ export function choose(...choices: ConditionalElement[]): Node {
 
     let current: ChildNode = getMarker("choice-placeholder");
     effect(() => {
-        for (const { nodeGetter, conditionGetter } of choices) {
+        for (const { nodeGetter, conditionGetter } of lazyChoices) {
             if (!conditionGetter || conditionGetter()) {
                 const newNode = nodeGetter();
                 current.replaceWith(newNode);

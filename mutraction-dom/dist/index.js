@@ -810,7 +810,7 @@ function choose(...choices) {
   }
   let current = getMarker("choice-placeholder");
   effect(() => {
-    for (const { nodeGetter, conditionGetter } of choices) {
+    for (const { nodeGetter, conditionGetter } of lazyChoices) {
       if (!conditionGetter || conditionGetter()) {
         const newNode = nodeGetter();
         current.replaceWith(newNode);

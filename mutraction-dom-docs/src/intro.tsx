@@ -18,7 +18,7 @@ export function intro() {
         </hgroup>
         <p>
             Mutraction automatically updates DOM elements when needed.
-            It tracks changes made using normal property assignment and mutations such as <code>[].push()</code>.
+            It tracks changes made using normal property assignment and mutations.
             The entry point is the <code>track()</code> function.
             After that, you can reference the tracked object in JSX expressions.
             JSX expressions produce real DOM elements that you can insert directly into the document.
