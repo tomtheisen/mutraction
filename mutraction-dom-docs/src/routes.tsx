@@ -9,20 +9,23 @@ import { jsx } from "./jsx.js";
 import { events } from "./events.js";
 import { history } from "./history.js";
 import { styles } from "./styles.js";
+import { syncEvent } from "./syncEvent.js";
 
 import { ifelse } from "./ifelse.js"
 
 export const routes = Router(
-    { pattern: '#start', element: getStarted() },
+    { pattern: '#start', element: getStarted },
     { pattern: '#tryit', element: <div>Coming soon</div> },
-    { pattern: '#topics/tracking', element: tracking },
-    { pattern: '#topics/jsx', element: jsx() },
-    { pattern: '#topics/two-way', element: twoWay() },
-    { pattern: '#topics/events', element: events() },
-    { pattern: '#topics/history', element: history() },
-    { pattern: '#topics/styles', element: styles() },
 
-    { pattern: '#ref/ifelse', element: ifelse() },
+    { pattern: '#topics/tracking', element: tracking },
+    { pattern: '#topics/jsx', element: jsx },
+    { pattern: '#topics/two-way', element: twoWay },
+    { pattern: '#topics/events', element: events },
+    { pattern: '#topics/history', element: history },
+    { pattern: '#topics/styles', element: styles },
+
+    { pattern: '#ref/ifelse', element: ifelse },
+    { pattern: '#ref/syncEvent', element: syncEvent },
 
     { pattern: /#id=(\d+)/, element: match => <>You can match: {match[1]}</> },
     { pattern: /#.+/, element: match => notFound(match[0]) },
