@@ -103,3 +103,12 @@ output {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
 }
+
+/* used for demos */
+.weighty { 
+    font-weight: bold; 
+}
+.important {
+    color: red;
+}
+.normal { }

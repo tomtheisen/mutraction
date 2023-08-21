@@ -101,6 +101,7 @@ export function jsx() {
                 <p>
                     If these include a <a href="#topics/tracking">tracked model property</a>, the
                     element property will be automatically updated as necessary.
+                    Note that the tracking works even through function calls and intermediate property getters.
                 </p>
             </li>
             <li>
