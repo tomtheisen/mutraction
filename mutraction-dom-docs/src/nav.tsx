@@ -2,7 +2,6 @@ export const nav =
     <nav>
         <ul style={{ position: "sticky", top: "1em", paddingLeft: "0" }}>
             <li><a href="?">Introduction</a></li>
-            {/* <li><a href="#tryit">Try it</a></li> */}
             <li><a href="#start">Getting Started</a></li>
             <li>
                 <details open={true}>
@@ -41,6 +40,16 @@ export const nav =
                         <li><a href="#recipes/spinner">Loading spinner</a></li>
                         <li><a href="#recipes/lazy">Lazy loading</a></li>
                         <li><a href="#recipes/array">Arrays</a></li>
+                    </ul>
+                </details>
+            </li>
+            <li>
+                <details open={true}>
+                    <summary><a>Example apps</a></summary>
+                    <ul>
+                        <li>
+                            <li><a href="#example/todo">Todo list</a></li>
+                        </li>
                     </ul>
                 </details>
             </li>

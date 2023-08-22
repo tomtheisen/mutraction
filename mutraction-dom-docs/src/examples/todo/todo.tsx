@@ -1,4 +1,4 @@
-import { defaultTracker, effect, track, ForEachPersist } from "mutraction-dom";
+import { track, ForEachPersist } from "mutraction-dom";
 
 type TodoItem = ReturnType<typeof makeItem>;
 function makeItem(title: string) {
@@ -6,7 +6,11 @@ function makeItem(title: string) {
 }
 const model = track({
     newItemTitle: "",
-    items: [] as TodoItem[],
+    items: [
+        makeItem("Buy groceries"),
+        makeItem("Feed the cat"),
+        makeItem("Mutate some objects"),
+    ] as TodoItem[],
 });
 function remove(item: TodoItem) {
     const idx = model.items.indexOf(item);
@@ -40,7 +44,7 @@ function sort() {
     model.items.sort((a, b) => Number(a.done) - Number(b.done));
 }
 export const todoApp = (
-    <div>
+    <>
         <h1 title={model.newItemTitle}>To-do</h1>
         <button onclick={sort}>Sort by unfinished</button>
         <ul>
@@ -52,6 +56,5 @@ export const todoApp = (
             </label>
             <button>New item</button>
         </form>
-        <a href="#about">About</a>
-    </div>
+    </>
 );

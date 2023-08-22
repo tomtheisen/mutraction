@@ -1,6 +1,5 @@
 import { Router } from "mutraction-dom";
 import { getStarted } from "./getStarted.js";
-import { todoApp } from "./todo.js";
 import { twoWay } from "./twoway.js";
 import { intro } from "./intro.js";
 import { notFound } from "./notFound.js";
@@ -25,6 +24,8 @@ import { radio } from "./radio.js";
 import { spinner } from "./spinner.js";
 import { lazy } from "./lazy.js";
 import { array } from "./array.js";
+
+import { todoWrapper } from "./examples/todoWrapper.js";
 
 export const routes = Router(
     { pattern: '#start', element: getStarted },
@@ -52,14 +53,14 @@ export const routes = Router(
     { pattern: '#recipes/lazy', element: lazy },
     { pattern: '#recipes/array', element: array },
 
+    { pattern: '#example/todo', element: todoWrapper },
+
     { pattern: '#why', element: why },
 
     { pattern: '#clock', element: () => <>{ new Date }</> },
     { pattern: /#id=(\d+)/, element: match => <>Id match: {match[1]}</> },
 
     { pattern: /#.+/, element: match => notFound(match[0]) },
-
-    { pattern: '#todo', element: todoApp },
 
     { element: intro },
 );
