@@ -7,5 +7,4 @@ export { effect } from './effect.js';
 export { DependencyList } from './dependency.js'
 export { Router } from './router.js';
 
-// TODO: move this to devtools
-// export { describeMutation } from './describe.js';
+export const version = "__VER__";

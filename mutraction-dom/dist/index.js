@@ -866,6 +866,9 @@ function Router(...routes) {
   hashChangeHandler(location.href);
   return container.removeAsFragment();
 }
+
+// out/index.js
+var version = "0.15.0";
 export {
   DependencyList,
   ForEach,
@@ -880,5 +883,6 @@ export {
   effect,
   element,
   isTracked,
-  track
+  track,
+  version
 };
