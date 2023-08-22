@@ -1,7 +1,7 @@
 {
   "name": "mutraction-dom-docs",
   "type": "module",
-  "version": "0.14.1",
+  "version": "0.0.0",
   "description": "Documentation for mutraction-dom",
   "main": "index.js",
   "scripts": {
@@ -21,6 +21,7 @@
     "typescript": "^5.1.6"
   },
   "dependencies": {
-    "mutraction-dom": "^0.14.1"
+    "js-tokens": "^8.0.1",
+    "mutraction-dom": "^0.15.0"
   }
 }
