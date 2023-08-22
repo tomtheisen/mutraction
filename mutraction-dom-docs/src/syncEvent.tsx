@@ -3,14 +3,18 @@ import { codeSample } from "./codesample.js";
 
 function ex1() {
     const model = track({ scrollPos: 0 });
-    const lorem = "Lorem ipsum dolor sit amet consectetur adipisicing elit. Ex dignissimos animi modi rem quidem, aperiam repellendus laudantium atque voluptatibus earum ab dolores, non saepe aspernatur quam sequi! Molestiae, numquam nostrum!";
+    const containerStyle = { 
+        height: "100px", 
+        width: "300px", 
+        overflow: "auto", 
+        border: "solid orange 2px",
+    };
 
     const app = (
         <>
             <p>The scroll position is { model.scrollPos }</p>
-            <div scrollTop={ model.scrollPos } mu:syncEvent="scroll" 
-                    style={{ height: "100px", width: "100px", overflow: "auto" }}>
-                <div>{ lorem }</div>
+            <div scrollTop={ model.scrollPos } mu:syncEvent="scroll" style={ containerStyle }>
+                <div>{ String(Array(150).fill("Scroll me!")) }</div>
             </div>
         </>
     );
@@ -31,14 +35,18 @@ export function syncEvent() {
             </p>
             { codeSample(`
                 const model = track({ scrollPos: 0 });
-                const lorem = "Lorem ipsum dolor sit amet consectetur adipisicing elit. Ex dignissimos animi modi rem quidem, aperiam repellendus laudantium atque voluptatibus earum ab dolores, non saepe aspernatur quam sequi! Molestiae, numquam nostrum!";
+                const containerStyle = { 
+                    height: "100px", 
+                    width: "300px", 
+                    overflow: "auto", 
+                    border: "solid orange 2px",
+                };
 
                 const app = (
                     <>
                         <p>The scroll position is { model.scrollPos }</p>
-                        <div scrollTop={ model.scrollPos } mu:syncEvent="scroll" 
-                                style={{ height: "100px", width: "100px", overflow: "auto" }}>
-                            <div>{ lorem }</div>
+                        <div scrollTop={ model.scrollPos } mu:syncEvent="scroll" style={ containerStyle }>
+                            <div>{ String(Array(150).fill("Scroll me!")) }</div>
                         </div>
                     </>
                 );
