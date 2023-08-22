@@ -32,6 +32,19 @@ export const nav =
                     </ul>
                 </details>
             </li>
+            <li>
+                <details open={true}>
+                    <summary><a>Recipes</a></summary>
+                    <ul>
+                        <li><a href="#recipes/mounting">Mounting components</a></li>
+                        <li><a href="#recipes/radio">Radio buttons</a></li>
+                        <li><a href="#recipes/select">Selects</a></li>
+                        <li><a href="#recipes/spinner">Loading spinner</a></li>
+                        <li><a href="#recipes/lazy">Lazy loading</a></li>
+                        <li><a href="#recipes/array">Arrays</a></li>
+                    </ul>
+                </details>
+            </li>
             <li><a href="#why">Why mutraction</a></li>
             {/* <li><a href="#faq">FAQ</a></li> */}
         </ul>

@@ -50,7 +50,7 @@ export function routerDoc() {
             { codeSample(`
                 const router = Router(
                     { pattern: '#clock', element: () => <>{ new Date }</> },
-                    { pattern: /#id=(\d+)/, element: match => <>Id match: {match[1]}</> }
+                    { pattern: /#id=(\\d+)/, element: match => <>Id match: {match[1]}</> }
                 );
                 `
             ) }

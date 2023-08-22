@@ -20,6 +20,8 @@ import { effectDoc } from "./effectDoc.js";
 import { routerDoc } from "./routerDoc.js";
 import { trackerDoc } from "./trackerDoc.js";
 
+import { mounting } from "./mounting.js";
+
 export const routes = Router(
     { pattern: '#start', element: getStarted },
     { pattern: '#tryit', element: <div>Coming soon</div> },
@@ -39,6 +41,13 @@ export const routes = Router(
     { pattern: '#ref/effect', element: effectDoc },
     { pattern: '#ref/Router', element: routerDoc },
     { pattern: '#ref/Tracker', element: trackerDoc },
+
+    { pattern: '#recipes/mounting', element: mounting },
+    { pattern: '#recipes/radio', element: <span>coming soon</span> },
+    { pattern: '#recipes/select', element: <span>coming soon</span> },
+    { pattern: '#recipes/spinner', element: <span>coming soon</span> },
+    { pattern: '#recipes/lazy', element: <span>coming soon</span> },
+    { pattern: '#recipes/array', element: <span>coming soon</span> },
 
     { pattern: '#why', element: why },
 
