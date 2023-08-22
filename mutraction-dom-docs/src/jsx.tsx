@@ -150,6 +150,7 @@ export function jsx() {
         <p>
             There are none!  At least, there's no special syntax for these in JSX.
             Since JSX elements evaluate to DOM elements, and JSX expression children can be DOM elements, there's no need for a special case.
+            Just call your function as a value inside curly braces.
         </p>
         { codeSample(`
             const model = track({ items: [{ name: "bongo" }] });
