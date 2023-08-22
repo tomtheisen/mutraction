@@ -43,7 +43,7 @@ export const nav =
                     </ul>
                 </details>
             </li>
-            <li>
+            {/* <li>
                 <details open={true}>
                     <summary><a>Example apps</a></summary>
                     <ul>
@@ -52,7 +52,7 @@ export const nav =
                         </li>
                     </ul>
                 </details>
-            </li>
+            </li> */}
             <li><a href="#why">Why mutraction</a></li>
             {/* <li><a href="#faq">FAQ</a></li> */}
         </ul>
