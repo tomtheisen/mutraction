@@ -1,7 +1,7 @@
 {
   "name": "mutraction-dom-template",
   "type": "module",
-  "version": "0.15.0",
+  "version": "1.0.0",
   "description": "template for a starter mutraction-dom project",
   "main": "index.js",
   "scripts": {
