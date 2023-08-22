@@ -12,7 +12,7 @@ export function getStarted() {
                 npx degit github:tomtheisen/mutraction/mutraction-dom-template
                 npm install
                 npm run build
-                `
+                `, undefined, { highlight: false }
             ) }
             <p>
                 Then open up <code>index.html</code> right from the file system.
@@ -31,7 +31,7 @@ export function getStarted() {
             { codeSample(`
                 npm i --save-dev @babel/cli @babel/core @babel/preset-env esbuild typescript
                 npm i mutraction-dom
-                `
+                `, undefined, { highlight: false }
             ) }
             <p>
                 Then there are few config files to set up.
@@ -50,13 +50,13 @@ export function getStarted() {
                   },
                   "include": ["src"]
                 }
-                `, undefined, "tsconfig.json"
+                `, undefined, { caption: "tsconfig.json" }
             ) }
             { codeSample(`
                 {
                   "plugins": ["@babel/plugin-syntax-jsx", "mutraction-dom/compile-jsx"]
                 }            
-                `, undefined, ".babelrc"
+                `, undefined, { caption: ".babelrc" }
             ) }
             <p>
                 Next, add some build scripts to your <code>package.json</code> file.
@@ -69,7 +69,7 @@ export function getStarted() {
                   "bundle": "npx esbuild out2/index.js --bundle --format=esm --outfile=dist/index.js"
                 },
                 …
-                `, undefined, "package.json (excerpt)"
+                `, undefined, { caption: "package.json (excerpt)" }
             ) }
             <p>
                 There are three steps in the <code>build</code> script.
@@ -109,7 +109,7 @@ export function getStarted() {
                 document.body.append(app);
 
                 model.message = "I 💖 mutating";
-                `, undefined, "src/index.tsx"
+                `, undefined, { caption: "src/index.tsx" }
             ) }
             <p>
                 Almost there.  We need a host html file to load the app.
@@ -122,7 +122,7 @@ export function getStarted() {
                     <script src="dist/index.js"></script>
                   </head>
                 </html>                
-                `, undefined, "index.html"
+                `, undefined, { caption: "index.html" }
             ) }
             <p>
                 Now build and run.
