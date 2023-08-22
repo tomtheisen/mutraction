@@ -3,8 +3,8 @@ export function trackerDoc() {
         <>
             <h1><code>Tracker</code></h1>
             <p>
-                This is the class that handles all the <a href="#topics/history">history management</a>
-                and much of the mutation notification dispatch.  Normally, you don't need to interact with it
+                This is the class that handles all the <a href="#topics/history">history management</a> and 
+                much of the mutation notification dispatch.  Normally, you don't need to interact with it
                 directly.  But you can if you're into that sort of thing.
             </p>
             <p>
