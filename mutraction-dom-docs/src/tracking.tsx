@@ -70,11 +70,9 @@ export const tracking = (
         ) }
 
         <h2>What about the other exotic objects?</h2>
-
         <p>
             ECMAScript specifies a small handful of other exotic object types.
         </p>
-
         <ol>
             <li>Strings</li>
             <li>Arguments objects</li>
