@@ -23,6 +23,7 @@ import { trackerDoc } from "./trackerDoc.js";
 import { mounting } from "./mounting.js";
 import { radio } from "./radio.js";
 import { spinner } from "./spinner.js";
+import { lazy } from "./lazy.js";
 
 export const routes = Router(
     { pattern: '#start', element: getStarted },
@@ -47,7 +48,7 @@ export const routes = Router(
     { pattern: '#recipes/mounting', element: mounting },
     { pattern: '#recipes/radio', element: radio },
     { pattern: '#recipes/spinner', element: spinner },
-    { pattern: '#recipes/lazy', element: <span>coming soon</span> },
+    { pattern: '#recipes/lazy', element: lazy },
     { pattern: '#recipes/array', element: <span>coming soon</span> },
 
     { pattern: '#why', element: why },
