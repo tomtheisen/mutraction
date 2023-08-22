@@ -88,15 +88,15 @@ export function effectDoc() {
 
                 const output = <div /> as HTMLDivElement;
                 effect(() => { 
-                    output.innerText = model.arrival + " and " + model.weather;
+                  output.innerText = model.arrival + " and " + model.weather;
                 });
 
                 const app = (
-                    <>
-                        <input value={ model.arrival } mu:syncEvent="input" />
-                        <input value={ model.weather } mu:syncEvent="input" />
-                        { output }
-                    </>
+                  <>
+                    <input value={ model.arrival } mu:syncEvent="input" />
+                    <input value={ model.weather } mu:syncEvent="input" />
+                    { output }
+                  </>
                 );
 
                 return app;

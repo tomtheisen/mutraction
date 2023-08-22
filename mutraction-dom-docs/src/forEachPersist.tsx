@@ -66,14 +66,14 @@ export function forEachPersist() {
                 const model = track([{ label: "X" }, { label: "Y" }, { label: "Z" }]);
 
                 const app = (
-                    <>
-                        <ul>
-                            { ForEachPersist(model, item => <li>{ item.label } <input /></li>) }
-                        </ul>
-                        <button onclick={() => model.reverse() }>
-                            Reverse
-                        </button>
-                    </>
+                  <>
+                    <ul>
+                      { ForEachPersist(model, item => <li>{ item.label } <input /></li>) }
+                    </ul>
+                    <button onclick={() => model.reverse() }>
+                      Reverse
+                    </button>
+                  </>
                 );
                 `, ex1()
             ) }

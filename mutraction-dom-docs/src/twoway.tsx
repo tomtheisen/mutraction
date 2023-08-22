@@ -53,13 +53,13 @@ export function twoWay() {
             { codeSample(`
                 const model = track({ text: "initial" });
                 function update() {
-                    model.text = String(new Date);
+                  model.text = String(new Date);
                 }
                 const app = (
-                    <>
-                        <p>The value is: { model.text } </p>
-                        <button onclick={ update }>Change</button>
-                    </>
+                  <>
+                    <p>The value is: { model.text } </p>
+                    <button onclick={ update }>Change</button>
+                  </>
                 );            
                 `, ex1()
             ) }
@@ -72,12 +72,12 @@ export function twoWay() {
             { codeSample(`
                 const model = track({ text: "initial" });
                 const app = (
-                    <>
-                        <input value={ model.text } oninput={ 
-                            ev => { model.text = (ev.target as any).value } 
-                        } />
-                        <p>The value is: { model.text } </p>
-                    </>
+                  <>
+                    <input value={ model.text } oninput={ 
+                      ev => { model.text = (ev.target as any).value } 
+                    } />
+                    <p>The value is: { model.text } </p>
+                  </>
                 );            
                 `, ex2()
             ) }
@@ -94,11 +94,11 @@ export function twoWay() {
             { codeSample(`
                 const model = track({ text: "initial" });
                 const app = (
-                    <>
-                        <input value={ model.text } mu:syncEvent="input" />
-                        <input value={ model.text } mu:syncEvent="input" />
-                        <p>The value is: { model.text } </p>
-                    </>
+                  <>
+                    <input value={ model.text } mu:syncEvent="input" />
+                    <input value={ model.text } mu:syncEvent="input" />
+                    <p>The value is: { model.text } </p>
+                  </>
                 );            
                 `, ex3()
             ) }

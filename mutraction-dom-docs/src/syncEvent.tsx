@@ -36,19 +36,19 @@ export function syncEvent() {
             { codeSample(`
                 const model = track({ scrollPos: 0 });
                 const containerStyle = { 
-                    height: "100px", 
-                    width: "300px", 
-                    overflow: "auto", 
-                    border: "solid orange 2px",
+                  height: "100px", 
+                  width: "300px", 
+                  overflow: "auto", 
+                  border: "solid orange 2px",
                 };
 
                 const app = (
-                    <>
-                        <p>The scroll position is { model.scrollPos }</p>
-                        <div scrollTop={ model.scrollPos } mu:syncEvent="scroll" style={ containerStyle }>
-                            <div>{ String(Array(150).fill("Scroll me!")) }</div>
-                        </div>
-                    </>
+                  <>
+                    <p>The scroll position is { model.scrollPos }</p>
+                    <div scrollTop={ model.scrollPos } mu:syncEvent="scroll" style={ containerStyle }>
+                      <div>{ String(Array(150).fill("Scroll me!")) }</div>
+                    </div>
+                  </>
                 );
                 `, ex1()
             ) }

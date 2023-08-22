@@ -36,20 +36,20 @@ export function lazy() {
                 const model = track({ isEnabled: false });
 
                 function expensive() {
-                    console.log("Expensive computations");
-                    return <div>Expensive results</div>;
+                  console.log("Expensive computations");
+                  return <div>Expensive results</div>;
                 }
 
                 const app = (
-                    <>
-                        <label>
-                            <input type="checkbox" checked={ model.isEnabled } mu:syncEvent="change" />
-                            Enabled
-                        </label> <br />
-                        <div mu:if={ model.isEnabled }>
-                            { expensive() }
-                        </div>
-                    </>
+                  <>
+                    <label>
+                      <input type="checkbox" checked={ model.isEnabled } mu:syncEvent="change" />
+                      Enabled
+                    </label> <br />
+                    <div mu:if={ model.isEnabled }>
+                      { expensive() }
+                    </div>
+                  </>
                 );
                 `, ex1()
             ) }

@@ -74,11 +74,11 @@ export function jsx() {
             const input = <input /> as HTMLInputElement;
             input.addEventListener("input", () => model.current = input.value );
             const app = (
-                <>
-                    {/* This is a comment */}
-                    { input }
-                    <p>The current value: { model.current }</p>
-                </>
+              <>
+                {/* This is a comment */}
+                { input }
+                <p>The current value: { model.current }</p>
+              </>
             );
             `, ex1()
         ) }
@@ -116,12 +116,12 @@ export function jsx() {
         { codeSample(`
             const model = track({ current: "initial" });
             const app = (
-                <>
-                    Literal:    <input value="model.current" /> <br />
-                    Expression: <input value={ model.current } mu:syncEvent="input" /> <br />
-                    Spread:     <input {...{ value: model.current }} mu:syncEvent="input" /> <br />
-                    <p>The current value: { model.current }</p>
-                </>
+              <>
+                Literal:    <input value="model.current" /> <br />
+                Expression: <input value={ model.current } mu:syncEvent="input" /> <br />
+                Spread:     <input {...{ value: model.current }} mu:syncEvent="input" /> <br />
+                <p>The current value: { model.current }</p>
+              </>
             );
             `, ex2()
         ) }
@@ -137,11 +137,11 @@ export function jsx() {
         { codeSample(`
             const hr = <hr />;
             const app = (
-                <>
-                    <p>1 + 2 is { 1 + 2 }.</p>
-                    { hr }
-                    <p>An array is { [1, 2, [3, 4]] }</p>
-                </>
+              <>
+                <p>1 + 2 is { 1 + 2 }.</p>
+                { hr }
+                <p>An array is { [1, 2, [3, 4]] }</p>
+              </>
             );        
             `, ex3()
         ) }
@@ -156,14 +156,14 @@ export function jsx() {
             const model = track({ items: [{ name: "bongo" }] });
             
             function FC(item: typeof model.items[number]) {
-                return <>Name: { item.name }</>;
+              return <>Name: { item.name }</>;
             }
 
             const app = (
-                <div>
-                    <p>This is part of the outer component.</p>
-                    { FC(model.items[0]) }
-                </div>
+              <div>
+                <p>This is part of the outer component.</p>
+                { FC(model.items[0]) }
+              </div>
             );        
             `, ex4()
         ) }

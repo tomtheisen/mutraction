@@ -112,3 +112,28 @@ output {
     color: red;
 }
 .normal { }
+
+
+code .MultiLineComment         { color: #87a950; }
+code .SingleLineComment        { color: #87a950; }
+
+code .StringLiteral            { color: #CE8367; }
+code .TemplateHead             { color: #CE8367; }
+code .TemplateMiddle           { color: #CE8367; }
+code .TemplateTail             { color: #CE8367; }
+
+code .RegularExpressionLiteral { color: #D15036; }
+
+code .NumericLiteral           { color: #B5CEA8; }
+
+code .Punctuator               { color: #179FF1; }
+
+code .JSXString                { color: #bbb; }
+code .JSXIdentifier            { color: #569CD6; }
+code .JSXPunctuator            { color: #7A8080; }
+
+code .IdentifierName           {  }
+code .PrivateIdentifier        {  }
+
+code .JSXText                  {  }
+code .NoSubstitutionTemplate   {  }

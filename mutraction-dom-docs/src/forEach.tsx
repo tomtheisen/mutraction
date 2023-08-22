@@ -49,14 +49,14 @@ export function forEach() {
                 const model = track(["apple", "banana", "cherry"]);
 
                 const app = (
-                    <>
-                        <ul>
-                            { ForEach(model, item => <li>Fruit: { item }</li>) }
-                        </ul>
-                        <button onclick={() => model.push("date") }>
-                            Add "date"
-                        </button>
-                    </>
+                  <>
+                    <ul>
+                      { ForEach(model, item => <li>Fruit: { item }</li>) }
+                    </ul>
+                    <button onclick={() => model.push("date") }>
+                      Add "date"
+                    </button>
+                  </>
                 );
                 `, ex1()
             ) }

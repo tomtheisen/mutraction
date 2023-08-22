@@ -58,7 +58,7 @@ export const tracking = (
             const model = track([]);
 
             effect(() => {
-                console.log("length:", model.length);
+              console.log("length:", model.length);
             });
 
             model[57] = "foo";

@@ -78,17 +78,17 @@ export function styles() {
                 const model = track({ checked: false });
 
                 function getClass() {
-                    return model.checked ? "weighty" : "normal"
+                  return model.checked ? "weighty" : "normal"
                 }
 
                 const app = (
-                    <>
-                        <label>
-                            <input type="checkbox" checked={ model.checked } mu:syncEvent="change" />
-                            Enable weightiness
-                        </label>
-                        <p className={ getClass() }>Lorem ipsum dolor sit amet.</p>
-                    </>
+                  <>
+                    <label>
+                      <input type="checkbox" checked={ model.checked } mu:syncEvent="change" />
+                      Enable weightiness
+                    </label>
+                    <p className={ getClass() }>Lorem ipsum dolor sit amet.</p>
+                  </>
                 );
                 `, ex1()
             ) }
@@ -104,19 +104,19 @@ export function styles() {
                     const model = track({ weighty: false, important: false });
 
                     const app = (
-                        <>
-                            <label>
-                                <input type="checkbox" checked={ model.weighty } mu:syncEvent="change" />
-                                Enable weightiness
-                            </label> <br/>
-                            <label>
-                                <input type="checkbox" checked={ model.important } mu:syncEvent="change" />
-                                Enable importance
-                            </label>
-                            <p classList={{ weighty: model.weighty, important: model.important }}>
-                                Lorem ipsum dolor sit amet.
-                            </p>
-                        </>
+                      <>
+                        <label>
+                          <input type="checkbox" checked={ model.weighty } mu:syncEvent="change" />
+                          Enable weightiness
+                        </label> <br/>
+                        <label>
+                          <input type="checkbox" checked={ model.important } mu:syncEvent="change" />
+                          Enable importance
+                        </label>
+                        <p classList={{ weighty: model.weighty, important: model.important }}>
+                          Lorem ipsum dolor sit amet.
+                        </p>
+                      </>
                     );
                     `, ex2()
             ) }
@@ -131,13 +131,13 @@ export function styles() {
                 const model = track({ color: "blue" });
 
                 const app = (
-                    <>
-                        <button onclick={ () => model.color = "red" }>Red</button>
-                        <button onclick={ () => model.color = "green" }>Green</button>
-                        <p style={{ color: model.color }}>
-                            Lorem ipsum dolor sit amet.
-                        </p>
-                    </>
+                  <>
+                    <button onclick={ () => model.color = "red" }>Red</button>
+                    <button onclick={ () => model.color = "green" }>Green</button>
+                    <p style={{ color: model.color }}>
+                      Lorem ipsum dolor sit amet.
+                    </p>
+                  </>
                 );
                 `, ex3()
             ) }

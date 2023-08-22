@@ -26,9 +26,9 @@ export function intro() {
         {codeSample(`
             const model = track({ clicks: 0});
             const app = (
-                <button onclick={() => ++model.clicks }>
-                    { model.clicks } clicks
-                </button>
+              <button onclick={() => ++model.clicks }>
+                { model.clicks } clicks
+              </button>
             );
 
             document.body.append(app);

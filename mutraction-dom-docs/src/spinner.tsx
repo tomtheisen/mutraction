@@ -42,26 +42,26 @@ export function spinner() {
                 const model = track({ isLoading: false, status: 0 });
 
                 async function doRequest() {
-                    model.isLoading = true;
-                    const result = await fetch("https://httpstat.us/200?sleep=2000");
-                    
-                    model.status = result.status;
-                    model.isLoading = false;
+                  model.isLoading = true;
+                  const result = await fetch("https://httpstat.us/200?sleep=2000");
+                  
+                  model.status = result.status;
+                  model.isLoading = false;
                 }
 
                 const app = (
-                    <>
-                        <div mu:if={ model.isLoading} style={{ 
-                                display: "inline-block", 
-                                animation: "rotating 3s linear infinite" }}>
-                            Loading
-                        </div>
-                        <div mu:else>
-                            { model.status }
-                        </div>
-                        <br />
-                        <button onclick={ doRequest }>Fire request</button>
-                    </>
+                  <>
+                    <div mu:if={ model.isLoading} style={{ 
+                        display: "inline-block", 
+                        animation: "rotating 3s linear infinite" }}>
+                      Loading
+                    </div>
+                    <div mu:else>
+                      { model.status }
+                    </div>
+                    <br />
+                    <button onclick={ doRequest }>Fire request</button>
+                  </>
                 );
                 `, ex1()
             ) }

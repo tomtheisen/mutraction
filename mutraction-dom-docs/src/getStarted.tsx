@@ -38,23 +38,23 @@ export function getStarted() {
             </p>
             { codeSample(`
                 {
-                    "compilerOptions": {
-                        "target": "ES2022",
-                        "jsx": "preserve",
-                        "jsxImportSource": "mutraction-dom",
-                        "module": "ES2022",
-                        "moduleResolution": "Node16",
-                        "outDir": "./out/",
-                        "strict": true,
-                        "noImplicitAny": true,
-                    },
-                    "include": ["src"]
+                  "compilerOptions": {
+                    "target": "ES2022",
+                    "jsx": "preserve",
+                    "jsxImportSource": "mutraction-dom",
+                    "module": "ES2022",
+                    "moduleResolution": "Node16",
+                    "outDir": "./out/",
+                    "strict": true,
+                    "noImplicitAny": true,
+                  },
+                  "include": ["src"]
                 }
                 `, undefined, "tsconfig.json"
             ) }
             { codeSample(`
                 {
-                    "plugins": ["@babel/plugin-syntax-jsx", "mutraction-dom/compile-jsx"]
+                  "plugins": ["@babel/plugin-syntax-jsx", "mutraction-dom/compile-jsx"]
                 }            
                 `, undefined, ".babelrc"
             ) }
@@ -64,9 +64,9 @@ export function getStarted() {
             { codeSample(`
                 …
                 "scripts": {
-                    "build": "npx tsc && npm run transform && npm run bundle",
-                    "transform": "npx babel out -d out2",
-                    "bundle": "npx esbuild out2/index.js --bundle --format=esm --outfile=dist/index.js"
+                  "build": "npx tsc && npm run transform && npm run bundle",
+                  "transform": "npx babel out -d out2",
+                  "bundle": "npx esbuild out2/index.js --bundle --format=esm --outfile=dist/index.js"
                 },
                 …
                 `, undefined, "package.json (excerpt)"
@@ -117,10 +117,10 @@ export function getStarted() {
             { codeSample(`
                 <!DOCTYPE html>
                 <html>
-                    <head>
-                        <title>mutracted dom</title>
-                        <script src="dist/index.js"></script>
-                    </head>
+                  <head>
+                    <title>mutracted dom</title>
+                    <script src="dist/index.js"></script>
+                  </head>
                 </html>                
                 `, undefined, "index.html"
             ) }

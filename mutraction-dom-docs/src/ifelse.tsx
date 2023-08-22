@@ -61,15 +61,15 @@ export function ifelse() {
                 const model = track({ checked: true });
 
                 const app = (
-                    <>
-                        <label>
-                            <input type="checkbox" checked={ model.checked } mu:syncEvent="change" />
-                            Show paragraph
-                        </label>
-                        <p mu:if={ model.checked }>
-                            Lorem ipsum dolor sit amet.
-                        </p>
-                    </>
+                  <>
+                    <label>
+                      <input type="checkbox" checked={ model.checked } mu:syncEvent="change" />
+                      Show paragraph
+                    </label>
+                    <p mu:if={ model.checked }>
+                      Lorem ipsum dolor sit amet.
+                    </p>
+                  </>
                 );
                 `, ex1()
             ) }
@@ -85,19 +85,19 @@ export function ifelse() {
                 const model = track({ primary: false, secondary: false });
 
                 const app = (
-                    <>
-                        <label>
-                            <input type="checkbox" checked={ model.primary } mu:syncEvent="change" />
-                            Primary
-                        </label> <br />
-                        <label>
-                            <input type="checkbox" checked={ model.secondary } mu:syncEvent="change" />
-                            Secondary
-                        </label>
-                        <p mu:if={ model.primary }>Primary</p>
-                        <p mu:else mu:if={ model.secondary }>Secondary</p>
-                        <p mu:else>Neither</p>
-                    </>
+                  <>
+                    <label>
+                      <input type="checkbox" checked={ model.primary } mu:syncEvent="change" />
+                      Primary
+                    </label> <br />
+                    <label>
+                      <input type="checkbox" checked={ model.secondary } mu:syncEvent="change" />
+                      Secondary
+                    </label>
+                    <p mu:if={ model.primary }>Primary</p>
+                    <p mu:else mu:if={ model.secondary }>Secondary</p>
+                    <p mu:else>Neither</p>
+                  </>
                 );
                 `, ex2()
             ) }

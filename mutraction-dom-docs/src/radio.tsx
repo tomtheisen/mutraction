@@ -59,31 +59,31 @@ export function radio() {
 
             { codeSample(`
                 const model = track({ 
-                    flavors: ["vanilla", "chocolate", "strawberry"],
-                    selected: "chocolate"
+                  flavors: ["vanilla", "chocolate", "strawberry"],
+                  selected: "chocolate"
                 });
 
                 const app = (
-                    <>
-                        <p>Currently selected: <strong>{ model.selected }</strong></p>
-                        <hr />
-                        { ForEach(
-                            model.flavors, 
-                            f => <label>
-                                    <input type="radio" 
-                                        checked={ f == model.selected } 
-                                        onclick={ () => model.selected = f } />
-                                    { f }
-                                </label>
-                        ) }
-                        <hr />
-                        <select value={ model.selected } mu:syncEvent="change" >
-                            { ForEach(
-                                model.flavors,
-                                f => <option value={ f }>{ f }</option>
-                            ) }
-                        </select>
-                    </>
+                  <>
+                    <p>Currently selected: <strong>{ model.selected }</strong></p>
+                    <hr />
+                    { ForEach(
+                      model.flavors, 
+                      f => <label>
+                          <input type="radio" 
+                            checked={ f == model.selected } 
+                            onclick={ () => model.selected = f } />
+                          { f }
+                        </label>
+                    ) }
+                    <hr />
+                    <select value={ model.selected } mu:syncEvent="change" >
+                      { ForEach(
+                        model.flavors,
+                        f => <option value={ f }>{ f }</option>
+                      ) }
+                    </select>
+                  </>
                 );
                 `, ex1()
             ) }

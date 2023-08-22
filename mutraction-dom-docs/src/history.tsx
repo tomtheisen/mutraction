@@ -34,12 +34,12 @@ export function history() {
                 const model = track({ current: 0 });
 
                 const app = (
-                    <>
-                        <p>The current value is { model.current }</p>
-                        <button onclick={ () => model.current += 1 }>+1</button>
-                        <button onclick={ () => model.current += 10 }>+10</button>
-                        <button onclick={ () => defaultTracker.undo() }>Undo</button>
-                    </>
+                  <>
+                    <p>The current value is { model.current }</p>
+                    <button onclick={ () => model.current += 1 }>+1</button>
+                    <button onclick={ () => model.current += 10 }>+10</button>
+                    <button onclick={ () => defaultTracker.undo() }>Undo</button>
+                  </>
                 );
                 `, ex1()
             ) }
