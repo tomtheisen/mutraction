@@ -21,6 +21,7 @@ import { routerDoc } from "./routerDoc.js";
 import { trackerDoc } from "./trackerDoc.js";
 
 import { mounting } from "./mounting.js";
+import { radio } from "./radio.js";
 
 export const routes = Router(
     { pattern: '#start', element: getStarted },
@@ -43,7 +44,7 @@ export const routes = Router(
     { pattern: '#ref/Tracker', element: trackerDoc },
 
     { pattern: '#recipes/mounting', element: mounting },
-    { pattern: '#recipes/radio', element: <span>coming soon</span> },
+    { pattern: '#recipes/radio', element: radio },
     { pattern: '#recipes/select', element: <span>coming soon</span> },
     { pattern: '#recipes/spinner', element: <span>coming soon</span> },
     { pattern: '#recipes/lazy', element: <span>coming soon</span> },
