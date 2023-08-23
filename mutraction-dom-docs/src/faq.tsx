@@ -1,3 +1,11 @@
+import { track } from "mutraction-dom";
+
+const loadTimeModel = track({ loadTime: NaN });
+
+export function setLoadTime(elapsed: number) {
+    loadTimeModel.loadTime = elapsed;
+}
+
 export function faq() {
     return(
         <>
@@ -17,6 +25,11 @@ export function faq() {
             <h2>How fast is mutraction?</h2>
             <p>
                 Fast.  This site is all <code>mutraction-dom</code>.  Click around.  Really get a sense for it.
+            </p>
+            <p>
+                As a data point, on this browser, for this load, all the startup code finished loading and running
+                in { loadTimeModel.loadTime.toFixed(1) }ms, as measured 
+                by <a href="https://developer.mozilla.org/en-US/docs/Web/API/Performance/now"><code>performance.now()</code></a>.
             </p>
 
             <h2>There are so many front-end frameworks.  Why another one?</h2>
