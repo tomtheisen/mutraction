@@ -28,9 +28,9 @@ export function intro() {
             JSX expressions produce real DOM elements that you can insert directly into the document.
         </p>
         {codeSample(`
-            const model = track({ clicks: 0});
+            const model = track({ clicks: 0 });
             const app = (
-              <button onclick={() => ++model.clicks }>
+              <button onclick={ () => ++model.clicks }>
                 { model.clicks } clicks
               </button>
             );
