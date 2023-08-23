@@ -4,7 +4,7 @@ import { codeSample } from "./codesample.js";
 function ex1() {
     const model = track({ 
         flavors: ["vanilla", "chocolate", "strawberry"],
-        selected: ""
+        selected: "chocolate"
      });
 
      const app = (

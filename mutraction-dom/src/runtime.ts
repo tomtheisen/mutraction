@@ -98,6 +98,7 @@ export function element<E extends keyof HTMLElementTagNameMap>(
     ...children: (Node | string)[]
 ): HTMLElementTagNameMap[E] | Text {
     const el: HTMLElementTagNameMap[E] = document.createElement(name);
+    el.append(...children);
 
     let syncEvents: string | undefined;
     for (let [name, value] of Object.entries(staticAttrs) as [string, string][]) {
@@ -138,8 +139,6 @@ export function element<E extends keyof HTMLElementTagNameMap>(
                 break;
         }
     }
-
-    el.append(...children);
 
     if (syncEvents && syncedProps?.length) {
         for (const e of syncEvents.matchAll(/\S+/g)) {

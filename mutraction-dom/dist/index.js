@@ -712,6 +712,7 @@ function ForEachPersist(array, map) {
 }
 function element(name, staticAttrs, dynamicAttrs, ...children) {
   const el = document.createElement(name);
+  el.append(...children);
   let syncEvents;
   for (let [name2, value] of Object.entries(staticAttrs)) {
     switch (name2) {
@@ -751,7 +752,6 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
         break;
     }
   }
-  el.append(...children);
   if (syncEvents && syncedProps?.length) {
     for (const e of syncEvents.matchAll(/\S+/g)) {
       el.addEventListener(e[0], () => {
