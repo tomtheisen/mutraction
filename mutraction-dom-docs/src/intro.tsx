@@ -11,7 +11,11 @@ export function intro() {
     );
 
     return <div>
-        <div style={{ textAlign: "center" }}>{ muLogo(300) }</div>
+        <div style={{ 
+            textAlign: "center", 
+            background: "radial-gradient(circle closest-side at center, #ccf3 50%, rgba(0, 0, 0, 0) 100%)",
+            padding: "2em" 
+        }}>{ muLogo(300) }</div>
         <hgroup>
             <h1>Mutraction</h1>
             <h2>Reactive UI in Typescript and JSX</h2>
