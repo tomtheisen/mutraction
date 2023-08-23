@@ -27,7 +27,7 @@ export function intro() {
             After that, you can reference the tracked object in JSX expressions.
             JSX expressions produce real DOM elements that you can insert directly into the document.
         </p>
-        {codeSample(`
+        { codeSample(`
             const model = track({ clicks: 0 });
             const app = (
               <button onclick={ () => ++model.clicks }>
@@ -37,7 +37,7 @@ export function intro() {
 
             document.body.append(app);
             `, app
-        )}
+        ) }
         <p>
             Mutraction supports typescript and modern browsers.
         </p>

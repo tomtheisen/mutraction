@@ -227,11 +227,18 @@ const mutractPlugin = {
             exit: JSXFragment_exit,
         },
         JSXText(path) {
-            // strip leading or trailing whitespace, but only if it contains a newline
             let { value } = path.node;
-            value = value.replace(/^[ \t]*\n\s*/, '');
-            value = value.replace(/\s*\n[ \t]*$/, '');
-            path.replaceWith(t.stringLiteral(value));
+            // strip leading or trailing whitespace, but only if it contains a newline
+            value = value.replace(/^[ \t]*\n\s*/, "");
+            value = value.replace(/[ \t]*\n\s*$/, "");
+            // replace runs of whitespace with a single space
+            value = value.replace(/\s+/g, ' ');
+            if (value) {
+                path.replaceWith(t.stringLiteral(value));
+            }
+            else {
+                path.remove();
+            }
         },
     }
 };

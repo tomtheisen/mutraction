@@ -1,5 +1,6 @@
 import { Router } from "mutraction-dom";
 import { getStarted } from "./getStarted.js";
+import { oneWay } from "./oneway.js";
 import { twoWay } from "./twoway.js";
 import { intro } from "./intro.js";
 import { notFound } from "./notFound.js";
@@ -34,6 +35,7 @@ export const routes = Router(
 
     { pattern: '#topics/tracking', element: tracking },
     { pattern: '#topics/jsx', element: jsx },
+    { pattern: '#topics/one-way', element: oneWay },
     { pattern: '#topics/two-way', element: twoWay },
     { pattern: '#topics/events', element: events },
     { pattern: '#topics/history', element: history },

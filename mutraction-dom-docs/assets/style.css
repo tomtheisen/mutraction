@@ -129,7 +129,7 @@ code .NumericLiteral           { color: #B5CEA8; }
 code .Punctuator               { color: #179FF1; }
 
 code .JSXString                { color: #bbb; }
-code .JSXIdentifier            { color: #569CD6; }
+code .JSXIdentifier            { color: #cd56d6; }
 code .JSXPunctuator            { color: #7A8080; }
 
 code .IdentifierName           {  }
