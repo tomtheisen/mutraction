@@ -16,7 +16,7 @@ export function intro() {
             background: "radial-gradient(circle closest-side at center, #ccf3 50%, rgba(0, 0, 0, 0) 100%)",
             padding: "2em" 
         }}>{ muLogo(300) }</div>
-        <hgroup>
+        <hgroup style={{ marginTop: "-3em" }}>
             <h1>Mutraction</h1>
             <h2>Reactive UI in Typescript and JSX</h2>
         </hgroup>
