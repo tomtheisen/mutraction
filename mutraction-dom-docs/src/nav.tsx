@@ -47,9 +47,7 @@ export const nav =
                 <details open={true}>
                     <summary><a>Example apps</a></summary>
                     <ul>
-                        <li>
-                            <li><a href="#example/todo">Todo list</a></li>
-                        </li>
+                        <li><a href="#example/todo">Todo list</a></li>
                     </ul>
                 </details>
             </li>
