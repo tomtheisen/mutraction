@@ -17,20 +17,21 @@ function remove(item: TodoItem) {
     if (idx >= 0) model.items.splice(idx, 1);
 }
 function itemRender(item: TodoItem) {
+    // keeping local state right in the input without a model variable
     const editor = <input value={ item.title } /> as HTMLInputElement;
 
     return <>
-        <li mu:if={!item.editing}>
-            {editor}
-            <button onclick={() => (item.title = editor.value, item.editing = false)}>✅</button>
-            <button onclick={() => item.editing = false}>❌</button>
+        <li mu:if={ item.editing }>
+            { editor }
+            <button onclick={ () => (item.title = editor.value, item.editing = false) }>✅</button>
+            <button onclick={ () => item.editing = false }>❌</button>
         </li>
         <li mu:else>
-            <button onclick={() => remove(item)}>❌</button>
-            <button onclick={() => item.editing = true}>✏️</button>
+            <button onclick={ () => remove(item) }>❌</button>
+            <button onclick={ () => item.editing = true }>✏️</button>
             <label>
-                <input type="checkbox" checked={item.done} onchange={ev => item.done = (ev.target as any).checked} />
-                <span style={{ textDecoration: item.done ? "line-through" : "none" }}>{item.title}</span>
+                <input type="checkbox" checked={ item.done } mu:syncEvent="change" />
+                <span style={{ textDecoration: item.done ? "line-through" : "none" }}>{ item.title }</span>
             </label>
         </li>
     </>;
@@ -43,18 +44,20 @@ function doAdd(ev: SubmitEvent) {
 function sort() {
     model.items.sort((a, b) => Number(a.done) - Number(b.done));
 }
+function completeAll() {
+    model.items.forEach(item => item.done = true);
+}
 export const todoApp = (
     <>
-        <h1 title={model.newItemTitle}>To-do</h1>
-        <button onclick={sort}>Sort by unfinished</button>
+        <h1 title={ model.newItemTitle }>To-do</h1>
+        <button onclick={ sort }>Sort by unfinished</button>
+        <button onclick={ completeAll }>Complete all</button>
         <ul>
-            {ForEachPersist(model.items, item => itemRender(item))}
+            { ForEachPersist(model.items, item => itemRender(item)) }
         </ul>
-        <form onsubmit={doAdd}>
-            <label>
-                New item <input value={model.newItemTitle} oninput={ev => model.newItemTitle = (ev.target as any).value} />
-            </label>
-            <button>New item</button>
+        <form onsubmit={ doAdd }>
+            <input placeholder="New item" value={ model.newItemTitle } mu:syncEvent="input" />
+            <button>➕</button>
         </form>
     </>
 );

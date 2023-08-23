@@ -26,6 +26,7 @@ import { lazy } from "./lazy.js";
 import { array } from "./array.js";
 
 import { todoWrapper } from "./examples/todoWrapper.js";
+import { faq } from "./faq.js";
 
 export const routes = Router(
     { pattern: '#start', element: getStarted },
@@ -56,6 +57,7 @@ export const routes = Router(
     { pattern: '#example/todo', element: todoWrapper },
 
     { pattern: '#why', element: why },
+    { pattern: '#faq', element: faq },
 
     { pattern: '#clock', element: () => <>{ new Date }</> },
     { pattern: /#id=(\d+)/, element: match => <>Id match: {match[1]}</> },
