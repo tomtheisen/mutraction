@@ -2,7 +2,6 @@ import { version } from "mutraction-dom";
 import { muLogo } from "./mulogo.js";
 import { nav } from "./nav.js";
 import { routes } from "./routes.js";
-import { setLoadTime } from "./faq.js";
 
 const app = (
     <>
@@ -24,7 +23,4 @@ const app = (
         </div>
     </>
 );
-
 document.body.append(app);
-
-setLoadTime(performance.now());

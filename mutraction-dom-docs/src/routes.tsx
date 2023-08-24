@@ -25,6 +25,7 @@ import { radio } from "./radio.js";
 import { spinner } from "./spinner.js";
 import { lazy } from "./lazy.js";
 import { array } from "./array.js";
+import { html } from "./html.js";
 
 import { todoWrapper } from "./examples/todoWrapper.js";
 import { faq } from "./faq.js";
@@ -55,6 +56,7 @@ export const routes = Router(
     { pattern: '#recipes/spinner', element: spinner },
     { pattern: '#recipes/lazy', element: lazy },
     { pattern: '#recipes/array', element: array },
+    { pattern: '#recipes/html', element: html },
 
     { pattern: '#example/todo', element: todoWrapper },
 

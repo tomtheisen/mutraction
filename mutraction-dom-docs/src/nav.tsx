@@ -41,6 +41,7 @@ export const nav =
                         <li><a href="#recipes/spinner">Loading spinner</a></li>
                         <li><a href="#recipes/lazy">Lazy loading</a></li>
                         <li><a href="#recipes/array">Arrays</a></li>
+                        <li><a href="#recipes/html">Raw HTML</a></li>
                     </ul>
                 </details>
             </li>
