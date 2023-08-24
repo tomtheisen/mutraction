@@ -3,8 +3,10 @@ import { ElementSpan } from './elementSpan.js';
 type Route = {
     pattern: RegExp | string;
     element: Node | ((match: RegExpExecArray) => Node);
+    suppressScroll?: boolean;
 } | {
     element: Node | (() => Node);
+    suppressScroll?: boolean;
 }
 
 const fragmentMap: WeakMap<DocumentFragment, ElementSpan> = new WeakMap;
@@ -49,6 +51,7 @@ export function Router(...routes: Route[]): Node {
                     lastResolvedSpan = undefined;
                     container.replaceWith(newNode);
                 }
+                if (!route.suppressScroll) window.scrollTo(0, 0);
                 return;
             }
         }

@@ -65,6 +65,8 @@ export function jsx() {
         <p>
             Mutraction uses <a href="https://facebook.github.io/jsx/">JSX</a> heavily.  
             It also provides typescript typings for the JSX elements.
+            JSX can be used for named elements, or for fragments using this <code>&lt;&gt;syntax&lt;/&gt;</code>,
+            which produces a <a href="https://developer.mozilla.org/en-US/docs/Web/API/DocumentFragment"><code>DocumentFragment</code></a>.
             There are a small handful of mutraction specific attributes, but all JSX expressions yield real DOM elements or fragments.
             This means you can easily get references for extra manipulation if you need to.
         </p>

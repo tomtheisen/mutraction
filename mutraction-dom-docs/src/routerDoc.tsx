@@ -19,7 +19,7 @@ export function routerDoc() {
             </p>
             <ul>
                 <li>
-                    <code>pattern</code>
+                    <code>pattern</code> - optional
                     <p>
                         This is a string or Regexp.  If it's a string, it must match the hash portion of the url exactly,
                         like <code>"#foo"</code>.
@@ -33,6 +33,13 @@ export function routerDoc() {
                         This is a document node, or a function that produces one.
                         If a function is provided, the node will be loaded lazily.
                         In the case of a Regexp pattern, the function can accept the match array.
+                    </p>
+                </li>
+                <li>
+                    <code>suppressScroll</code> - optional
+                    <p>
+                        If true, this prevents the default scroll behavior.
+                        By default, the page will scroll to top after each route resolution.
                     </p>
                 </li>
             </ul>

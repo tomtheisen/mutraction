@@ -29,7 +29,7 @@ export function lazy() {
         <>
             <h1>Lazy initialization</h1>
             <p>
-                You can defer expensive initialization.  Just use <a href="#ref/ifesle"><code>mu:if</code></a>.
+                You can defer expensive initialization.  Just use <a href="#ref/ifelse"><code>mu:if</code></a>.
                 That's it.  Check the console.  The expensive computation runs at most once, but not until it's needed.
             </p>
             { codeSample(`

@@ -857,6 +857,8 @@ function Router(...routes) {
           lastResolvedSpan = void 0;
           container.replaceWith(newNode);
         }
+        if (!route.suppressScroll)
+          window.scrollTo(0, 0);
         return;
       }
     }

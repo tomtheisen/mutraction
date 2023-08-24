@@ -16,6 +16,13 @@ export function mounting() {
                 document.body.append(app);
                 `
             ) }
+
+            <p>
+                But you can still do all the same stuff.  And probably more.  
+                You just have to use <code>{`{`}</code> curly braces <code>{`}`}</code> instead 
+                of <code>&lt;</code> angle braces <code>&gt;</code>.  Then you can use
+                regular old javascript functions in place of components.
+            </p>
         </>
     );
 }
