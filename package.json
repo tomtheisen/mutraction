@@ -3,6 +3,7 @@
   "workspaces": [
     "mutraction-dom",
     "mutraction-dom-docs",
-    "mutraction-dom-template"
+    "mutraction-dom-template",
+    "mutraction-sandbox"
   ]
 }
