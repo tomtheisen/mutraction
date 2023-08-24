@@ -870,7 +870,7 @@ function Router(...routes) {
 }
 
 // out/index.js
-var version = "0.16.1";
+var version = "0.16.2";
 export {
   DependencyList,
   ForEach,
