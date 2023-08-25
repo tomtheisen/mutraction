@@ -1,0 +1,56 @@
+:root {
+    --brand-hue: 215;
+    --primary-color: hsl(var(--brand-hue), 100%, 50%);
+    --header-height: 3.5em;
+}
+
+.primary {
+    color: var(--primary-color);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: var(--header-height) 1fr;
+    column-gap: 1em;
+    row-gap: 1em;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+
+    background: #111;
+    color: #eee;
+    font-family: Segoe UI, Roboto, Ubuntu, Cantarell, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+}
+
+header {
+    grid-column: 1 / 3;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    background-color: hsl(var(--brand-hue), 31%, 16%);
+    padding: 2px 1em;
+}
+
+h1 {
+    margin: 0 1em;
+}
+
+textarea {
+    width: 100%;
+    height: 100%;
+    padding: 1.5em;
+
+    color: #eee;
+    background-color: #222;
+    border-color: #444;
+    resize: none;
+}
+iframe {
+    width: 100%;
+    height: 100%;
+}

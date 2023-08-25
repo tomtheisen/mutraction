@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>output</title>
+    <style>
+        body {
+            background-color: white;
+            color: black;
+        }
+    </style>
     <script type="importmap">
         { 
             "imports": {
@@ -13,16 +19,13 @@
     </script>
     <script>
         function runCode(moduleSource) {
-            let scriptEl = document.createElement('script');
-            scriptEl.type = 'module';
-            scriptEl.textContent = moduleSource;
-            scriptEl.src = URL.createObjectURL(new Blob([scriptEl.textContent],{type:'application/javascript'}));
-            document.body.append(scriptEl);
+            let el = document.createElement('script');
+            el.type = 'module';
+            el.textContent = moduleSource;
+            el.src = URL.createObjectURL(new Blob([el.textContent], {type:'application/javascript'}));
+            document.body.append(el);
         }
-        window.addEventListener("message", ev => {
-            runCode(ev.data);
-        });
+        window.addEventListener("message", ev => runCode(ev.data));
     </script>
 </head>
-<body></body>
 </html>
