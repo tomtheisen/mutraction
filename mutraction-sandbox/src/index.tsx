@@ -60,7 +60,7 @@ const app = (
             <h1>sandbox</h1>
             { runButton }{ saveButton }
             <div style={{ flexGrow: "1" }}></div>
-            <span className="narrow-hide" style={{ padding: "1em", color: "#fff6" }}>v{ version }</span>
+            <span className="narrow-hide" style={{ padding: "1em", color: "#fff6" }}>mutraction-dom@{ version }</span>
         </header>
         { sourceBox }
         <div id="sizer" onmousedown={ startSizing }></div>
