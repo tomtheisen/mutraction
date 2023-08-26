@@ -1,26 +1,35 @@
 import { muLogo } from "./mulogo.js";
-import { version } from "mutraction-dom";
+import { version, track } from "mutraction-dom";
 import { compress, decompress } from "./compress.js";
 import { run } from "./run.js";
 import { defaultSource } from "./defaultSource.js";
 
 export const storageKey = "mu_playground_source";
 
-const runButton = <button onclick={ run }>Run ▶️ <small className="narrow-hide">(<kbd>ctrl + enter</kbd>)</small></button>;
+const runButton = (
+    <button onclick={ () => run(model.source) }>
+        Run ▶️ <small className="narrow-hide">(<kbd>ctrl + enter</kbd>)</small>
+    </button>
+);
 const saveButton = <button onclick={ save }>Share <small className="narrow-hide">(<kbd>ctrl + S</kbd>)</small></button>;
-export const sourceBox = <textarea autofocus spellcheck={false} /> as HTMLTextAreaElement;
+
+const model = track({ source: "" });
+
+const sourceBox = <textarea className="editor" autofocus spellcheck={false} value={model.source} mu:syncEvent="change" /> as HTMLTextAreaElement;
+// const sourceBox = <div className="editor"></div> as HTMLDivElement;
+
 export const frame = <iframe src="output.html"></iframe> as HTMLIFrameElement;
 
-async function initialize() {
-    sourceBox.value = location.hash.length > 1
+async function init() {
+    model.source = location.hash.length > 1
         ? await decompress(location.hash.substring(1))
         : sessionStorage.getItem(storageKey) ?? defaultSource;
-    if (sourceBox.value) run();
+    run(model.source);
 }
-initialize();
+init();
 
 async function save() {
-    const compressed = await compress(sourceBox.value);
+    const compressed = await compress(model.source);
     location.hash = compressed;
     const notify = <div className="notification">URL copied to clipboard</div> as HTMLDivElement;
     document.body.append(notify);
@@ -29,7 +38,7 @@ async function save() {
 
 window.addEventListener("keydown", ev => {
     if (ev.key === "Enter" && ev.ctrlKey) {
-        run();
+        run(model.source);
     }
     else if (ev.key === "s" && ev.ctrlKey) {
         ev.preventDefault();
@@ -60,7 +69,9 @@ const app = (
             <h1>sandbox</h1>
             { runButton }{ saveButton }
             <div style={{ flexGrow: "1" }}></div>
-            <span className="narrow-hide" style={{ padding: "1em", color: "#fff6" }}>mutraction-dom@{ version }</span>
+            <span className="narrow-hide" style={{ padding: "1em", color: "#fff6" }}>
+                mutraction-dom<wbr />@{ version }
+            </span>
         </header>
         { sourceBox }
         <div id="sizer" onmousedown={ startSizing }></div>

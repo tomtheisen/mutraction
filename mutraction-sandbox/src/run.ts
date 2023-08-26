@@ -1,6 +1,6 @@
 import compileJsx from "mutraction-dom/compile-jsx";
 import { transform } from "@babel/standalone";
-import { sourceBox, storageKey, frame } from "./index.js";
+import { storageKey, frame } from "./index.js";
 
 function muCompile(source: string) {
     const options = { 
@@ -13,8 +13,7 @@ function muCompile(source: string) {
     return code ?? "";
 }
 
-export function run() {
-    const code = sourceBox.value;
+export function run(code: string) {
     sessionStorage.setItem(storageKey, code);
     frame.addEventListener("load", ev => {
         frame.contentWindow?.postMessage(compiled, "*");
