@@ -8,7 +8,8 @@ const app = (
         <header>
             <div style={{ position: "relative", top: "4px" }}>{ muLogo(50) }</div>
             <h1>traction</h1>
-            <span style={{ padding: "1em", color:"#fff6" }}>v{ version }</span>
+            <span style={{ padding: "1em", fontWeight: "bold"}}><a href="./sandbox">Sandbox</a></span>            
+            <span style={{ padding: "1em", color: "#fff6" }}>v{ version }</span>
             <a href="https://github.com/tomtheisen/mutraction">
                 <img src="assets/github-logo.svg" alt="Github" style={{ height: "34px", width: "34px" }} />
             </a>

@@ -5,9 +5,12 @@
   "description": "Interactive sandbox for mutracted apps",
   "main": "index.js",
   "scripts": {
-    "build": "npx tsc && npm run bundle && npm run get-mudom",
-    "bundle": "npx esbuild out/index.js --bundle --outfile=out/index.bundle.js --minify",
-    "get-mudom": "copy /y ..\\mutraction-dom\\dist\\index.js out\\mutraction-dom.js"
+    "build": "npx tsc && npm run transform && npm run bundle && npm run publish && npm run get-mudom && npm run clean",
+    "transform": "npx babel out -d out2",
+    "bundle": "npx esbuild out2/index.js --bundle --outfile=dist/index.bundle.js --minify",
+    "get-mudom": "copy /y ..\\mutraction-dom\\dist\\index.js publish\\mutraction-dom.js",
+    "publish": "xcopy /y assets\\ publish\\assets\\ && copy dist\\index.bundle.js publish\\ && copy *.html publish\\",
+    "clean": "rd /s /q out && rd /s /q out2 && rd /s /q dist"
   },
   "author": "Tom Theisen",
   "license": "ISC",

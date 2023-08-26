@@ -5,10 +5,10 @@
   "description": "Documentation for mutraction-dom",
   "main": "index.js",
   "scripts": {
-    "build": "npx tsc && npm run transform && npm run bundle && npm run cleanout && npm run publish",
+    "build": "npx tsc && npm run transform && npm run bundle && npm run publish && npm run cleanout",
     "transform": "npx babel out -d out2",
     "bundle": "npx esbuild out2/index.js --bundle --format=esm --outfile=dist/index.js",
-    "cleanout": "rd /Q /S out && rd /Q /S out2 && rd /Q /S publish",
+    "cleanout": "rd /Q /S out && rd /Q /S out2",
     "publish": "md publish && xcopy assets publish\\assets\\ && xcopy dist publish\\dist\\ && copy index.html publish"
   },
   "author": "Tom Theisen",
