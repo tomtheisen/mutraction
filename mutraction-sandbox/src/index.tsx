@@ -105,7 +105,11 @@ async function init() {
             jsx: JSXPreserve,
         });
 
-        editor = monaco.editor.create(sourceBox, { language: 'typescript' });
+        editor = monaco.editor.create(sourceBox, { 
+            language: 'typescript',
+            minimap: { enabled: false },
+            theme: "vs-dark",
+         });
         const modelUri = monaco.Uri.file("foo.tsx")
         const codeModel = monaco.editor.createModel(source, "typescript", modelUri);
         editor.setModel(codeModel);
