@@ -1,7 +1,7 @@
 :root {
     --brand-hue: 215;
     --primary-color: hsl(var(--brand-hue), 100%, 50%);
-    --header-height: 3em;
+    --header-height: 3.5em;
 }
 
 html {
@@ -40,7 +40,7 @@ header {
 }
 
 h1 {
-    margin: 0 1em;
+    margin: 0 1em 0 0;
 }
 
 textarea {
@@ -59,3 +59,9 @@ iframe {
     width: 100%;
     height: 100%;
 }
+
+@keyframes rotating {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
