@@ -4,6 +4,7 @@ import { compress, decompress } from "./compress.js";
 import { run } from "./run.js";
 import { defaultSource } from "./defaultSource.js";
 import type * as monacoType from "monaco-editor";
+import { mutractionDomModule } from "./mutractionDomModuleTypeSource.js";
 
 declare const require: Function & { config: Function };
 declare const monaco: typeof monacoType;
@@ -100,10 +101,13 @@ async function init() {
     require(['vs/editor/editor.main'], function () {
         const existing = monaco.languages.typescript.typescriptDefaults.getCompilerOptions();
         const JSXPreserve = 1;
+        const ModuleResolutionKindClassic = 1;
         monaco.languages.typescript.typescriptDefaults.setCompilerOptions({ 
             ...existing,
             jsx: JSXPreserve,
+            moduleResolution: ModuleResolutionKindClassic,
         });
+        monaco.languages.typescript.typescriptDefaults.addExtraLib(mutractionDomModule, "mutraction-dom.ts");
 
         editor = monaco.editor.create(sourceBox, { 
             language: 'typescript',
@@ -113,11 +117,6 @@ async function init() {
         const modelUri = monaco.Uri.file("foo.tsx")
         const codeModel = monaco.editor.createModel(source, "typescript", modelUri);
         editor.setModel(codeModel);
-        mainLoop();
     });
 }
 init();
-
-function mainLoop() {
-    // console.log("main", editor);
-}
