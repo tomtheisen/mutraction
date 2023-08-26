@@ -10,12 +10,8 @@ declare const monaco: typeof monacoType;
 
 export const storageKey = "mu_playground_source";
 
-function getSource() {
-    return editor?.getValue();
-}
-
 function doRun() {
-    run(getSource());
+    run(editor?.getValue());
 }
 
 const runButton = (
@@ -29,9 +25,17 @@ const sourceBox = <div></div> as HTMLDivElement;
 export const frame = <iframe src="output.html"></iframe> as HTMLIFrameElement;
 
 async function save() {
-    const compressed = await compress(getSource());
+    const compressed = await compress(editor?.getValue());
     location.hash = compressed;
-    const notify = <div className="notification">URL copied to clipboard</div> as HTMLDivElement;
+    let message: string;
+    try {
+        await navigator.clipboard.writeText(location.href);
+        message = "URL copied to clipboard";
+    }
+    catch {
+        message = "Failed to set clipboard";
+    }
+    const notify = <div className="notification">{ message }</div> as HTMLDivElement;
     document.body.append(notify);
     setTimeout(() => notify.remove(), 1e3);
 }
