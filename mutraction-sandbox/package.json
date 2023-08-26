@@ -5,10 +5,12 @@
   "description": "Interactive sandbox for mutracted apps",
   "main": "index.js",
   "scripts": {
-    "build": "npx tsc && npm run transform && npm run bundle && npm run publish && npm run get-mudom && npm run clean",
+    "build": "npx tsc && npm run transform && npm run bundle && npm run publish && npm run get-deps && npm run clean",
     "transform": "npx babel out -d out2",
-    "bundle": "npx esbuild out2/index.js --bundle --outfile=dist/index.bundle.js --minify",
+    "bundle": "npx esbuild out2/index.js --bundle --outfile=dist/index.bundle.js --format=esm --external:monaco-editor",
+    "get-deps": "npm run get-mudom && npm run get-monaco",
     "get-mudom": "copy /y ..\\mutraction-dom\\dist\\index.js publish\\mutraction-dom.js",
+    "get-monaco": "xcopy /s /y ..\\node_modules\\monaco-editor\\min\\ publish\\monaco\\",
     "publish": "xcopy /y assets\\ publish\\assets\\ && copy dist\\index.bundle.js publish\\ && copy *.html publish\\",
     "clean": "rd /s /q out && rd /s /q out2 && rd /s /q dist"
   },

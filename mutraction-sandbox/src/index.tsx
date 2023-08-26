@@ -3,30 +3,28 @@ import { version, track } from "mutraction-dom";
 import { compress, decompress } from "./compress.js";
 import { run } from "./run.js";
 import { defaultSource } from "./defaultSource.js";
+import type * as monacoType from "monaco-editor";
+
+declare const require: Function & { config: Function };
+declare const monaco: typeof monacoType;
 
 export const storageKey = "mu_playground_source";
 
+const model = track({ source: "" });
+
+function doRun() {
+    run(model.source);
+}
+
 const runButton = (
-    <button onclick={ () => run(model.source) }>
+    <button onclick={ doRun }>
         Run ▶️ <small className="narrow-hide">(<kbd>ctrl + enter</kbd>)</small>
     </button>
 );
 const saveButton = <button onclick={ save }>Share <small className="narrow-hide">(<kbd>ctrl + S</kbd>)</small></button>;
-
-const model = track({ source: "" });
-
-const sourceBox = <textarea className="editor" autofocus spellcheck={false} value={model.source} mu:syncEvent="change" /> as HTMLTextAreaElement;
-// const sourceBox = <div className="editor"></div> as HTMLDivElement;
+const sourceBox = <div></div> as HTMLDivElement;
 
 export const frame = <iframe src="output.html"></iframe> as HTMLIFrameElement;
-
-async function init() {
-    model.source = location.hash.length > 1
-        ? await decompress(location.hash.substring(1))
-        : sessionStorage.getItem(storageKey) ?? defaultSource;
-    run(model.source);
-}
-init();
 
 async function save() {
     const compressed = await compress(model.source);
@@ -38,7 +36,7 @@ async function save() {
 
 window.addEventListener("keydown", ev => {
     if (ev.key === "Enter" && ev.ctrlKey) {
-        run(model.source);
+        doRun();
     }
     else if (ev.key === "s" && ev.ctrlKey) {
         ev.preventDefault();
@@ -80,3 +78,25 @@ const app = (
 );
 
 document.body.append(app);
+
+async function init() {
+    model.source = location.hash.length > 1
+        ? await decompress(location.hash.substring(1))
+        : sessionStorage.getItem(storageKey) ?? defaultSource;
+    doRun();
+
+    // this stuff is actually async, but not awaitable
+    require.config({ paths: { vs: 'monaco/vs' } });
+    require(['vs/editor/editor.main'], function () {
+        const editor = monaco.editor.create(sourceBox, {
+            value: model.source,
+            language: 'typescript'
+        });
+        mainLoop(editor);
+    });
+}
+init();
+
+function mainLoop(editor: ReturnType<typeof monaco["editor"]["create"]>) {
+    console.log("main", editor);
+}
