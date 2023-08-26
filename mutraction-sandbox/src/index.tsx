@@ -10,10 +10,12 @@ declare const monaco: typeof monacoType;
 
 export const storageKey = "mu_playground_source";
 
-const model = track({ source: "" });
+function getSource() {
+    return editor?.getValue();
+}
 
 function doRun() {
-    run(model.source);
+    run(getSource());
 }
 
 const runButton = (
@@ -27,7 +29,7 @@ const sourceBox = <div></div> as HTMLDivElement;
 export const frame = <iframe src="output.html"></iframe> as HTMLIFrameElement;
 
 async function save() {
-    const compressed = await compress(model.source);
+    const compressed = await compress(getSource());
     location.hash = compressed;
     const notify = <div className="notification">URL copied to clipboard</div> as HTMLDivElement;
     document.body.append(notify);
@@ -79,24 +81,35 @@ const app = (
 
 document.body.append(app);
 
+let editor: ReturnType<typeof monaco["editor"]["create"]>;
 async function init() {
-    model.source = location.hash.length > 1
+    const source = location.hash.length > 1
         ? await decompress(location.hash.substring(1))
         : sessionStorage.getItem(storageKey) ?? defaultSource;
-    doRun();
+    run(source);
 
     // this stuff is actually async, but not awaitable
     require.config({ paths: { vs: 'monaco/vs' } });
     require(['vs/editor/editor.main'], function () {
-        const editor = monaco.editor.create(sourceBox, {
-            value: model.source,
-            language: 'typescript'
+        const existing = monaco.languages.typescript.typescriptDefaults.getCompilerOptions();
+        const JSXPreserve = 1;
+        monaco.languages.typescript.typescriptDefaults.setCompilerOptions({ 
+            ...existing,
+            jsx: JSXPreserve,
         });
-        mainLoop(editor);
+
+        editor = monaco.editor.create(sourceBox, {
+            language: 'typescript',
+        });
+
+        const modelUri = monaco.Uri.file("foo.tsx")
+        const codeModel = monaco.editor.createModel(source, "typescript", modelUri);
+        editor.setModel(codeModel);        
+        mainLoop();
     });
 }
 init();
 
-function mainLoop(editor: ReturnType<typeof monaco["editor"]["create"]>) {
+function mainLoop() {
     console.log("main", editor);
 }
