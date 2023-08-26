@@ -99,6 +99,7 @@ async function init() {
     // this stuff is actually async, but not awaitable
     require.config({ paths: { vs: 'monaco/vs' } });
     require(['vs/editor/editor.main'], function () {
+        // ts compiler options
         const existing = monaco.languages.typescript.typescriptDefaults.getCompilerOptions();
         const JSXPreserve = 1;
         const ModuleResolutionKindClassic = 1;
@@ -107,13 +108,22 @@ async function init() {
             jsx: JSXPreserve,
             moduleResolution: ModuleResolutionKindClassic,
         });
+
+        // mutraction typedefs
         monaco.languages.typescript.typescriptDefaults.addExtraLib(mutractionDomModule, "mutraction-dom.ts");
 
+        // pass through Ctrl+Enter
+        // was "editor.action.insertLineAfter"
+        monaco.editor.addKeybindingRule({ keybinding: monaco.KeyCode.Enter + monaco.KeyMod.WinCtrl, command: undefined });
+
+        // create the editor
         editor = monaco.editor.create(sourceBox, { 
             language: 'typescript',
             minimap: { enabled: false },
             theme: "vs-dark",
-         });
+        });
+
+        // add the source code (model)
         const modelUri = monaco.Uri.file("foo.tsx")
         const codeModel = monaco.editor.createModel(source, "typescript", modelUri);
         editor.setModel(codeModel);
