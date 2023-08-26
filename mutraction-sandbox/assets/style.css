@@ -1,3 +1,9 @@
+@media (max-width: 720px) {
+    .narrow-hide {
+        display: none;
+    }
+}
+  
 :root {
     --brand-hue: 215;
     --primary-color: hsl(var(--brand-hue), 100%, 50%);
@@ -25,6 +31,7 @@ body {
     column-gap: 0.4em;
     height: 100vh;
     width: 100vw;
+    min-width: 480px;
     background: #111;
     color: #eee;
     font-family: Segoe UI, Roboto, Ubuntu, Cantarell, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -43,6 +50,17 @@ h1 {
     margin: 0 1em 0 0;
 }
 
+button {
+    line-height: 24px;
+    margin: 0 8px;
+    background-color: hsl(var(--brand-hue), 70%, 30%);
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 8px;
+    padding: 4px 16px;
+}
+
 textarea {
     width: 100%;
     height: 100%;
@@ -58,6 +76,17 @@ textarea {
 iframe {
     width: 100%;
     height: 100%;
+}
+
+.notification {
+    position: fixed;
+    padding: 1em;
+    border-radius: 1.5em;
+    font-size: 2rem;
+    bottom: 1em;
+    left: 1em;
+    background-color: hsla(var(--brand-hue), 60%, 30%, 0.8);
+    pointer-events: none;
 }
 
 @keyframes rotating {
