@@ -37,6 +37,22 @@ window.addEventListener("keydown", ev => {
     }
 });
 
+function startSizing() {
+    document.addEventListener("mousemove", updateSize);
+    document.addEventListener("mouseup", stopSizing, { once: true });
+    frame.style.pointerEvents = "none";
+}
+
+function stopSizing() {
+    document.removeEventListener("mousemove", updateSize);
+    frame.style.pointerEvents = "auto";
+}
+
+function updateSize(ev: MouseEvent) {
+    const template = `${ ev.pageX }fr 0.5em ${ document.body.scrollWidth - ev.pageX }fr`;
+    document.body.style.gridTemplateColumns = template;
+}
+
 const app = (
     <>
         <header>
@@ -46,7 +62,9 @@ const app = (
             <div style={{ flexGrow: "1" }}></div>
             <span className="narrow-hide" style={{ padding: "1em", color: "#fff6" }}>v{ version }</span>
         </header>
-        { sourceBox }{ frame }
+        { sourceBox }
+        <div id="sizer" onmousedown={ startSizing }></div>
+        { frame }
     </>
 );
 

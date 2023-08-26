@@ -1,7 +1,7 @@
 import compileJsx from "mutraction-dom/compile-jsx";
 import syntaxJsx from "@babel/plugin-syntax-jsx";
 import { transform } from "@babel/standalone";
-import { sourceBox, storageKey, frame } from "./index.jsx";
+import { sourceBox, storageKey, frame } from "./index.js";
 
 function muCompile(source: string) {
     const options = { plugins: [syntaxJsx, compileJsx] };
