@@ -1,9 +1,14 @@
 :root {
     --brand-hue: 215;
     --primary-color: hsl(var(--brand-hue), 100%, 50%);
-    --header-height: 3.5em;
+    --header-height: 3em;
 }
 
+html {
+    margin: 0;
+    padding: 0;
+}
+  
 .primary {
     color: var(--primary-color);
 }
@@ -13,15 +18,13 @@
 }
 
 body {
+    margin: 0;
     display: grid;
     grid-template-columns: 1fr 1fr;
     grid-template-rows: var(--header-height) 1fr;
-    column-gap: 1em;
-    row-gap: 1em;
+    column-gap: 0.4em;
     height: 100vh;
     width: 100vw;
-    overflow: hidden;
-
     background: #111;
     color: #eee;
     font-family: Segoe UI, Roboto, Ubuntu, Cantarell, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -44,7 +47,9 @@ textarea {
     width: 100%;
     height: 100%;
     padding: 1.5em;
-
+    border-color: #444;
+    margin: 0;
+    text-wrap: nowrap;
     color: #eee;
     background-color: #222;
     border-color: #444;
