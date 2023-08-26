@@ -11,7 +11,7 @@ declare const monaco: typeof monacoType;
 export const storageKey = "mu_playground_source";
 
 function doRun() {
-    run(editor?.getValue());
+    if (editor) run(editor.getValue());
 }
 
 const runButton = (
@@ -20,12 +20,12 @@ const runButton = (
     </button>
 );
 const saveButton = <button onclick={ save }>Share <small className="narrow-hide">(<kbd>ctrl + S</kbd>)</small></button>;
-const sourceBox = <div></div> as HTMLDivElement;
+const sourceBox = <div style={{ height: "100%", width: "50vw", minWidth: "10vw", maxWidth: "90vw" }}></div> as HTMLDivElement;
 
 export const frame = <iframe src="output.html"></iframe> as HTMLIFrameElement;
 
 async function save() {
-    const compressed = await compress(editor?.getValue());
+    const compressed = await compress(editor?.getValue() ?? "");
     location.hash = compressed;
     let message: string;
     try {
@@ -51,20 +51,23 @@ window.addEventListener("keydown", ev => {
 });
 
 function startSizing() {
-    document.addEventListener("mousemove", updateSize);
-    document.addEventListener("mouseup", stopSizing, { once: true });
+    document.addEventListener("mousemove", updateSize, { capture: true });
+    document.addEventListener("mouseup", stopSizing, { capture: true, once: true });
     frame.style.pointerEvents = "none";
 }
 
 function stopSizing() {
-    document.removeEventListener("mousemove", updateSize);
+    document.removeEventListener("mousemove", updateSize, { capture: true });
     frame.style.pointerEvents = "auto";
 }
 
 function updateSize(ev: MouseEvent) {
-    const template = `${ ev.pageX }fr 0.5em ${ document.body.scrollWidth - ev.pageX }fr`;
-    document.body.style.gridTemplateColumns = template;
+    sourceBox.style.width = ev.pageX + "px";
+    editor?.layout();
+    ev.stopPropagation();
 }
+
+window.addEventListener("resize", ev => editor?.layout());
 
 const app = (
     <>
@@ -85,7 +88,7 @@ const app = (
 
 document.body.append(app);
 
-let editor: ReturnType<typeof monaco["editor"]["create"]>;
+let editor: ReturnType<typeof monaco["editor"]["create"]> | undefined;
 async function init() {
     const source = location.hash.length > 1
         ? await decompress(location.hash.substring(1))
@@ -102,18 +105,15 @@ async function init() {
             jsx: JSXPreserve,
         });
 
-        editor = monaco.editor.create(sourceBox, {
-            language: 'typescript',
-        });
-
+        editor = monaco.editor.create(sourceBox, { language: 'typescript' });
         const modelUri = monaco.Uri.file("foo.tsx")
         const codeModel = monaco.editor.createModel(source, "typescript", modelUri);
-        editor.setModel(codeModel);        
+        editor.setModel(codeModel);
         mainLoop();
     });
 }
 init();
 
 function mainLoop() {
-    console.log("main", editor);
+    // console.log("main", editor);
 }
