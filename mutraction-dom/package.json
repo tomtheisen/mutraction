@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.16.2",
   "description": "DOM synchronization for mutable models ",
-  "main": "index.js",
+  "main": "dist/index.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/tomtheisen/mutraction.git"
