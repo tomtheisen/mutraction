@@ -25,6 +25,7 @@ export const nav =
                         <li><a href="#ref/syncEvent">mu:syncEvent</a></li>
                         <li><a href="#ref/ForEach">ForEach()</a></li>
                         <li><a href="#ref/ForEachPersist">ForEachPersist()</a></li>
+                        <li><a href="#ref/PromiseLoader">PromiseLoader()</a></li>
                         <li><a href="#ref/track">track()</a></li>
                         <li><a href="#ref/effect">effect()</a></li>
                         <li><a href="#ref/Router">Router()</a></li>

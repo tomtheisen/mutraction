@@ -160,5 +160,8 @@ declare module 'mutraction-dom' {
         suppressScroll?: boolean;
     };
     export function Router(...routes: Route[]): Node;    
+
+    // export { PromiseLoader } from './promiseLoader.js';
+    export function PromiseLoader(promise: Promise<Node>, spinner?: Node): DocumentFragment;
 }
 `;

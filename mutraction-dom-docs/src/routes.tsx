@@ -15,6 +15,7 @@ import { ifelse } from "./ifelse.js"
 import { syncEvent } from "./syncEvent.js";
 import { forEach } from "./forEach.js";
 import { forEachPersist } from "./forEachPersist.js";
+import { promiseLoader } from "./promiseLoader.js";
 import { trackDoc } from "./trackDoc.js";
 import { effectDoc } from "./effectDoc.js";
 import { routerDoc } from "./routerDoc.js";
@@ -32,7 +33,6 @@ import { faq } from "./faq.js";
 
 export const routes = Router(
     { pattern: '#start', element: getStarted },
-    { pattern: '#tryit', element: <div>Coming soon</div> },
 
     { pattern: '#topics/tracking', element: tracking },
     { pattern: '#topics/jsx', element: jsx },
@@ -46,6 +46,7 @@ export const routes = Router(
     { pattern: '#ref/syncEvent', element: syncEvent },
     { pattern: '#ref/ForEach', element: forEach },
     { pattern: '#ref/ForEachPersist', element: forEachPersist },
+    { pattern: '#ref/PromiseLoader', element: promiseLoader },
     { pattern: '#ref/track', element: trackDoc },
     { pattern: '#ref/effect', element: effectDoc },
     { pattern: '#ref/Router', element: routerDoc },

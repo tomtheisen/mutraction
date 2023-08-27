@@ -42,7 +42,8 @@ export function spinner() {
             <h1>Loading spinners</h1>
             <p>
                 Using a boolean <code>isLoaded</code> property, can switch between a
-                spinner and the loaded content.
+                spinner and the loaded content.  If you prefer the "batteries-included"
+                approach, you may prefer <a href="#ref/PromiseLoader"><code>PromiseLoader()</code></a>.
             </p>
             { codeSample(`
                 const model = track({ isLoading: false, status: 0 });
