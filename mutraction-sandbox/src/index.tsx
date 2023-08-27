@@ -6,6 +6,7 @@ import type * as monacoType from "monaco-editor";
 import { mutractionDomModule } from "./mutractionDomModuleTypeSource.js";
 import compileJsx from "mutraction-dom/compile-jsx";
 import { transform } from "@babel/standalone";
+import { getScaffoldZipUrl } from "./makeZip.js";
 
 declare const require: Function & { config: Function };
 declare const monaco: typeof monacoType;
@@ -82,8 +83,15 @@ function muCompile(source: string) {
     return code ?? "";
 }
 
+async function makeScaffoldDownload(code: string) {
+    console.log(await getScaffoldZipUrl(code));
+}
+
 export function run(code: string | undefined = editor?.getValue()) {
     if (!code) return;
+
+    makeScaffoldDownload(code);
+
     sessionStorage.setItem(storageKey, code);
     try {
         const compiled = muCompile(code);
@@ -164,3 +172,4 @@ async function init() {
     });
 }
 init();
+

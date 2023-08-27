@@ -12,12 +12,14 @@
     "get-mudom": "copy /y ..\\mutraction-dom\\dist\\index.js publish\\mutraction-dom.js",
     "get-monaco": "xcopy /s /y ..\\node_modules\\monaco-editor\\min\\ publish\\monaco\\",
     "publish": "xcopy /y assets\\ publish\\assets\\ && copy dist\\index.bundle.js publish\\ && copy *.html publish\\",
-    "clean": "rd /s /q out && rd /s /q out2 && rd /s /q dist"
+    "clean": "rd /s /q out && rd /s /q out2 && rd /s /q dist",
+    "start": "npx http-server publish -b -c20 -o"
   },
   "author": "Tom Theisen",
   "license": "ISC",
   "dependencies": {
     "@babel/standalone": "^7.22.10",
+    "client-zip": "^2.4.4",
     "monaco-editor": "^0.41.0",
     "mutraction-dom": "^0.17.0"
   },
