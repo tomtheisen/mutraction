@@ -58,7 +58,7 @@ export function forEach() {
                     </button>
                   </>
                 );
-                `, ex1()
+                `, ex1(), { sandboxLink: true, sandboxImports: ["track", "ForEach"], docAppend: "app" }
             ) }
 
         </>

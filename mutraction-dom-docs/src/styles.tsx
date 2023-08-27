@@ -10,6 +10,7 @@ function ex1() {
 
     const app = (
         <>
+            <style>{" .weighty { font-weight: bold; } "}</style>
             <label>
                 <input type="checkbox" checked={ model.checked } mu:syncEvent="change" />
                 Enable weightiness
@@ -26,6 +27,10 @@ function ex2() {
 
     const app = (
         <>
+            <style>{`
+                .important { color: red; }
+                .weighty { font-weight: bold; }
+            `}</style>
             <label>
                 <input type="checkbox" checked={ model.weighty } mu:syncEvent="change" />
                 Enable weightiness
@@ -83,6 +88,7 @@ export function styles() {
 
                 const app = (
                   <>
+                    <style>{" .weighty { font-weight: bold; } "}</style>
                     <label>
                       <input type="checkbox" checked={ model.checked } mu:syncEvent="change" />
                       Enable weightiness
@@ -90,7 +96,7 @@ export function styles() {
                     <p className={ getClass() }>Lorem ipsum dolor sit amet.</p>
                   </>
                 );
-                `, ex1()
+                `, ex1(), { sandboxLink: true, sandboxImports: ["track"], docAppend: "app" }
             ) }
 
             <h2>Property <code>classList</code></h2>
@@ -101,24 +107,28 @@ export function styles() {
                 Classes are applied when the corresponding property turns true.
             </p>
             { codeSample(`
-                    const model = track({ weighty: false, important: false });
+                const model = track({ weighty: false, important: false });
 
-                    const app = (
-                      <>
-                        <label>
-                          <input type="checkbox" checked={ model.weighty } mu:syncEvent="change" />
-                          Enable weightiness
-                        </label> <br/>
-                        <label>
-                          <input type="checkbox" checked={ model.important } mu:syncEvent="change" />
-                          Enable importance
-                        </label>
-                        <p classList={{ weighty: model.weighty, important: model.important }}>
-                          Lorem ipsum dolor sit amet.
-                        </p>
-                      </>
-                    );
-                    `, ex2()
+                const app = (
+                  <>
+                    <style>{\`
+                        .important { color: red; }
+                        .weighty { font-weight: bold; }
+                    \`}</style>
+                    <label>
+                      <input type="checkbox" checked={ model.weighty } mu:syncEvent="change" />
+                      Enable weightiness
+                    </label> <br/>
+                    <label>
+                      <input type="checkbox" checked={ model.important } mu:syncEvent="change" />
+                      Enable importance
+                    </label>
+                    <p classList={{ weighty: model.weighty, important: model.important }}>
+                      Lorem ipsum dolor sit amet.
+                    </p>
+                  </>
+                );
+                `, ex2(), { sandboxLink: true, sandboxImports: ["track"], docAppend: "app" }
             ) }
 
             <h2>Property <code>style</code></h2>
@@ -139,7 +149,7 @@ export function styles() {
                     </p>
                   </>
                 );
-                `, ex3()
+                `, ex3(), { sandboxLink: true, sandboxImports: ["track"], docAppend: "app" }
             ) }
         </>
     )

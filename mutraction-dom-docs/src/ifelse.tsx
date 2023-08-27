@@ -71,7 +71,7 @@ export function ifelse() {
                     </p>
                   </>
                 );
-                `, ex1()
+                `, ex1(), { sandboxLink: true, sandboxImports: ["track"], docAppend: "app" }
             ) }
 
             <h2><code>mu:else</code></h2>
@@ -99,7 +99,7 @@ export function ifelse() {
                     <p mu:else>Neither</p>
                   </>
                 );
-                `, ex2()
+                `, ex2(), { sandboxLink: true, sandboxImports: ["track"], docAppend: "app" }
             ) }
         </>
     );

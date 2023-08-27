@@ -14,6 +14,12 @@ function ex1() {
 
     const app = (
         <>
+            <style>{`
+              @keyframes rotating {
+                  from { transform: rotate(0deg); }
+                  to { transform: rotate(360deg); }
+              }
+            `}</style>
             <div mu:if={ model.isLoading} style={{ 
                     display: "inline-block", 
                     animation: "rotating 3s linear infinite" }}>
@@ -51,6 +57,12 @@ export function spinner() {
 
                 const app = (
                   <>
+                    <style>{\`
+                    @keyframes rotating {
+                        from { transform: rotate(0deg); }
+                        to { transform: rotate(360deg); }
+                    }
+                    \`}</style>
                     <div mu:if={ model.isLoading} style={{ 
                         display: "inline-block", 
                         animation: "rotating 3s linear infinite" }}>
@@ -63,7 +75,7 @@ export function spinner() {
                     <button onclick={ doRequest }>Fire request</button>
                   </>
                 );
-                `, ex1()
+                `, ex1(), { sandboxLink: true, sandboxImports: ["track"], docAppend: "app" }
             ) }
         </>
     );

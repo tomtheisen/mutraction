@@ -85,7 +85,7 @@ export function radio() {
                     </select>
                   </>
                 );
-                `, ex1()
+                `, ex1(), { sandboxLink: true, sandboxImports: ["track", "ForEach"], docAppend: "app" }
             ) }
         </>
     )

@@ -25,7 +25,7 @@ export const tracking = (
             <>
                 current: foo<br />
                 current: bar
-            </>
+            </>, { sandboxLink: true, sandboxImports: ["track", "effect"] }
         ) }
         <p>
             One consequence of this is that the root tracked value must be an object, not a primitive.
@@ -66,7 +66,7 @@ export const tracking = (
             <>
                 length: 0<br />
                 length: 58
-            </>
+            </>, { sandboxLink: true, sandboxImports: ["track", "effect"] }
         ) }
 
         <h2>What about the other exotic objects?</h2>

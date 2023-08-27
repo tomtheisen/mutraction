@@ -75,7 +75,7 @@ export function forEachPersist() {
                     </button>
                   </>
                 );
-                `, ex1()
+                `, ex1(), { sandboxLink: true, sandboxImports: ["track", "ForEachPersist"], docAppend: "app" }
             ) }
 
         </>

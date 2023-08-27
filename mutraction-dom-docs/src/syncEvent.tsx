@@ -50,7 +50,7 @@ export function syncEvent() {
                     </div>
                   </>
                 );
-                `, ex1()
+                `, ex1(), { sandboxLink: true, sandboxImports: ["track"], docAppend: "app" }
             ) }
 
         </>

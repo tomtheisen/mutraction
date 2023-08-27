@@ -41,7 +41,7 @@ export function history() {
                     <button onclick={ () => defaultTracker.undo() }>Undo</button>
                   </>
                 );
-                `, ex1()
+                `, ex1(), { sandboxLink: true, docAppend: "app" }
             ) }
 
             <h2>Transactions</h2>

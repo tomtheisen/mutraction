@@ -114,15 +114,6 @@ output {
     to { transform: rotate(360deg); }
 }
 
-/* used for demos */
-.weighty { 
-    font-weight: bold; 
-}
-.important {
-    color: red;
-}
-.normal { }
-
 
 code .MultiLineComment         { color: #87a950; }
 code .SingleLineComment        { color: #87a950; }

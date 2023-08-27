@@ -98,9 +98,7 @@ export function effectDoc() {
                     { output }
                   </>
                 );
-
-                return app;
-                `, ex1()
+                `, ex1(), { sandboxLink: true, sandboxImports: ["track", "effect"], docAppend: "app" }
             ) }
         </>
     );

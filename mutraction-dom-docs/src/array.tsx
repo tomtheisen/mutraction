@@ -39,7 +39,7 @@ export function array() {
                         { ForEach(elements, e => e) }
                     </>
                 );
-                `, ex1()
+                `, ex1(), { sandboxLink: true, sandboxImports: ["ForEach"], docAppend: "app" }
             ) }
         </>
     );

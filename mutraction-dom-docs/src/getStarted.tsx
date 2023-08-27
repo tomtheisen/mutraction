@@ -109,7 +109,7 @@ export function getStarted() {
                 document.body.append(app);
 
                 model.message = "I 💖 mutating";
-                `, undefined, { caption: "src/index.tsx" }
+                `, undefined, { caption: "src/index.tsx", sandboxLink: true }
             ) }
             <p>
                 Almost there.  We need a host html file to load the app.

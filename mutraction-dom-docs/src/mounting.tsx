@@ -14,7 +14,7 @@ export function mounting() {
                 const app = <div>Hello world</div>;
                 // app is a HTMLDivElement
                 document.body.append(app);
-                `
+                `, <div>Hello world</div>, { sandboxLink: true }
             ) }
 
             <p>

@@ -82,7 +82,7 @@ export function jsx() {
                 <p>The current value: { model.current }</p>
               </>
             );
-            `, ex1()
+            `, ex1(), { sandboxLink: true, sandboxImports: ["track"], docAppend: "app" }
         ) }
 
         <h2>Properties</h2>
@@ -125,7 +125,7 @@ export function jsx() {
                 <p>The current value: { model.current }</p>
               </>
             );
-            `, ex2()
+            `, ex2(), { sandboxLink: true, sandboxImports: ["track"], docAppend: "app" }
         ) }
 
         <h2>Children</h2>
@@ -145,7 +145,7 @@ export function jsx() {
                 <p>An array is { [1, 2, [3, 4]] }</p>
               </>
             );        
-            `, ex3()
+            `, ex3(), { sandboxLink: true, docAppend: "app" }
         ) }
 
         <h2>Function components</h2>
@@ -167,7 +167,7 @@ export function jsx() {
                 { FC(model.items[0]) }
               </div>
             );        
-            `, ex4()
+            `, ex4(), { sandboxLink: true, sandboxImports: ["track"], docAppend: "app" }
         ) }
     </>;
 }

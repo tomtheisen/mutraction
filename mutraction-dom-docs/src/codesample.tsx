@@ -29,15 +29,20 @@ type CodeSampleOptions = {
     highlight?: boolean;
     sandboxLink?: boolean;
     sandboxImports?: string[];
+    docAppend?: string;
 }
 export function codeSample(code: string, output?: Node, options?: CodeSampleOptions): Node {
-    const { caption, highlight = true, sandboxLink = false, sandboxImports = [] } = options ?? {};
+    const { caption, highlight = true, sandboxLink = false, sandboxImports = [], docAppend } = options ?? {};
 
-    let codeFormatted: string | Node = dedent(code);
+    const dedented = dedent(code);
+    let codeFormatted: string | Node = dedented;
     if (highlight) codeFormatted = syntaxHighlight(codeFormatted);
 
     async function getLink(): Promise<Node> {
-        const href = await getSandboxLink(code, sandboxImports);
+        const sandboxCode = docAppend
+            ? dedented + `\n\ndocument.body.append(${ docAppend });\n`
+            : dedented + "\n"
+        const href = await getSandboxLink(sandboxCode, sandboxImports);
         return <a className="tryit" href={ href }>Try it ⤴️</a>;
     }
 

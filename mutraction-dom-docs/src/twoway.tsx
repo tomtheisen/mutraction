@@ -60,8 +60,8 @@ export function twoWay() {
                     <p>The value is: { model.text } </p>
                     <button onclick={ update }>Change</button>
                   </>
-                );            
-                `, ex1()
+                );
+                `, ex1(), { sandboxLink: true, sandboxImports: ["track"], docAppend: "app" }
             ) }
 
             <h2>Event-based</h2>
@@ -78,8 +78,8 @@ export function twoWay() {
                     } />
                     <p>The value is: { model.text } </p>
                   </>
-                );            
-                `, ex2()
+                );
+                `, ex2(), { sandboxLink: true, sandboxImports: ["track"], docAppend: "app" }
             ) }
             <p>
                 This approach is perfectly fine, but it's a bit inconvenient.
@@ -99,8 +99,8 @@ export function twoWay() {
                     <input value={ model.text } mu:syncEvent="input" />
                     <p>The value is: { model.text } </p>
                   </>
-                );            
-                `, ex3()
+                );
+                `, ex3(), { sandboxLink: true, sandboxImports: ["track"], docAppend: "app" }
             ) }
             <p>
                 More information about <code>mu:syncEvent</code> is available in the <a href="#ref/mu:syncEvent">reference documentation</a>.
