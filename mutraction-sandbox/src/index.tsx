@@ -1,22 +1,25 @@
 import { muLogo } from "./mulogo.js";
 import { version, track } from "mutraction-dom";
 import { compress, decompress } from "./compress.js";
-import { run } from "./run.js";
 import { defaultSource } from "./defaultSource.js";
 import type * as monacoType from "monaco-editor";
 import { mutractionDomModule } from "./mutractionDomModuleTypeSource.js";
+import compileJsx from "mutraction-dom/compile-jsx";
+import { transform } from "@babel/standalone";
 
 declare const require: Function & { config: Function };
 declare const monaco: typeof monacoType;
 
 export const storageKey = "mu_playground_source";
 
-function doRun() {
-    if (editor) run(editor.getValue());
+function notify(message: string) {
+    const notify = <div className="notification">{ message }</div> as HTMLDivElement;
+    document.body.append(notify);
+    setTimeout(() => notify.remove(), 1e3);
 }
 
 const runButton = (
-    <button onclick={ doRun }>
+    <button onclick={ () => run() }>
         Run ▶️ <small className="narrow-hide">(<kbd>ctrl + enter</kbd>)</small>
     </button>
 );
@@ -36,14 +39,12 @@ async function save() {
     catch {
         message = "Failed to set clipboard";
     }
-    const notify = <div className="notification">{ message }</div> as HTMLDivElement;
-    document.body.append(notify);
-    setTimeout(() => notify.remove(), 1e3);
+    notify(message);
 }
 
 window.addEventListener("keydown", ev => {
     if (ev.key === "Enter" && ev.ctrlKey) {
-        doRun();
+        run();
     }
     else if (ev.key === "s" && ev.ctrlKey) {
         ev.preventDefault();
@@ -69,6 +70,38 @@ function updateSize(ev: MouseEvent) {
 }
 
 window.addEventListener("resize", ev => editor?.layout());
+
+function muCompile(source: string) {
+    const options = { 
+        plugins: [
+            ["transform-typescript", { isTSX: true }],
+            compileJsx,
+        ],
+    };
+    const { code } = transform(source, options);
+    return code ?? "";
+}
+
+export function run(code: string | undefined = editor?.getValue()) {
+    if (!code) return;
+    sessionStorage.setItem(storageKey, code);
+    try {
+        const compiled = muCompile(code);
+        frame.addEventListener("load", ev => {
+            frame.contentWindow?.postMessage(compiled, "*");
+        }, { once: true });
+        frame.contentWindow?.location.reload();
+    }
+    catch (err) {
+        if (err instanceof Error) {
+            notify(err.message);
+        }
+        else {
+            notify(String(err));
+        }
+    }
+}
+
 
 const app = (
     <>
