@@ -114,7 +114,8 @@ async function init() {
 
         // pass through Ctrl+Enter
         // was "editor.action.insertLineAfter"
-        monaco.editor.addKeybindingRule({ keybinding: monaco.KeyCode.Enter + monaco.KeyMod.WinCtrl, command: undefined });
+        monaco.editor.addKeybindingRule({ keybinding: monaco.KeyCode.Enter | monaco.KeyMod.WinCtrl, command: undefined });
+        monaco.editor.addKeybindingRule({ keybinding: monaco.KeyCode.Enter | monaco.KeyMod.CtrlCmd, command: undefined });
 
         // create the editor
         editor = monaco.editor.create(sourceBox, { 
