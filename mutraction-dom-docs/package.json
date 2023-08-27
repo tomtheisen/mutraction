@@ -9,7 +9,7 @@
     "transform": "npx babel out -d out2",
     "bundle": "npx esbuild out2/index.js --bundle --format=esm --outfile=dist/index.js",
     "cleanout": "rd /Q /S out && rd /Q /S out2",
-    "publish": "md publish && xcopy assets publish\\assets\\ && xcopy dist publish\\dist\\ && copy index.html publish"
+    "publish": "xcopy /y assets publish\\assets\\ && xcopy /y dist publish\\dist\\ && copy index.html publish"
   },
   "author": "Tom Theisen",
   "license": "MIT",
@@ -22,6 +22,6 @@
   },
   "dependencies": {
     "js-tokens": "^8.0.1",
-    "mutraction-dom": "^0.16.2"
+    "mutraction-dom": "^0.17.0"
   }
 }

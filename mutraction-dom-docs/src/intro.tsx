@@ -36,7 +36,7 @@ export function intro() {
             );
 
             document.body.append(app);
-            `, app
+            `, app, { sandboxLink: true, sandboxImports: ["track"] }
         ) }
         <p>
             Mutraction supports typescript and modern browsers.

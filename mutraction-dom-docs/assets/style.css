@@ -68,6 +68,7 @@ h1 {
 }
 
 figure {
+    position: relative;
     outline: solid 1px #555;
     border-radius: 0.2em;
     overflow: hidden;
@@ -97,6 +98,15 @@ output {
     display: block;
     padding: 1em;
     background-color: #000;
+}
+
+.tryit {
+    position: absolute;
+    display: block;
+    top: 0;
+    right: 0;
+    padding: 0.5em 1em;
+    background: #fff2;
 }
 
 @keyframes rotating {

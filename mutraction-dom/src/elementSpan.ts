@@ -49,6 +49,7 @@ export class ElementSpan {
         return result;
     }
 
+    /** removes the interior contents of the span */
     clear() {
         while (!Object.is(this.startMarker.nextSibling, this.endMarker)) {
             if (this.startMarker.nextSibling == null)
@@ -57,6 +58,7 @@ export class ElementSpan {
         }
     }
 
+    /** replaces the interior contents of the span */
     replaceWith(...nodes: Node[]) {
         this.clear();
         this.append(...nodes);

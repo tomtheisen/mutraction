@@ -1,4 +1,6 @@
 import _jsTokens from "js-tokens";
+import { getSandboxLink } from "./compress.js";
+import { PromiseLoader } from "mutraction-dom";
 
 // typescript bug?
 const jsTokens = _jsTokens as unknown as typeof _jsTokens.default;
@@ -25,18 +27,26 @@ function syntaxHighlight(s: string) {
 type CodeSampleOptions = {
     caption?: string;
     highlight?: boolean;
+    sandboxLink?: boolean;
+    sandboxImports?: string[];
 }
 export function codeSample(code: string, output?: Node, options?: CodeSampleOptions): Node {
-    const { caption, highlight = true } = options ?? {};
+    const { caption, highlight = true, sandboxLink = false, sandboxImports = [] } = options ?? {};
 
     let codeFormatted: string | Node = dedent(code);
     if (highlight) codeFormatted = syntaxHighlight(codeFormatted);
+
+    async function getLink(): Promise<Node> {
+        const href = await getSandboxLink(code, sandboxImports);
+        return <a className="tryit" href={ href }>Try it ⤴️</a>;
+    }
 
     return (
         <figure>
             <figcaption mu:if={ caption != null }>{ caption }</figcaption>
             <code>{ codeFormatted }</code>
             <output mu:if={ output != null }>{ output }</output>
+            { sandboxLink ? PromiseLoader(getLink()) : <></> }
         </figure>
     );
 }

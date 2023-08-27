@@ -19,7 +19,7 @@
   "dependencies": {
     "@babel/standalone": "^7.22.10",
     "monaco-editor": "^0.41.0",
-    "mutraction-dom": "^0.16.2"
+    "mutraction-dom": "^0.17.0"
   },
   "devDependencies": {
     "@types/babel__standalone": "^7.1.4",

@@ -1,5 +1,5 @@
 import { muLogo } from "./mulogo.js";
-import { version, track } from "mutraction-dom";
+import { version } from "mutraction-dom";
 import { compress, decompress } from "./compress.js";
 import { defaultSource } from "./defaultSource.js";
 import type * as monacoType from "monaco-editor";

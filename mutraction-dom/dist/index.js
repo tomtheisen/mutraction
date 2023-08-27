@@ -627,6 +627,7 @@ var ElementSpan = class _ElementSpan {
     result.append(...nodes);
     return result;
   }
+  /** removes the interior contents of the span */
   clear() {
     while (!Object.is(this.startMarker.nextSibling, this.endMarker)) {
       if (this.startMarker.nextSibling == null)
@@ -634,6 +635,7 @@ var ElementSpan = class _ElementSpan {
       this.startMarker.nextSibling.remove();
     }
   }
+  /** replaces the interior contents of the span */
   replaceWith(...nodes) {
     this.clear();
     this.append(...nodes);
@@ -822,6 +824,13 @@ function choose(...choices) {
   return current;
 }
 
+// out/promiseLoader.js
+function PromiseLoader(promise, spinner = document.createTextNode("")) {
+  const span = new ElementSpan(spinner);
+  promise.then((result) => span.replaceWith(result));
+  return span.removeAsFragment();
+}
+
 // out/router.js
 var fragmentMap = /* @__PURE__ */ new WeakMap();
 function Router(...routes) {
@@ -870,11 +879,12 @@ function Router(...routes) {
 }
 
 // out/index.js
-var version = "0.16.2";
+var version = "0.17.0";
 export {
   DependencyList,
   ForEach,
   ForEachPersist,
+  PromiseLoader,
   PropReference,
   Router,
   Tracker,

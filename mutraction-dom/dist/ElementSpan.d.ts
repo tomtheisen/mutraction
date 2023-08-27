@@ -12,7 +12,9 @@ export declare class ElementSpan {
     removeAsFragment(): DocumentFragment;
     /** extracts the interior of the span into a fragment, leaving the span container empty */
     emptyAsFragment(): DocumentFragment;
+    /** removes the interior contents of the span */
     clear(): void;
+    /** replaces the interior contents of the span */
     replaceWith(...nodes: Node[]): void;
     append(...nodes: Node[]): void;
 }
