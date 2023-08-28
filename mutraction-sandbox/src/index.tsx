@@ -54,7 +54,6 @@ function hamburger() {
     }
 
     effect(() => {
-        console.log("running isActive effect", model.isActive);
         if (model.isActive) {
             document.body.addEventListener("mousedown", outClickHandler, { capture: true });
             window.addEventListener("blur", () => model.isActive = false, { once: true });
@@ -134,14 +133,8 @@ function muCompile(source: string) {
     return code ?? "";
 }
 
-async function makeScaffoldDownload(code: string) {
-    console.log(await getScaffoldZipUrl(code));
-}
-
 export function run(code: string | undefined = editor?.getValue()) {
     if (!code) return;
-
-    makeScaffoldDownload(code);
 
     sessionStorage.setItem(storageKey, code);
     try {
