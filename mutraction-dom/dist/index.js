@@ -174,16 +174,21 @@ var PropReference = class {
     this.object = object;
     this.prop = prop;
   }
-  subscribe(callback) {
-    this.#subscribers.add(callback);
-    return { dispose: this.#subscribers.delete.bind(this.#subscribers, callback) };
+  subscribe(dependencyList) {
+    this.#subscribers.add(dependencyList);
+    return {
+      dispose: () => {
+        this.#subscribers.delete(dependencyList);
+      }
+    };
   }
   notifySubscribers() {
     if (this.#notifying)
       console.warn(`Re-entrant property subscription for '${String(this.prop)}'`);
+    const subscriberSnapshot = Array.from(this.#subscribers);
     this.#notifying = true;
-    for (const callback of [...this.#subscribers])
-      callback();
+    for (const dep of subscriberSnapshot)
+      dep.notifySubscribers();
     this.#notifying = false;
   }
   get current() {
@@ -221,7 +226,7 @@ var DependencyList = class {
     if (this.active && !this.#tracksAllChanges) {
       if (this.#trackedProperties.has(propRef))
         return;
-      const propSubscription = propRef.subscribe(this.notifySubscribers.bind(this));
+      const propSubscription = propRef.subscribe(this);
       this.#trackedProperties.set(propRef, propSubscription);
     }
   }
@@ -230,7 +235,8 @@ var DependencyList = class {
     return { dispose: () => this.#subscribers.delete(callback) };
   }
   notifySubscribers() {
-    for (const callback of [...this.#subscribers])
+    const subscriberSnapshot = Array.from(this.#subscribers);
+    for (const callback of subscriberSnapshot)
       callback();
   }
   endDependencyTrack() {
@@ -879,7 +885,7 @@ function Router(...routes) {
 }
 
 // out/index.js
-var version = "0.17.0";
+var version = "0.17.1";
 export {
   DependencyList,
   ForEach,

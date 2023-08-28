@@ -8,11 +8,18 @@
     --brand-hue: 215;
     --primary-color: hsl(var(--brand-hue), 100%, 50%);
     --header-height: 3.5em;
+    --button-height: 32px;
+    --button-color: hsl(var(--brand-hue), 70%, 30%);
 }
 
 html {
     margin: 0;
     padding: 0;
+}
+
+@keyframes rotating {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
   
 .primary {
@@ -52,13 +59,14 @@ h1 {
 button {
     line-height: 24px;
     margin: 0 8px;
-    background-color: hsl(var(--brand-hue), 70%, 30%);
+    background-color: var(--button-color);
     color: white;
     border: none;
     cursor: pointer;
     border-radius: 8px;
     padding: 4px 16px;
     white-space: nowrap;
+    height: var(--button-height);
 }
 
 #sizer {
@@ -81,8 +89,32 @@ iframe {
     pointer-events: none;
 }
 
-@keyframes rotating {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+.drop-list {
+    position: absolute;
 }
 
+.drop-list menu {
+    margin: 0;
+    padding: 0;
+    margin: 6px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.drop-list menu li {
+    list-style: none;
+    background-color: var(--button-color);
+    border-bottom: solid #111 2px;
+}
+
+.drop-list menu li a {
+    color: white;
+    padding: 0 1em;
+    line-height: 230%;
+    text-decoration: none;
+    display: block;
+}
+
+.drop-list menu li a:hover {
+    background: #fff2;
+}

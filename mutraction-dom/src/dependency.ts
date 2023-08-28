@@ -20,7 +20,7 @@ export class DependencyList {
     addDependency(propRef: PropReference) {
         if (this.active && !this.#tracksAllChanges) {
             if (this.#trackedProperties.has(propRef)) return;
-            const propSubscription = propRef.subscribe(this.notifySubscribers.bind(this));
+            const propSubscription = propRef.subscribe(this);
             this.#trackedProperties.set(propRef, propSubscription);
         }
     }
@@ -31,7 +31,10 @@ export class DependencyList {
     }
 
     notifySubscribers() {
-        for (const callback of [...this.#subscribers]) callback();
+        // we only want to notify subscribers that existed at the 
+        // beginning of the notification cycle
+        const subscriberSnapshot = Array.from(this.#subscribers);
+        for (const callback of subscriberSnapshot) callback();
     }
 
     endDependencyTrack() {

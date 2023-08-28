@@ -1,19 +1,12 @@
 import { Key, Subscription } from "./types.js";
 import { ProxyOf } from "./symbols.js";
 import { isTracked } from "./proxy.js";
-
-// const stats = { created: 0, collected: 0 };
-// const registry = new FinalizationRegistry(pr => {
-//     stats.collected++;
-//     console.log(stats);
-// });
-
-
+import { DependencyList } from "./dependency.js";
 
 export class PropReference<T = any> {
     readonly object: any;
     readonly prop: Key;
-    #subscribers: Set<() => void> = new Set;
+    #subscribers: Set<DependencyList> = new Set;
     #notifying: boolean = false;
 
     constructor(object: object, prop: Key) {
@@ -22,22 +15,27 @@ export class PropReference<T = any> {
         }
         this.object = object;
         this.prop = prop;
-
-        // registry.register(this, {});
-        // stats.created++;
-        // console.log(stats);
     }
 
-    subscribe(callback: () => void): Subscription {
-        this.#subscribers.add(callback);
-        return { dispose: this.#subscribers.delete.bind(this.#subscribers, callback) };
+    subscribe(dependencyList: DependencyList): Subscription {
+        this.#subscribers.add(dependencyList);
+        return { 
+            dispose: () => {
+                this.#subscribers.delete(dependencyList);
+            } 
+        };
     }
 
     notifySubscribers() {
         if (this.#notifying) 
             console.warn(`Re-entrant property subscription for '${ String(this.prop) }'`);
+
+        // we only want to notify subscribers that existed at the beginning
+        // of the notification cycle to prevent instability and infinite cycles
+        const subscriberSnapshot = Array.from(this.#subscribers);
+
         this.#notifying = true;
-        for (const callback of [...this.#subscribers]) callback();
+        for (const dep of subscriberSnapshot) dep.notifySubscribers();
         this.#notifying = false;
     }
 
@@ -48,9 +46,6 @@ export class PropReference<T = any> {
         this.object[this.prop] = newValue; 
     }
 }
-
-// export the type without the constuctor
-// export type PropReference<T = any> = InstanceType<typeof _PropReference<T>>;
 
 // cache of existing PropReferences
 // factory method always returns existing instance if possible

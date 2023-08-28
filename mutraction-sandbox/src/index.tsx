@@ -1,5 +1,5 @@
 import { muLogo } from "./mulogo.js";
-import { version } from "mutraction-dom";
+import { effect, track, version } from "mutraction-dom";
 import { compress, decompress } from "./compress.js";
 import { defaultSource } from "./defaultSource.js";
 import type * as monacoType from "monaco-editor";
@@ -19,15 +19,66 @@ function notify(message: string) {
     setTimeout(() => notify.remove(), 1e3);
 }
 
-const runButton = (
+const runButton =
     <button onclick={ () => run() }>
         Run ▶️ <small className="narrow-hide">(<kbd>ctrl + enter</kbd>)</small>
-    </button>
-);
-const saveButton = <button onclick={ save }>Share <small className="narrow-hide">(<kbd>ctrl + S</kbd>)</small></button>;
-const sourceBox = <div style={{ height: "100%", width: "50vw", minWidth: "10vw", maxWidth: "90vw" }}></div> as HTMLDivElement;
+    </button>;
 
-export const frame = <iframe src="output.html"></iframe> as HTMLIFrameElement;
+const saveButton = 
+    <button onclick={ save }>
+        Share <small className="narrow-hide">(<kbd>ctrl + S</kbd>)</small>
+    </button>;
+
+const sourceBox = 
+    <div style={{ height: "100%", width: "50vw", minWidth: "10vw", maxWidth: "90vw", zIndex: "0" }}>
+    </div> as HTMLDivElement;
+
+const frame = <iframe src="output.html"></iframe> as HTMLIFrameElement;
+
+function hamburger() {
+    const model = track({ isActive: false, downloadLink: "" });
+    const containerStyle = {
+        display: "inline-block",
+        height: "var(--button-height)",
+        zIndex: "1",        
+    };
+    const styles = {
+        fontFamily: "monospace",
+        fontSize: "240%", 
+    };
+
+    function outClickHandler(ev: Event) {
+        if (ev.target instanceof Node && !hamburger.contains(ev.target)) {
+            model.isActive = false;
+        }
+    }
+
+    effect(() => {
+        console.log("running isActive effect", model.isActive);
+        if (model.isActive) {
+            document.body.addEventListener("mousedown", outClickHandler, { capture: true });
+            window.addEventListener("blur", () => model.isActive = false, { once: true });
+            const code = editor?.getValue();
+            if (code) getScaffoldZipUrl(code).then(link => model.downloadLink = link);
+        }
+        else {
+            document.body.removeEventListener("mousedown", outClickHandler, { capture: true });
+        }
+    });
+
+    const hamburger = 
+        <div style={ containerStyle }>
+            <button style={ styles } onclick={ () => model.isActive = !model.isActive }>
+                { model.isActive ? '▼' : '≡' }
+            </button>
+            <div className="drop-list" hidden={ !model.isActive }>
+                <menu>
+                    <li><a download="mutraction-project.zip" href={ model.downloadLink }>📦 Get .zip of this app</a></li>
+                </menu>
+            </div>
+        </div>;
+    return hamburger;
+}
 
 async function save() {
     const compressed = await compress(editor?.getValue() ?? "");
@@ -110,13 +161,12 @@ export function run(code: string | undefined = editor?.getValue()) {
     }
 }
 
-
 const app = (
     <>
         <header>
             <div style={{ position: "relative", top: "4px" }}>{ muLogo(50) }</div>
             <h1>sandbox</h1>
-            { runButton }{ saveButton }
+            { hamburger() }{ runButton }{ saveButton }
             <div style={{ flexGrow: "1" }}></div>
             <span className="narrow-hide" style={{ padding: "1em", color: "#fff6" }}>
                 mutraction-dom<wbr />@{ version }

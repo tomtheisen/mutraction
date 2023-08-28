@@ -11,6 +11,6 @@
     "clean": "rd /S /Q publish",
     "copy:docs": "xcopy /y /s mutraction-dom-docs\\publish\\ publish\\",
     "copy:sandbox": "xcopy /y /s mutraction-sandbox\\publish\\ publish\\sandbox\\",
-    "start": "npx http-server publish -o"
+    "start": "npx http-server publish -o -b -c20"
   }
 }

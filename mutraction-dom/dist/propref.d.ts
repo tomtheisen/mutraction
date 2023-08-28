@@ -1,10 +1,11 @@
 import { Key, Subscription } from "./types.js";
+import { DependencyList } from "./dependency.js";
 export declare class PropReference<T = any> {
     #private;
     readonly object: any;
     readonly prop: Key;
     constructor(object: object, prop: Key);
-    subscribe(callback: () => void): Subscription;
+    subscribe(dependencyList: DependencyList): Subscription;
     notifySubscribers(): void;
     get current(): T;
     set current(newValue: T);

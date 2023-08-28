@@ -52,7 +52,7 @@ function getTsConfig() {
     "target": "ES2022",
     "jsx": "preserve",
     "jsxImportSource": "mutraction-dom",
-    "module": "ES2022",
+    "module": "Node16",
     "moduleResolution": "Node16",
     "outDir": "./out/",
     "strict": true,
@@ -62,20 +62,48 @@ function getTsConfig() {
 }`.trim();
 }
 
-export async function getScaffoldZipUrl(appSource: string): Promise<string> {
-    const indexTsx = new File([appSource], "src/index.tsx");
-    const babelrc = new File([getBabelRc()], ".babelrc");
-    const indexHtml = new File([getIndexHtml()], "index.html");
-    const packageJson = new File([getPackageJson()], "package.json");
-    const tsConfig = new File([getTsConfig()], "tsconfig.json");
+function getReadme() {
+    return `
+# Mutraction sample app scaffolding
 
-    const readableStream = await makeZip([indexTsx, babelrc, indexHtml, packageJson, tsConfig]);
+This project template was downloaded from https://mutraction.dev/sandbox/
+
+## Next Steps
+
+To get up and running, you need to install Node or similar if you haven't already.
+https://nodejs.org/
+
+Next, run these commands.
+
+    npm install
+    npm run build
+
+Then open \`index.html\` in your web browser.
+
+More information and documentation is available at https://mutraction.dev/
+`.trim();
+}
+
+let lastUrl: string | undefined;
+export async function getScaffoldZipUrl(appSource: string): Promise<string> {
+    if (lastUrl) URL.revokeObjectURL(lastUrl);
+
+    const files = [
+        new File([appSource], "src/index.tsx"),
+        new File([getBabelRc()], ".babelrc"),
+        new File([getIndexHtml()], "index.html"),
+        new File([getPackageJson()], "package.json"),
+        new File([getTsConfig()], "tsconfig.json"),
+        new File([getReadme()], "README.md"),
+    ];
+
+    const readableStream = await makeZip(files);
     const headers = { 
         "content-disposition": 'attachment; filename="mutraction-project.zip"', 
         "content-type": "application/zip",
     };
     const response = new Response(readableStream, { headers });
     const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    return url;
+    lastUrl = URL.createObjectURL(blob);
+    return lastUrl;
 }
