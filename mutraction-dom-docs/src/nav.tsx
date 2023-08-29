@@ -46,14 +46,7 @@ export const nav =
                     </ul>
                 </details>
             </li>
-            <li>
-                <details open={true}>
-                    <summary><a>Example apps</a></summary>
-                    <ul>
-                        <li><a href="#example/todo">Todo list</a></li>
-                    </ul>
-                </details>
-            </li>
+            <li><a href="#examples">Example apps</a></li>
             <li><a href="#why">Why mutraction</a></li>
             <li><a href="#faq">FAQ</a></li>
         </ul>

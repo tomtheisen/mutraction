@@ -141,6 +141,9 @@ export function run(code: string | undefined = editor?.getValue()) {
             frame.contentWindow?.postMessage(compiled, "*");
         }, { once: true });
         frame.contentWindow?.location.reload();
+
+        // if you run, you want to see output
+        if (appState.view === "code") appState.view = "normal";
     }
     catch (err) {
         if (err instanceof Error) {

@@ -28,7 +28,7 @@ import { lazy } from "./lazy.js";
 import { array } from "./array.js";
 import { html } from "./html.js";
 
-import { todoWrapper } from "./examples/todoWrapper.js";
+import { examples } from "./examples.js";
 import { faq } from "./faq.js";
 
 export const routes = Router(
@@ -59,8 +59,7 @@ export const routes = Router(
     { pattern: '#recipes/array', element: array },
     { pattern: '#recipes/html', element: html },
 
-    { pattern: '#example/todo', element: todoWrapper },
-
+    { pattern: '#examples', element: examples },
     { pattern: '#why', element: why },
     { pattern: '#faq', element: faq },
 
