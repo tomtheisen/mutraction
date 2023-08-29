@@ -11,7 +11,11 @@ import { getScaffoldZipUrl } from "./makeZip.js";
 declare const require: Function & { config: Function };
 declare const monaco: typeof monacoType;
 
-export const storageKey = "mu_playground_source";
+const storageKey = "mu_playground_source";
+
+const appState = track({
+    view: "normal" as "normal" | "code" | "preview",
+});
 
 function notify(message: string) {
     const notify = <div className="notification">{ message }</div> as HTMLDivElement;
@@ -29,14 +33,25 @@ const saveButton =
         Share <small className="narrow-hide">(<kbd>ctrl + S</kbd>)</small>
     </button>;
 
-const sourceBox = 
-    <div style={{ height: "100%", width: "50vw", minWidth: "10vw", maxWidth: "90vw", zIndex: "0" }}>
-    </div> as HTMLDivElement;
+const sourceBox = <div style={{ zIndex: "0", height: "calc(100vh - var(--header-height))" }}></div> as HTMLDivElement;
+
+effect(() => {
+    sourceBox.style.width =
+        appState.view === "code" ? "100vw" 
+        : appState.view === "preview" ? "0"
+        : "50vw";
+    sourceBox.style.minWidth = appState.view === "normal" ? "10vw" : "";
+    sourceBox.style.maxWidth = appState.view === "normal" ? "90vw" : "";
+    editor?.layout();
+});
 
 const frame = <iframe src="output.html"></iframe> as HTMLIFrameElement;
 
 function hamburger() {
-    const model = track({ isActive: false, downloadLink: "" });
+    const hamburgerState = track({ 
+        isActive: false, 
+        downloadLink: "", 
+    });
     const containerStyle = {
         display: "inline-block",
         height: "var(--button-height)",
@@ -49,16 +64,16 @@ function hamburger() {
 
     function outClickHandler(ev: Event) {
         if (ev.target instanceof Node && !hamburger.contains(ev.target)) {
-            model.isActive = false;
+            hamburgerState.isActive = false;
         }
     }
 
     effect(() => {
-        if (model.isActive) {
+        if (hamburgerState.isActive) {
             document.body.addEventListener("mousedown", outClickHandler, { capture: true });
-            window.addEventListener("blur", () => model.isActive = false, { once: true });
+            window.addEventListener("blur", () => hamburgerState.isActive = false, { once: true });
             const code = editor?.getValue();
-            if (code) getScaffoldZipUrl(code).then(link => model.downloadLink = link);
+            if (code) getScaffoldZipUrl(code).then(link => hamburgerState.downloadLink = link);
         }
         else {
             document.body.removeEventListener("mousedown", outClickHandler, { capture: true });
@@ -67,12 +82,24 @@ function hamburger() {
 
     const hamburger = 
         <div style={ containerStyle }>
-            <button style={ styles } onclick={ () => model.isActive = !model.isActive }>
-                { model.isActive ? '▼' : '≡' }
+            <button style={ styles } onclick={ () => hamburgerState.isActive = !hamburgerState.isActive }>
+                { hamburgerState.isActive ? '▼' : '≡' }
             </button>
-            <div className="drop-list" hidden={ !model.isActive }>
+            <div className="drop-list" hidden={ !hamburgerState.isActive }>
                 <menu>
-                    <li><a download="mutraction-project.zip" href={ model.downloadLink }>📦 Get .zip of this app</a></li>
+                    <li><a download="mutraction-project.zip" href={ hamburgerState.downloadLink }>📦 Get .zip of this app</a></li>
+                    <li onclick={ () => appState.view = "code" }>
+                        <a>⟺ Fullscreen editor</a>
+                        <kbd>Alt + 1</kbd>
+                    </li>
+                    <li onclick={ () => appState.view = "preview" }>
+                        <a>⟺ Fullscreen preview</a>
+                        <kbd>Alt + 2</kbd>
+                    </li>
+                    <li onclick={ () => appState.view = "normal" }>
+                        <a>⤄ Normal view</a>
+                        <kbd>Alt + 3</kbd>
+                    </li>
                 </menu>
             </div>
         </div>;
@@ -92,35 +119,6 @@ async function save() {
     }
     notify(message);
 }
-
-window.addEventListener("keydown", ev => {
-    if (ev.key === "Enter" && ev.ctrlKey) {
-        run();
-    }
-    else if (ev.key === "s" && ev.ctrlKey) {
-        ev.preventDefault();
-        save();
-    }
-});
-
-function startSizing() {
-    document.addEventListener("mousemove", updateSize, { capture: true });
-    document.addEventListener("mouseup", stopSizing, { capture: true, once: true });
-    frame.style.pointerEvents = "none";
-}
-
-function stopSizing() {
-    document.removeEventListener("mousemove", updateSize, { capture: true });
-    frame.style.pointerEvents = "auto";
-}
-
-function updateSize(ev: MouseEvent) {
-    sourceBox.style.width = ev.pageX + "px";
-    editor?.layout();
-    ev.stopPropagation();
-}
-
-window.addEventListener("resize", ev => editor?.layout());
 
 function muCompile(source: string) {
     const options = { 
@@ -154,10 +152,48 @@ export function run(code: string | undefined = editor?.getValue()) {
     }
 }
 
+window.addEventListener("keydown", ev => {
+    if (ev.key === "Enter" && ev.ctrlKey) {
+        run();
+    }
+    else if (ev.key === "s" && ev.ctrlKey) {
+        ev.preventDefault();
+        save();
+    }
+    else if (ev.key === "1" && ev.altKey) {
+        appState.view = "code";
+    }
+    else if (ev.key === "2" && ev.altKey) {
+        appState.view = "preview";
+    }
+    else if (ev.key === "3" && ev.altKey) {
+        appState.view = "normal";
+    }
+});
+
+function startSizing() {
+    document.addEventListener("mousemove", updateSize, { capture: true });
+    document.addEventListener("mouseup", stopSizing, { capture: true, once: true });
+    frame.style.pointerEvents = "none";
+}
+
+function stopSizing() {
+    document.removeEventListener("mousemove", updateSize, { capture: true });
+    frame.style.pointerEvents = "auto";
+}
+
+function updateSize(ev: MouseEvent) {
+    sourceBox.style.width = ev.pageX + "px";
+    editor?.layout();
+    ev.stopPropagation();
+}
+
+window.addEventListener("resize", ev => editor?.layout());
+
 const app = (
     <>
         <header>
-            <div style={{ position: "relative", top: "4px" }}>{ muLogo(50) }</div>
+            <div style={{ position: "relative", top: "4px", zIndex: "1" }}>{ muLogo(50) }</div>
             <h1>sandbox</h1>
             { hamburger() }{ runButton }{ saveButton }
             <div style={{ flexGrow: "1" }}></div>

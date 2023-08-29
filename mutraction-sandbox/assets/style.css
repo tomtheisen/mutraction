@@ -94,17 +94,27 @@ iframe {
 }
 
 .drop-list menu {
-    margin: 0;
     padding: 0;
     margin: 6px;
+    background-color: var(--button-color);
     border-radius: 8px;
     overflow: hidden;
 }
 
 .drop-list menu li {
     list-style: none;
-    background-color: var(--button-color);
     border-bottom: solid #111 2px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+}
+.drop-list menu li:hover {
+    background: #fff2;
+}
+
+.drop-list menu li kbd {
+    padding: 0 1em;
 }
 
 .drop-list menu li a {
@@ -115,6 +125,3 @@ iframe {
     display: block;
 }
 
-.drop-list menu li a:hover {
-    background: #fff2;
-}
