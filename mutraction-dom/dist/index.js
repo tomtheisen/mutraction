@@ -668,7 +668,8 @@ function ForEach(array, map) {
       const container = new ElementSpan();
       containers.push(container);
       effectDefault((itemDep) => {
-        const newNode = map(array[i]);
+        const item = array[i];
+        const newNode = item !== void 0 ? map(item, i, array) : getMarker("ForEach undefined placeholder");
         container.replaceWith(newNode);
       });
       result.append(container.removeAsFragment());
@@ -885,7 +886,7 @@ function Router(...routes) {
 }
 
 // out/index.js
-var version = "0.17.1";
+var version = "0.17.2";
 export {
   DependencyList,
   ForEach,

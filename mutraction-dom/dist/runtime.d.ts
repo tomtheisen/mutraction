@@ -1,4 +1,4 @@
-export declare function ForEach<TIn, TOut extends Node>(array: TIn[], map: (e: TIn) => TOut): Node;
+export declare function ForEach<TIn, TOut extends Node>(array: TIn[], map: (item: TIn, index: number, array: TIn[]) => TOut): Node;
 export declare function ForEachPersist<TIn extends object>(array: TIn[], map: (e: TIn) => Node): Node;
 type ElementStringProps<E extends keyof HTMLElementTagNameMap> = {
     [K in keyof HTMLElementTagNameMap[E]]: HTMLElementTagNameMap[E][K] extends string ? string : never;

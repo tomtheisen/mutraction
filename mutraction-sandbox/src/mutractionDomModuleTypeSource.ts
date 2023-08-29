@@ -1,7 +1,7 @@
 export const mutractionDomModule = `
 declare module 'mutraction-dom' {
     // export { element, child, ForEach, ForEachPersist } from './runtime.js';
-    export function ForEach<TIn, TOut extends Node>(array: TIn[], map: (e: TIn) => TOut): Node;
+    export function ForEach<TIn, TOut extends Node>(array: TIn[], map: (item: TIn, index: number, array: T[]) => TOut): Node;
     export function ForEachPersist<TIn extends object>(array: TIn[], map: (e: TIn) => Node): Node;
 
     // export { choose } from './choose.js';

@@ -30,6 +30,12 @@ export function forEachPersist() {
             </p>
 
             <p>
+                Another difference is that the mapping function accepts only a single argument.
+                It does not get the array index or the entire array.  This is because the array index
+                may change without re-invoking the function.
+            </p>
+
+            <p>
                 The trade-off is that the array elements <em>must</em> be objects.
                 It's not necessary to specify a key property.  Object reference identity
                 serves to identify each object.

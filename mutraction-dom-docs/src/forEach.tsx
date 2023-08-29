@@ -42,6 +42,12 @@ export function forEach() {
                         It will be called repeatedly to convert each item.
                         As items are replaced or added to the array, it will be called again.
                     </p>
+                    <h3><code>mapFunction</code> arguments</h3>
+                    <ul>
+                        <li><code>item</code> is the array element.</li>
+                        <li><code>index</code> is the array index of the item.</li>
+                        <li><code>array</code> is the array of items.</li>
+                    </ul>
                 </li>
             </ul>
 

@@ -10,7 +10,7 @@ function effectDefault(sideEffect: (dep: DependencyList) => (void | (() => void)
     effect(sideEffect, suppress);
 }
 
-export function ForEach<TIn, TOut extends Node>(array: TIn[], map: (e: TIn) => TOut): Node {
+export function ForEach<TIn, TOut extends Node>(array: TIn[], map: (item: TIn, index: number, array: TIn[]) => TOut): Node {
     const result = new ElementSpan();
     const containers: ElementSpan[] = [];
 
@@ -21,7 +21,10 @@ export function ForEach<TIn, TOut extends Node>(array: TIn[], map: (e: TIn) => T
             containers.push(container);
 
             effectDefault(itemDep => {
-                const newNode = map(array[i]);
+                const item = array[i];
+                // in operations like .splice() elements are removed prior to updating length
+                // so this code needs to be null-tolerant even though the type system says otherwise.
+                const newNode = item !== undefined ? map(item, i, array) : getMarker("ForEach undefined placeholder");
                 container.replaceWith(newNode);
             });
 
