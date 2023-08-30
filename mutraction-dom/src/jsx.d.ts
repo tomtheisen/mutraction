@@ -1,5 +1,3 @@
-import type { Tracker } from "mutraction-dom";
-
 type MutractionElement<ElementType extends keyof HTMLElementTagNameMap> = {
     [Prop in keyof HTMLElementTagNameMap[ElementType]]?:
         Prop extends "classList" ? Record<string, boolean> :

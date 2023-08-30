@@ -98,36 +98,20 @@ test('no history but auto', () => {
     assert.throws(() => new Tracker({ trackHistory: false, autoTransactionalize: true }));
 });
 
-test('callback deferral', async () => {
-    await new Promise((resolve, reject) => {
-        const tr = new Tracker({ deferNotifications: true });
-
-        const model = tr.track({} as any);
-        let callbacks = 0;
-        tr.subscribe(() => ++callbacks);
-        model.a = 1;
-        model.b = 2;
-
-        // callbacks didn't happen yet
-        assert.equal(callbacks, 0);
-
-        setTimeout(() => {
-            // but now they did
-            assert.equal(callbacks, 2);
-            resolve(undefined);
-        }, 1);
-    });
-});
-
 test('callback immediate', () => {
-    const tr = new Tracker({ deferNotifications: false });
-    const model = tr.track({} as any);
+    const tr = new Tracker();
+    const model = tr.track({a: 99, b: 88} as any);
     let callbacks = 0;
-    tr.subscribe(() => ++callbacks);
+    effect(() => {
+        [model.a, model.b];
+        ++callbacks;
+    }, { tracker: tr });
+    assert.equal(callbacks, 1);
+
     model.a = 1;
     model.b = 2;
 
-    assert.equal(callbacks, 2);
+    assert.equal(callbacks, 3);
 });
 
 test('undo notifies', () => {

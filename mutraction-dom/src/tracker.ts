@@ -5,23 +5,24 @@ import type { Mutation, ReadonlyDeep, SingleMutation, Transaction } from "./type
 import { PropReference, createOrRetrievePropRef } from "./propref.js";
 import { isTracked, makeProxyHandler } from "./proxy.js";
 
-type Subscriber = (mutation: SingleMutation | undefined) => void;
-
 const defaultTrackerOptions = {
     trackHistory: true,
     autoTransactionalize: true,
-    deferNotifications: false,
     compactOnCommit: true,
 };
 
 export type TrackerOptions = Partial<typeof defaultTrackerOptions>;
 
 export class Tracker {
-    #subscribers: Set<Subscriber> = new Set;
     #transaction?: Transaction;
     #rootTransaction?: Transaction;
     #redos: Mutation[] = [];
     options: Readonly<Required<TrackerOptions>>;
+
+    // If defined this will be the prop reference for the "history" property of this Tracker instance
+    // If so, it should be notified whenever the history is affected
+    //      mutations outside of transactions
+    //      non-nested transaction committed
     #historyPropRef: PropReference | undefined;
 
     constructor(options: TrackerOptions = {}) {
@@ -64,20 +65,6 @@ export class Tracker {
         return this.track(model);
     }
     
-    subscribe(callback: Subscriber) {
-        this.#subscribers.add(callback);
-        return { dispose: () => this.#subscribers.delete(callback) };
-    }
-
-    #notifySubscribers(mutation: SingleMutation | undefined) {
-        if (this.options.deferNotifications) {
-            for (const sub of this.#subscribers) queueMicrotask(() => sub(mutation));
-        }
-        else {
-            for (const sub of this.#subscribers) sub(mutation);
-        }
-    }
-
     #ensureHistory(): Transaction {
         if (!this.#transaction) throw Error("History tracking disabled.");
         return this.#transaction;
@@ -126,7 +113,7 @@ export class Tracker {
 
         if (this.#transaction.parent == null) {
             // top level transaction, notify any history dependency
-            this.#notifySubscribers(undefined);
+            this.#historyPropRef?.notifySubscribers();
         }
     }
 
@@ -152,7 +139,9 @@ export class Tracker {
         this.#undoOperation(mutation);
         this.#redos.unshift(mutation);
 
-        this.#historyPropRef?.notifySubscribers();
+        if (transaction.parent == null) { // top-level transaction
+            this.#historyPropRef?.notifySubscribers();
+        }
     }
     #undoOperation(mutation: Mutation) {
         if (mutation.type === "transaction") {
@@ -182,7 +171,9 @@ export class Tracker {
         this.#redoOperation(mutation);
         transaction.operations.push(mutation);
 
-        this.#historyPropRef?.notifySubscribers();
+        if (transaction.parent == null) { // top-level transaction
+            this.#historyPropRef?.notifySubscribers();
+        }
     }
     #redoOperation(mutation: Mutation) {
         if (mutation.type === "transaction") {
@@ -215,7 +206,6 @@ export class Tracker {
         transaction.parent = undefined;
         transaction.operations.length = 0;
         this.clearRedos();
-        this.#notifySubscribers(undefined);
     }
 
     /** record a mutation, if you have the secret key  */
@@ -231,10 +221,10 @@ export class Tracker {
             createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
         }
 
-        // notify history subcribers
-        this.#notifySubscribers(mutation);
-
-        this.#historyPropRef?.notifySubscribers();
+        if (this.#transaction && this.#transaction.parent == null) {
+            // top level transaction            
+            this.#historyPropRef?.notifySubscribers();
+        }
     }
 
     #dependencyTrackers: DependencyList[] = [];

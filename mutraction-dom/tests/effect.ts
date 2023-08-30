@@ -1,4 +1,4 @@
-import { track, defaultTracker as tracker, effect, defaultTracker } from '../src/index.js';
+import { track, defaultTracker as tracker, effect, defaultTracker, Tracker } from '../src/index.js';
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
@@ -148,6 +148,32 @@ test('exotic array effect', () => {
     model[57] = "asdf";
 
     assert.equal(lengths, [0, 58]);
-})
+});
+
+test('transaction affects history length', () => {
+    const tr = new Tracker;
+    const model = tr.track({
+        prop: 8,
+        method() {
+            ++this.prop;
+        }
+    });
+
+    let historyLength = 0;
+    let runs = 0;
+
+    effect(() => {
+        ++runs;
+        historyLength = tr.history.length;
+    }, { tracker: tr });
+
+    assert.equal(runs, 1, "initial effect");
+    assert.equal(historyLength, 0, "no history");
+    
+    model.method();
+
+    assert.equal(runs, 2, "next effect");
+    assert.equal(historyLength, 1, "had history");
+});
 
 test.run();
