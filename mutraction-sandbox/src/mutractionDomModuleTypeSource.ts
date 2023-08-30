@@ -166,41 +166,27 @@ declare module 'mutraction-dom' {
 }
 `;
 
-export const mutractionDomPackageJson = `
-{
-  "name": "mutraction-dom",
-  "type": "module",
-  "exports": {
-    ".": "./index.js",
-    "./jsx-runtime": {
-      "types": "./jsx.d.ts"
-    },
-  }
+export const jsxDTS = `
+type MutractionElement<ElementType extends keyof HTMLElementTagNameMap> = {
+    [Prop in keyof HTMLElementTagNameMap[ElementType]]?:
+        Prop extends "classList" ? Record<string, boolean> :
+        Prop extends "style" ? Partial<CSSStyleDeclaration> :
+        HTMLElementTagNameMap[ElementType][Prop];
+}
+& {
+    "mu:if"?: boolean;
+    "mu:else"?: boolean;
+    "mu:syncEvent"?: (keyof HTMLElementEventMap) | string;
+};
+
+export namespace JSX {
+    export type Element = Node;
+
+    export type ElementAttributesProperty = never;
+
+    export type IntrinsicElements = {
+        [key in keyof HTMLElementTagNameMap]: MutractionElement<key>;
+    };
 }
 `;
 
-export const jsxDTS = `
-// declare module 'mutraction-dom/jsx-types' {
-    type MutractionElement<ElementType extends keyof HTMLElementTagNameMap> = {
-        [Prop in keyof HTMLElementTagNameMap[ElementType]]?:
-            Prop extends "classList" ? Record<string, boolean> :
-            Prop extends "style" ? Partial<CSSStyleDeclaration> :
-            HTMLElementTagNameMap[ElementType][Prop];
-    }
-    & {
-        "mu:if"?: boolean;
-        "mu:else"?: boolean;
-        "mu:syncEvent"?: (keyof HTMLElementEventMap) | string;
-    };
-
-    export namespace JSX {
-        export type Element = Node;
-
-        export type ElementAttributesProperty = never;
-
-        export type IntrinsicElements = {
-            [key in keyof HTMLElementTagNameMap]: MutractionElement<key>;
-        };
-    }
-// }
-`;
