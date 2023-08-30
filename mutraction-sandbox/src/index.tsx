@@ -3,7 +3,7 @@ import { effect, track, version } from "mutraction-dom";
 import { compress, decompress } from "./compress.js";
 import { defaultSource } from "./defaultSource.js";
 import type * as monacoType from "monaco-editor";
-import { mutractionDomModule } from "./mutractionDomModuleTypeSource.js";
+import { jsxDTS, mutractionDomModule, mutractionDomPackageJson } from "./mutractionDomModuleTypeSource.js";
 import compileJsx from "mutraction-dom/compile-jsx";
 import { transform } from "@babel/standalone";
 import { getScaffoldZipUrl } from "./makeZip.js";
@@ -193,7 +193,7 @@ function updateSize(ev: MouseEvent) {
 
 window.addEventListener("resize", ev => editor?.layout());
 
-const app = (
+const app =
     <>
         <header>
             <div style={{ position: "relative", top: "4px", zIndex: "1" }}>{ muLogo(50) }</div>
@@ -207,8 +207,7 @@ const app = (
         { sourceBox }
         <div id="sizer" onmousedown={ startSizing }></div>
         { frame }
-    </>
-);
+    </>;
 
 document.body.append(app);
 
@@ -224,19 +223,22 @@ async function init() {
     require(['vs/editor/editor.main'], function () {
         // ts compiler options
         const existing = monaco.languages.typescript.typescriptDefaults.getCompilerOptions();
-        const JSXPreserve = 1;
-        const ModuleResolutionKindClassic = 1;
         monaco.languages.typescript.typescriptDefaults.setCompilerOptions({ 
             ...existing,
-            jsx: JSXPreserve,
-            moduleResolution: ModuleResolutionKindClassic,
+            jsx: monaco.languages.typescript.JsxEmit.Preserve,
+            moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+            jsxImportSource: "mutraction-dom",
         });
 
         // mutraction typedefs
         monaco.languages.typescript.typescriptDefaults.addExtraLib(mutractionDomModule, "mutraction-dom.ts");
+        // jsx types
+        // importing doesn't work, but VSC sees it here
+        //          import type { JSX } from "mutraction-dom/jsx-runtime"
+        monaco.languages.typescript.typescriptDefaults.addExtraLib(mutractionDomPackageJson, "file:///node_modules/mutraction-dom/package.json");
+        monaco.languages.typescript.typescriptDefaults.addExtraLib(jsxDTS, "file:///node_modules/mutraction-dom/jsx.d.ts");
 
-        // pass through Ctrl+Enter
-        // was "editor.action.insertLineAfter"
+        // pass through Ctrl+Enter; was "editor.action.insertLineAfter"
         monaco.editor.addKeybindingRule({ keybinding: monaco.KeyCode.Enter | monaco.KeyMod.WinCtrl, command: undefined });
         monaco.editor.addKeybindingRule({ keybinding: monaco.KeyCode.Enter | monaco.KeyMod.CtrlCmd, command: undefined });
 
@@ -248,7 +250,7 @@ async function init() {
         });
 
         // add the source code (model)
-        const modelUri = monaco.Uri.file("foo.tsx")
+        const modelUri = monaco.Uri.file("file:///foo.tsx")
         const codeModel = monaco.editor.createModel(source, "typescript", modelUri);
         editor.setModel(codeModel);
     });
