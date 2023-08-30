@@ -43,6 +43,8 @@ export class DependencyList {
 
     /** Indicates that this dependency list is dependent on *all* tracked changes */
     trackAllChanges() {
+        if (this.#tracksAllChanges) return; // already doing it
+        
         this.untrackAll();
         const historyPropRef = createOrRetrievePropRef(this.#tracker, "history");
         this.addDependency(historyPropRef);

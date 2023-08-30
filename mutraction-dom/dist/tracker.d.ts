@@ -2,11 +2,9 @@ import { RecordDependency, RecordMutation } from "./symbols.js";
 import { DependencyList } from "./dependency.js";
 import type { Mutation, ReadonlyDeep, SingleMutation, Transaction } from "./types.js";
 import { PropReference } from "./propref.js";
-type Subscriber = (mutation: SingleMutation | undefined) => void;
 declare const defaultTrackerOptions: {
     trackHistory: boolean;
     autoTransactionalize: boolean;
-    deferNotifications: boolean;
     compactOnCommit: boolean;
 };
 export type TrackerOptions = Partial<typeof defaultTrackerOptions>;
@@ -16,9 +14,6 @@ export declare class Tracker {
     constructor(options?: TrackerOptions);
     track<TModel extends object>(model: TModel): TModel;
     trackAsReadonlyDeep<TModel extends object>(model: TModel): ReadonlyDeep<TModel>;
-    subscribe(callback: Subscriber): {
-        dispose: () => boolean;
-    };
     get history(): ReadonlyArray<Readonly<Mutation>>;
     /** add another transaction to the stack  */
     startTransaction(name?: string): Transaction;

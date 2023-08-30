@@ -48,16 +48,13 @@ function makeProxyHandler(model, tracker) {
       let proxyWrapped2 = function() {
         const autoTransaction = tracker.startTransaction(original.name ?? "auto");
         try {
-          const result2 = original.apply(receiver, arguments);
+          return original.apply(receiver, arguments);
+        } finally {
           if (autoTransaction.operations.length > 0) {
             tracker.commit(autoTransaction);
           } else {
             tracker.rollback(autoTransaction);
           }
-          return result2;
-        } catch (er) {
-          tracker.rollback(autoTransaction);
-          throw er;
         }
       };
       var proxyWrapped = proxyWrapped2;
@@ -244,6 +241,8 @@ var DependencyList = class {
   }
   /** Indicates that this dependency list is dependent on *all* tracked changes */
   trackAllChanges() {
+    if (this.#tracksAllChanges)
+      return;
     this.untrackAll();
     const historyPropRef = createOrRetrievePropRef(this.#tracker, "history");
     this.addDependency(historyPropRef);
@@ -291,15 +290,17 @@ function compactTransaction({ operations }) {
 var defaultTrackerOptions = {
   trackHistory: true,
   autoTransactionalize: true,
-  deferNotifications: false,
   compactOnCommit: true
 };
 var Tracker = class {
-  #subscribers = /* @__PURE__ */ new Set();
   #transaction;
   #rootTransaction;
   #redos = [];
   options;
+  // If defined this will be the prop reference for the "history" property of this Tracker instance
+  // If so, it should be notified whenever the history is affected
+  //      mutations outside of transactions
+  //      non-nested transaction committed
   #historyPropRef;
   constructor(options = {}) {
     if (options.trackHistory === false && options.compactOnCommit == null) {
@@ -332,19 +333,6 @@ var Tracker = class {
   }
   trackAsReadonlyDeep(model) {
     return this.track(model);
-  }
-  subscribe(callback) {
-    this.#subscribers.add(callback);
-    return { dispose: () => this.#subscribers.delete(callback) };
-  }
-  #notifySubscribers(mutation) {
-    if (this.options.deferNotifications) {
-      for (const sub of this.#subscribers)
-        queueMicrotask(() => sub(mutation));
-    } else {
-      for (const sub of this.#subscribers)
-        sub(mutation);
-    }
   }
   #ensureHistory() {
     if (!this.#transaction)
@@ -383,7 +371,7 @@ var Tracker = class {
     actualTransaction.parent = void 0;
     this.#transaction = parent;
     if (this.#transaction.parent == null) {
-      this.#notifySubscribers(void 0);
+      this.#historyPropRef?.notifySubscribers();
     }
   }
   /** undo all operations done since the beginning of the most recent trasaction
@@ -406,7 +394,9 @@ var Tracker = class {
       return;
     this.#undoOperation(mutation);
     this.#redos.unshift(mutation);
-    this.#historyPropRef?.notifySubscribers();
+    if (transaction.parent == null) {
+      this.#historyPropRef?.notifySubscribers();
+    }
   }
   #undoOperation(mutation) {
     if (mutation.type === "transaction") {
@@ -443,7 +433,9 @@ var Tracker = class {
       return;
     this.#redoOperation(mutation);
     transaction.operations.push(mutation);
-    this.#historyPropRef?.notifySubscribers();
+    if (transaction.parent == null) {
+      this.#historyPropRef?.notifySubscribers();
+    }
   }
   #redoOperation(mutation) {
     if (mutation.type === "transaction") {
@@ -482,7 +474,6 @@ var Tracker = class {
     transaction.parent = void 0;
     transaction.operations.length = 0;
     this.clearRedos();
-    this.#notifySubscribers(void 0);
   }
   /** record a mutation, if you have the secret key  */
   [RecordMutation](mutation) {
@@ -492,8 +483,9 @@ var Tracker = class {
     if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
       createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
     }
-    this.#notifySubscribers(mutation);
-    this.#historyPropRef?.notifySubscribers();
+    if (this.#transaction && this.#transaction.parent == null) {
+      this.#historyPropRef?.notifySubscribers();
+    }
   }
   #dependencyTrackers = [];
   startDependencyTrack() {
@@ -886,7 +878,7 @@ function Router(...routes) {
 }
 
 // out/index.js
-var version = "0.17.2";
+var version = "0.17.3";
 export {
   DependencyList,
   ForEach,

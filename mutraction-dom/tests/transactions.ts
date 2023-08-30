@@ -62,7 +62,7 @@ test('transaction out of order resolution fails', () => {
     tr.commit(t2);
 });
 
-test('auto rollback on throw', () => {
+test('no auto rollback on throw', () => {
     const tr = new Tracker({autoTransactionalize: true});
     const model = tr.track({
         p: 3,
@@ -70,7 +70,7 @@ test('auto rollback on throw', () => {
     });
 
     assert.throws(() => model.m());
-    assert.equal(model.p, 3);
+    assert.equal(model.p, 4);
 });
 
 test('auto rollback on empty', () => {
