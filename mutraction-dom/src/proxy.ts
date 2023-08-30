@@ -53,7 +53,9 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
             function proxyWrapped() {
                 const autoTransaction = tracker.startTransaction(original.name ?? "auto");
                 try {
-                    const result = original.apply(receiver, arguments);
+                    return original.apply(receiver, arguments);
+                }
+                finally {
                     if (autoTransaction.operations.length > 0) {
                         tracker.commit(autoTransaction);
                     }
@@ -61,11 +63,6 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
                         // don't commit auto transactions in which nothing changed
                         tracker.rollback(autoTransaction);
                     }
-                    return result;
-                }
-                catch (er) {
-                    tracker.rollback(autoTransaction);
-                    throw er;
                 }
             }
             return proxyWrapped;

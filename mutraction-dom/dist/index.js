@@ -48,16 +48,13 @@ function makeProxyHandler(model, tracker) {
       let proxyWrapped2 = function() {
         const autoTransaction = tracker.startTransaction(original.name ?? "auto");
         try {
-          const result2 = original.apply(receiver, arguments);
+          return original.apply(receiver, arguments);
+        } finally {
           if (autoTransaction.operations.length > 0) {
             tracker.commit(autoTransaction);
           } else {
             tracker.rollback(autoTransaction);
           }
-          return result2;
-        } catch (er) {
-          tracker.rollback(autoTransaction);
-          throw er;
         }
       };
       var proxyWrapped = proxyWrapped2;
@@ -881,7 +878,7 @@ function Router(...routes) {
 }
 
 // out/index.js
-var version = "0.17.2";
+var version = "0.17.3";
 export {
   DependencyList,
   ForEach,
