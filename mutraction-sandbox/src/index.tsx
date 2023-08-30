@@ -55,7 +55,6 @@ function hamburger() {
     const containerStyle = {
         display: "inline-block",
         height: "var(--button-height)",
-        zIndex: "1",        
     };
     const styles = {
         fontFamily: "monospace",
@@ -81,7 +80,7 @@ function hamburger() {
     });
 
     const hamburger = 
-        <div style={ containerStyle }>
+        <div style={ { ...containerStyle, zIndex: hamburgerState.isActive ? "1" : "" } }>
             <button style={ styles } onclick={ () => hamburgerState.isActive = !hamburgerState.isActive }>
                 { hamburgerState.isActive ? '▼' : '≡' }
             </button>
@@ -196,7 +195,9 @@ window.addEventListener("resize", ev => editor?.layout());
 const app =
     <>
         <header>
-            <div style={{ position: "relative", top: "4px", zIndex: "1" }}>{ muLogo(50) }</div>
+            <div style={{ position: "relative", top: "4px", zIndex: "1" }}>
+                <a href="/">{ muLogo(50) }</a>
+            </div>
             <h1>sandbox</h1>
             { hamburger() }{ runButton }{ saveButton }
             <div style={{ flexGrow: "1" }}></div>
