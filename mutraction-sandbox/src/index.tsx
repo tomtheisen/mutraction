@@ -87,6 +87,7 @@ function hamburger() {
             <div className="drop-list" hidden={ !hamburgerState.isActive }>
                 <menu>
                     <li><a download="mutraction-project.zip" href={ hamburgerState.downloadLink }>📦 Get .zip of this app</a></li>
+                    <li onclick={ () => editor?.setValue(defaultSource) }><a>✨ New</a></li>
                     <li onclick={ () => appState.view = "code" }>
                         <a>⟺ Fullscreen editor</a>
                         <kbd>Alt + 1</kbd>
@@ -254,4 +255,3 @@ async function init() {
     });
 }
 init();
-
