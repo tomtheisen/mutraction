@@ -87,7 +87,7 @@ export function jsx() {
 
         <h2>Properties</h2>
         <p>
-            There are three syntaxes for applying properties for JSX elements.
+            There are four syntaxes for applying properties for JSX elements.
             They are applied to the element, rather than the HTML tag.
             This means that the typed DOM api is used, rather than than HTML attributes which are always strings.
             For isntance, the <code>maxlen</code> property of an <code>input</code> is a number, not a string.
@@ -99,7 +99,7 @@ export function jsx() {
                 <p>These are static, and don't change automatically.</p>
             </li>
             <li>
-                Value expression - e.g. <code>&lt;input enabled=&#x7B; model.enabled &#x7D; &gt;</code>
+                Value expression - e.g. <code>&lt;input disabled=&#x7B; model.disabled &#x7D; &gt;</code>
                 <p>
                     If these include a <a href="#topics/tracking">tracked model property</a>, the
                     element property will be automatically updated as necessary.
@@ -111,6 +111,14 @@ export function jsx() {
                 <p>
                     These work as expected.  However, they don't cause automatic element updates.
                     This behavior may be useful for cases where you want to set an initial default value.
+                </p>
+            </li>
+            <li>
+                Implicit true - e.g. <code>&lt;details open /&gt;</code>
+                <p>
+                    This one can only be used on boolean properties.  When no value is specified,
+                    this implicitly assigns the value of <code>true</code>.  If you want <code>false</code> instead,
+                    use <code>=&#x7B; false &#x7D;</code>
                 </p>
             </li>
         </ul>
@@ -153,6 +161,15 @@ export function jsx() {
             There are none!  At least, there's no special syntax for these in JSX.
             Since JSX elements evaluate to DOM elements, and JSX expression children can be DOM elements, there's no need for a special case.
             Just call your function as a value inside curly braces.
+        </p>
+        <p>
+            Note that children elements aren't replaced automatically.  They keep their identities.
+            If you need to do this, it's possible to achieve with an <a href="#ref/effect"><code>effect</code></a>,
+            however, there's a good chance you don't actually need to do this.
+        </p>
+        <p>
+            However, <em>non-</em>element children, such as strings and numbers, <em>are</em> replaced automatically
+            when one of their dependencies change.
         </p>
         { codeSample(`
             const model = track({ items: [{ name: "bongo" }] });

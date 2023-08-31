@@ -489,7 +489,7 @@ var Tracker = class {
   }
   #dependencyTrackers = [];
   startDependencyTrack() {
-    let deps = new DependencyList(this);
+    const deps = new DependencyList(this);
     this.#dependencyTrackers.unshift(deps);
     return deps;
   }

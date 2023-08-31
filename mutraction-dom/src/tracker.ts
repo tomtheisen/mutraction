@@ -230,7 +230,7 @@ export class Tracker {
     #dependencyTrackers: DependencyList[] = [];
 
     startDependencyTrack(): DependencyList {
-        let deps = new DependencyList(this);
+        const deps = new DependencyList(this);
         this.#dependencyTrackers.unshift(deps);
         return deps;
     }

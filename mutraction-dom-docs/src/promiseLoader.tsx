@@ -37,7 +37,7 @@ export function promiseLoader() {
                 <li>
                     <code>spinner</code> - optional
                     <p>
-                        If provided, this document node will be shown until the promis is resolved.
+                        If provided, this document node will be shown until the promise is resolved.
                     </p>
                 </li>
             </ul>
