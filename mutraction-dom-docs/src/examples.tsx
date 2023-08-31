@@ -23,6 +23,16 @@ export function examples() {
                         Game of Life                        
                     </a>
                 </li>
+                <li>
+                    <a target="_blank" href="sandbox/#rVVta9tIEP6uXzHoQ2tDIr80SYtjGUIuxzX03A8JhRICWUuraC+rXbEvdlWh/34zq9ix07seB12DpZ19Zp55XYmq1sZBC86w7OkIftfmimXlEfCi4JmDDgqjK4grTwAntDrOdRWfR1GmlXWQ84J56a6tVpDCQwtxIYx1S1bxeAbxtS5VfASxZC+ym0q4koTCXkixJpkznqOAPdJm+p5e89xwa3GLJq0znLuLnSieTmCqcrgJcjKVCdfQwZJv4Ks2TySzjrlAuPxK21qjQF7qPMgm4/F0cvwOHzF0dFpqxZe+WnFDDHdE65o6YEuNjiNGheOefwqnp6fHk+m7k6C/h9ZFIbJX+LOTs4A/OT17j3i4J5dLITEgFdjiS+ZKboQKirfIyGx4M3ytTRwUbK29JQrlpYTu4fy5BBWGJDH5oYKDFoSqvZsdVKYb7grm+DfHDGeoMN+9r5n0PG17U0kwgF5WfmYblV2tuXJpHKQxWNdIhLawEbkrMbYP4/UGXS25eCwd7XmFIXYwWiBn4VVoGvgirGdSfOcD5JqBV09Kb9QQ2ghwiQIGF8awJsGeoCehhttTWoY7bxTMc+6YkBZ0zVXahsaBbrGD0ZpbX1XMNJgIxc0txpjGd0mS3O85n3ljtZlRVwjlsEi9x4d2tEQFZlzajl9R0Gq3s0K+4rxAuoC5FIt2L1Y+hG4+QiE+D22PtHwxOR89h4Upo30Hu6ygbXjzBqi5dEF1gjRNsclWf+F0xr8wQy1mqPu/GcrliwIafBQKFcZAv0nfBj/L2+cQRILdZQS3oeSYR9w1IZc/qvacbtEG0N34HpOL23/B5a99+8QLatCtZ+1enYK9yf2QDOY/GpyP/qGC+c8qGO2XBHvi+ubzMsF7TKhHUfTtTa2B8C6KRiP4iHPMGlhxHNCqdgiDFQ7hhkOmvczVW3w3wuFxKSwwSzq0+qHW3tHI4khXTKiDFgzENTOWD/amexjYA3h7MRzawFIjC/xx++enK8krTNB51H8SBoMhlaeHJ4bXkmX88vkyG/w38ZDuIvT+tuSYIItXFGBnP+wUH4AChFxnnmiB9/QJ6fz2Sggix3/hsH0ALzJQGr9IjWKVyJiUDfg6ZyGX4YKzSRRtzSYrnTcJq3FI8sH2Hjx6jmp4/jc=">
+                        JSON visualizer
+                    </a>
+                </li>
+                <li>
+                    <a target="_blank" href="sandbox/#lVLbSsNAEH3PVwwBoRWbRsGXXPoJguAHuGYnyeJe4l4qJeTfnd0aW/HJgYSc5JwzMycr1GSshxm8Zd07LNBboyBXIWIvjN5xo/I6yzqjnQfnTxIdtNCkp8P8mgHVLRl8Cu7HCu7L8qaGEcUw+hUtiTR6Je/gzfATsRWzg9BVWcPEOBd6qKBcid+U1eOhLI9K6Hrt8IPP7EIi64n+RvMP1gTNK/DIZE0+lqPdWcZFcBU8XkYpPgLjpOHCTZKdKhis4HW67zwqeudx1xkZlCbhfW/jFcWvS7M/b06R9EGniOCZ3F4s4mYLc/JfwyIbyipFu6GERiORhrMBYdnWiWnRB6uhOSQUq+HiCCpUom/n5FAk3QKdZM49MYVtHlfOwWhlgkNljtjOQM3bA1wp2p5JR51g/9cc45crw5hHfqHFmq/XWn6j/xObPXU+N2j2FN6SZdx0QaH2RfzfBZsm1HxzPmB3VyYU1Bc=">
+                        Quadtree
+                    </a>
+                </li>
             </ul>
         </>
     );
