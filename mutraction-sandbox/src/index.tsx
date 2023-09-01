@@ -146,11 +146,30 @@ export function run(code: string | undefined = editor?.getValue()) {
         if (appState.view === "code") appState.view = "normal";
     }
     catch (err) {
-        if (err instanceof Error) {
-            notify(err.message);
-        }
-        else {
-            notify(String(err));
+        const style: Partial<CSSStyleDeclaration> = {
+            whiteSpace: "pre",
+            fontFamily: "monospace",
+            color: "#ff9e9e",
+            padding: "1em",
+            position: "relative",
+        };
+        const clearStyle: Partial<CSSStyleDeclaration> = {
+            position: "absolute",
+            top: "1em",
+            right: "0",
+        };
+        const el = 
+            <div style={ style }>
+                <button style={clearStyle} onclick={ () => editor?.setBanner(null, 20) }>✕</button>
+                { err instanceof Error ? err.message : String(err) }
+            </div> as HTMLElement;
+        editor?.setBanner(el, 20);
+        if (err && typeof err === "object" && "loc" in err) {
+            const { line = undefined, column = undefined } = err?.loc ?? {} as any;
+            if (typeof line === "number" && typeof column === "number") {
+                editor?.revealLineInCenter(line);
+                editor?.setPosition({ lineNumber: line, column: column });
+            }
         }
     }
 }
@@ -243,6 +262,9 @@ async function init() {
             language: 'typescript',
             minimap: { enabled: false },
             theme: "vs-dark",
+
+        }, {
+            
         });
 
         // add the source code (model)
