@@ -7,6 +7,7 @@ import { jsxDTS, mutractionDomModule } from "./mutractionDomModuleTypeSource.js"
 import compileJsx from "mutraction-dom/compile-jsx";
 import { transform } from "@babel/standalone";
 import { getScaffoldZipUrl } from "./makeZip.js";
+import { getSelfContainedUrl } from "./selfContained.js";
 
 declare const require: Function & { config: Function };
 declare const monaco: typeof monacoType;
@@ -56,7 +57,8 @@ const frame = <iframe src="output.html"></iframe> as HTMLIFrameElement;
 function hamburger() {
     const hamburgerState = track({ 
         isActive: false, 
-        downloadLink: "", 
+        downloadScaffoldLink: "", 
+        downloadSelfContainedLink: "",
     });
     const containerStyle = {
         display: "inline-block",
@@ -78,7 +80,10 @@ function hamburger() {
             document.body.addEventListener("mousedown", outClickHandler, { capture: true });
             window.addEventListener("blur", () => hamburgerState.isActive = false, { once: true });
             const code = editor?.getValue();
-            if (code) getScaffoldZipUrl(code).then(link => hamburgerState.downloadLink = link);
+            if (code) {
+                getScaffoldZipUrl(code).then(link => hamburgerState.downloadScaffoldLink = link);
+                getSelfContainedUrl(muCompile(code)).then(link => hamburgerState.downloadSelfContainedLink = link);
+            }
         }
         else {
             document.body.removeEventListener("mousedown", outClickHandler, { capture: true });
@@ -92,7 +97,8 @@ function hamburger() {
             </button>
             <div className="drop-list" hidden={ !hamburgerState.isActive }>
                 <menu>
-                    <li><a download="mutraction-project.zip" href={ hamburgerState.downloadLink }>📦 Get .zip of this app</a></li>
+                    <li><a download="mutraction-project.zip" href={ hamburgerState.downloadScaffoldLink }>📦 Get .zip of this app</a></li>
+                    <li><a download="app.html" href={ hamburgerState.downloadSelfContainedLink }>⚙️ Download as self-contained .html</a></li>
                     <li onclick={ () => editor?.setValue(defaultSource) }><a>✨ New</a></li>
                     <li onclick={ () => appState.view = "code" }>
                         <a>⟺ Fullscreen editor</a>
