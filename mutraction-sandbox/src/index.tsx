@@ -4,10 +4,9 @@ import { compress, decompress } from "./compress.js";
 import { defaultSource } from "./defaultSource.js";
 import type * as monacoType from "monaco-editor";
 import { jsxDTS, mutractionDomModule } from "./mutractionDomModuleTypeSource.js";
-import compileJsx from "mutraction-dom/compile-jsx";
-import { transform } from "@babel/standalone";
 import { getScaffoldZipUrl } from "./makeZip.js";
 import { getSelfContainedUrl } from "./selfContained.js";
+import { muCompile } from "./compile.js";
 
 declare const require: Function & { config: Function };
 declare const monaco: typeof monacoType;
@@ -82,7 +81,7 @@ function hamburger() {
             const code = editor?.getValue();
             if (code) {
                 getScaffoldZipUrl(code).then(link => hamburgerState.downloadScaffoldLink = link);
-                getSelfContainedUrl(muCompile(code)).then(link => hamburgerState.downloadSelfContainedLink = link);
+                getSelfContainedUrl(code).then(link => hamburgerState.downloadSelfContainedLink = link);
             }
         }
         else {
@@ -98,7 +97,7 @@ function hamburger() {
             <div className="drop-list" hidden={ !hamburgerState.isActive }>
                 <menu>
                     <li><a download="mutraction-project.zip" href={ hamburgerState.downloadScaffoldLink }>📦 Get .zip of this app</a></li>
-                    <li><a download="app.html" href={ hamburgerState.downloadSelfContainedLink }>⚙️ Download as self-contained .html</a></li>
+                    <li><a download="app.html" href={ hamburgerState.downloadSelfContainedLink }>📄 Download as self-contained .html</a></li>
                     <li onclick={ () => editor?.setValue(defaultSource) }><a>✨ New</a></li>
                     <li onclick={ () => appState.view = "code" }>
                         <a>⟺ Fullscreen editor</a>
@@ -130,17 +129,6 @@ async function save() {
         message = "Failed to set clipboard";
     }
     notify(message);
-}
-
-function muCompile(source: string) {
-    const options = { 
-        plugins: [
-            ["transform-typescript", { isTSX: true }],
-            compileJsx,
-        ],
-    };
-    const { code } = transform(source, options);
-    return code ?? "";
 }
 
 export function run(code: string | undefined = editor?.getValue()) {
