@@ -50,4 +50,12 @@ export const nav =
             <li><a href="#why">Why mutraction</a></li>
             <li><a href="#faq">FAQ</a></li>
         </ul>
-    </nav>
+    </nav> as HTMLElement;
+
+window.addEventListener("hashchange", ev => {
+    nav.querySelectorAll("a").forEach(el => {
+        if (el instanceof HTMLAnchorElement) {
+            el.classList.toggle("active", el.getAttribute("href") === location.hash);
+        }
+    });
+});

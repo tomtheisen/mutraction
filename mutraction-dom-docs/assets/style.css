@@ -53,6 +53,10 @@ a {
     cursor: pointer;
 }
 
+nav a.active {
+    font-weight: bold;
+}
+
 :link, :visited {
     color: hsl(var(--brand-hue), 50%, 80%);
     text-decoration: none;
