@@ -13,8 +13,9 @@ declare const monaco: typeof monacoType;
 
 const storageKey = "mu_playground_source";
 
+const query = new URL(location.href).searchParams;
 const appState = track({
-    view: "normal" as "normal" | "code" | "preview",
+    view: query.get("view") ?? "normal" as "normal" | "code" | "preview",
 });
 
 function notify(message: string) {
@@ -43,6 +44,11 @@ effect(() => {
     sourceBox.style.minWidth = appState.view === "normal" ? "10vw" : "";
     sourceBox.style.maxWidth = appState.view === "normal" ? "90vw" : "";
     editor?.layout();
+    
+    // set URL parameter
+    const query = new URL(location.href).searchParams;
+    query.set("view", appState.view);
+    history.replaceState(null, "", "?" + String(query) + location.hash);
 });
 
 const frame = <iframe src="output.html"></iframe> as HTMLIFrameElement;
