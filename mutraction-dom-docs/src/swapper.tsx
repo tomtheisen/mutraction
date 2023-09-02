@@ -72,6 +72,13 @@ export function swapper() {
                     This is a function that produces a document node.
                     Whenever a tracked dependency of the function changes, the resulting node is replaced.
                 </p>
+                <p>
+                    This function can either return a DOM node or an options object.
+                </p>
+                <ul>
+                    <li><code>node</code> is the output node.</li>
+                    <li><code>cleanup</code> is an optional callback to invoke when replacing the previous node.</li>
+                </ul>
             </li>
         </ul>
 

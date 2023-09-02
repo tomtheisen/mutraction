@@ -38,6 +38,11 @@ export function examples() {
                         Tic Tac Toe                        
                     </a>
                 </li>
+                <li>
+                    <a target="_blank" href="sandbox/#hVPLjpswFN3nK64sVQKFgUxbdUEAaVRNpW5m0ccqk4UDzgQN2JYxUUYpf9Bf6M/1S3ptAyEPqV6A7fs69xzfspZCaTjCF6Eeab4LQCuav0IHWyVqIHVrzroU/K4QNVnOZrngjYZaFKyC1Hl7xxngamVBNWtiWAT2rKl6Yfob3sVw3981suScKXRarYE2wNt6w9Rq7ayK1WLPvLI4xL3FR2h6VzbhEIibqsytTwD3/hK6WecjrG3LLUz47hy9rWwmSWz6imlsi9YMgS+W9sp1o9lB410h8rZmXIe5Yoj6B94+YZ8eIf7Ue0d5UZkcDdNfuWZqTyvP8yHN+jq2eQwOzeezQBdu0pNf0d3zM1lZCPM5vIOP6+UYMJ9bTsOeRWfosEf2ASLAbnoMiulWcViZ3EGPxVJpwS1n3SARlRJSG5JkY5Wk5LLFht8kS4mi/IURQPgte2ieLFfp0WkbntTDx1CXPCXvCdT0kJJPC9y0cfPG88c9tpYSm5RAdKpzMws2kWzU1C3ZtFqjaILnqOorFnc8uuBRc9k2O+8yoQ9d9lAUg+BJ5HJNksvs5/Akj2fkdkkkp1jHrVn9JHjnGAIwLyqA8kLnYTnOV737SZh0+iD9q7Bezet8ZnFEEENSlPvspv3/DA4DZbj6++f3NUeX62hEclIhacO44pDdrB0ZaMFNW14xylsZ93DMUY3D4sjxryPP63Tgn6RxpiTKcNjHQd2I4i3Eh8544eEPR+Qf">
+                        Spinners
+                    </a>
+                </li>
             </ul>
         </>
     );

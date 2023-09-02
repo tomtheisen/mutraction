@@ -611,131 +611,10 @@ function getMarker(mark) {
   return document.createTextNode(showMarkers ? `\u27EA${mark}\u27EB` : "");
 }
 
-// out/elementSpan.js
-var ElementSpan = class _ElementSpan {
-  static id = 0;
-  startMarker = getMarker("start:" + ++_ElementSpan.id);
-  endMarker = getMarker("end:" + _ElementSpan.id);
-  constructor(...node) {
-    const frag = document.createDocumentFragment();
-    frag.append(this.startMarker, ...node, this.endMarker);
-  }
-  /** extracts the entire span as a fragment */
-  removeAsFragment() {
-    if (this.startMarker.parentNode instanceof DocumentFragment) {
-      return this.startMarker.parentNode;
-    }
-    const nodes = [];
-    for (let walk = this.startMarker; ; walk = walk?.nextSibling) {
-      if (walk == null)
-        throw Error("End marker not found as subsequent document sibling as start marker");
-      nodes.push(walk);
-      if (Object.is(walk, this.endMarker))
-        break;
-    }
-    const result = document.createDocumentFragment();
-    result.append(...nodes);
-    return result;
-  }
-  /** extracts the interior of the span into a fragment, leaving the span container empty */
-  emptyAsFragment() {
-    const nodes = [];
-    for (let walk = this.startMarker.nextSibling; ; walk = walk?.nextSibling) {
-      if (walk == null)
-        throw Error("End marker not found as subsequent document sibling as start marker");
-      if (Object.is(walk, this.endMarker))
-        break;
-      nodes.push(walk);
-    }
-    const result = document.createDocumentFragment();
-    result.append(...nodes);
-    return result;
-  }
-  /** removes the interior contents of the span */
-  clear() {
-    while (!Object.is(this.startMarker.nextSibling, this.endMarker)) {
-      if (this.startMarker.nextSibling == null)
-        throw Error("End marker not found as subsequent document sibling as start marker");
-      this.startMarker.nextSibling.remove();
-    }
-  }
-  /** replaces the interior contents of the span */
-  replaceWith(...nodes) {
-    this.clear();
-    this.append(...nodes);
-  }
-  append(...nodes) {
-    const frag = document.createDocumentFragment();
-    frag.append(...nodes);
-    if (!this.endMarker.parentNode)
-      throw Error("End marker of ElementSpan has no parent");
-    this.endMarker.parentNode.insertBefore(frag, this.endMarker);
-  }
-};
-
 // out/runtime.js
 var suppress = { suppressUntrackedWarning: true };
 function effectDefault(sideEffect) {
   effect(sideEffect, suppress);
-}
-function ForEach(array, map) {
-  const result = new ElementSpan();
-  const containers = [];
-  effectDefault((lengthDep) => {
-    for (let i = containers.length; i < array.length; i++) {
-      const container = new ElementSpan();
-      containers.push(container);
-      effectDefault((itemDep) => {
-        const item = array[i];
-        const newNode = item !== void 0 ? map(item, i, array) : getMarker("ForEach undefined placeholder");
-        container.replaceWith(newNode);
-      });
-      result.append(container.removeAsFragment());
-    }
-    while (containers.length > array.length) {
-      containers.pop().removeAsFragment();
-    }
-  });
-  return result.removeAsFragment();
-}
-function ForEachPersist(array, map) {
-  const result = new ElementSpan();
-  const containers = [];
-  const outputMap = /* @__PURE__ */ new WeakMap();
-  effectDefault(() => {
-    for (let i = containers.length; i < array.length; i++) {
-      const container = new ElementSpan();
-      containers.push(container);
-      effectDefault((dep) => {
-        container.emptyAsFragment();
-        const item = array[i];
-        if (item == null)
-          return;
-        if (typeof item !== "object")
-          throw Error("Elements must be object in ForEachPersist");
-        let newContents = outputMap.get(item);
-        if (newContents == null) {
-          if (dep)
-            dep.active = false;
-          let newNode = map(item);
-          newContents = newNode instanceof HTMLElement ? newNode : new ElementSpan(newNode);
-          outputMap.set(item, newContents);
-          if (dep)
-            dep.active = true;
-        }
-        if (newContents instanceof HTMLElement) {
-          container.replaceWith(newContents);
-        } else {
-          container.replaceWith(newContents.removeAsFragment());
-        }
-      });
-      result.append(container.removeAsFragment());
-    }
-    while (containers.length > array.length) {
-      containers.pop().removeAsFragment();
-    }
-  });
-  return result.removeAsFragment();
 }
 function element(name, staticAttrs, dynamicAttrs, ...children) {
   const el = document.createElement(name);
@@ -802,6 +681,144 @@ function child(getter) {
   return node;
 }
 
+// out/elementSpan.js
+var ElementSpan = class _ElementSpan {
+  static id = 0;
+  startMarker = getMarker("start:" + ++_ElementSpan.id);
+  endMarker = getMarker("end:" + _ElementSpan.id);
+  constructor(...node) {
+    const frag = document.createDocumentFragment();
+    frag.append(this.startMarker, ...node, this.endMarker);
+  }
+  /** extracts the entire span as a fragment */
+  removeAsFragment() {
+    if (this.startMarker.parentNode instanceof DocumentFragment) {
+      return this.startMarker.parentNode;
+    }
+    const nodes = [];
+    for (let walk = this.startMarker; ; walk = walk?.nextSibling) {
+      if (walk == null)
+        throw Error("End marker not found as subsequent document sibling as start marker");
+      nodes.push(walk);
+      if (Object.is(walk, this.endMarker))
+        break;
+    }
+    const result = document.createDocumentFragment();
+    result.append(...nodes);
+    return result;
+  }
+  /** extracts the interior of the span into a fragment, leaving the span container empty */
+  emptyAsFragment() {
+    const nodes = [];
+    for (let walk = this.startMarker.nextSibling; ; walk = walk?.nextSibling) {
+      if (walk == null)
+        throw Error("End marker not found as subsequent document sibling as start marker");
+      if (Object.is(walk, this.endMarker))
+        break;
+      nodes.push(walk);
+    }
+    const result = document.createDocumentFragment();
+    result.append(...nodes);
+    return result;
+  }
+  /** removes the interior contents of the span */
+  clear() {
+    while (!Object.is(this.startMarker.nextSibling, this.endMarker)) {
+      if (this.startMarker.nextSibling == null)
+        throw Error("End marker not found as subsequent document sibling as start marker");
+      this.startMarker.nextSibling.remove();
+    }
+  }
+  /** replaces the interior contents of the span */
+  replaceWith(...nodes) {
+    this.clear();
+    this.append(...nodes);
+  }
+  append(...nodes) {
+    const frag = document.createDocumentFragment();
+    frag.append(...nodes);
+    if (!this.endMarker.parentNode)
+      throw Error("End marker of ElementSpan has no parent");
+    this.endMarker.parentNode.insertBefore(frag, this.endMarker);
+  }
+};
+
+// out/types.js
+function isNodeOptions(arg) {
+  return arg != null && typeof arg === "object" && "node" in arg && arg.node instanceof Node;
+}
+
+// out/foreach.js
+var suppress2 = { suppressUntrackedWarning: true };
+function ForEach(array, map) {
+  const result = new ElementSpan();
+  const outputs = [];
+  effect((lengthDep) => {
+    for (let i = outputs.length; i < array.length; i++) {
+      const output = { container: new ElementSpan() };
+      outputs.push(output);
+      effect((itemDep) => {
+        output.cleanup?.();
+        const item = array[i];
+        const projection = item !== void 0 ? map(item, i, array) : getMarker("ForEach undefined placeholder");
+        if (isNodeOptions(projection)) {
+          output.container.replaceWith(projection.node);
+          output.cleanup = projection.cleanup;
+        } else {
+          output.container.replaceWith(projection);
+          output.cleanup = void 0;
+        }
+      }, suppress2);
+      result.append(output.container.removeAsFragment());
+    }
+    while (outputs.length > array.length) {
+      const { cleanup, container } = outputs.pop();
+      cleanup?.();
+      container.removeAsFragment();
+    }
+  }, suppress2);
+  return result.removeAsFragment();
+}
+function ForEachPersist(array, map) {
+  const result = new ElementSpan();
+  const containers = [];
+  const outputMap = /* @__PURE__ */ new WeakMap();
+  effect(() => {
+    for (let i = containers.length; i < array.length; i++) {
+      const container = new ElementSpan();
+      containers.push(container);
+      effect((dep) => {
+        container.emptyAsFragment();
+        const item = array[i];
+        if (item == null)
+          return;
+        if (typeof item !== "object")
+          throw Error("Elements must be object in ForEachPersist");
+        let newContents = outputMap.get(item);
+        if (newContents == null) {
+          if (dep)
+            dep.active = false;
+          let newNode = map(item);
+          newContents = newNode instanceof HTMLElement ? newNode : new ElementSpan(newNode);
+          outputMap.set(item, newContents);
+          if (dep)
+            dep.active = true;
+        }
+        if (newContents instanceof HTMLElement) {
+          container.replaceWith(newContents);
+        } else {
+          container.replaceWith(newContents.removeAsFragment());
+        }
+      }, suppress2);
+      result.append(container.removeAsFragment());
+    }
+    while (containers.length > array.length) {
+      containers.pop().removeAsFragment();
+    }
+  }, suppress2);
+  return result.removeAsFragment();
+}
+
 // out/memoize.js
 function memoize(getter) {
   let isResolved = false;
@@ -813,7 +830,7 @@ function memoize(getter) {
 }
 
 // out/choose.js
-var suppress2 = { suppressUntrackedWarning: true };
+var suppress3 = { suppressUntrackedWarning: true };
 function choose(...choices) {
   const lazyChoices = [];
   let foundUnconditional = false;
@@ -845,7 +862,7 @@ function choose(...choices) {
         break;
       }
     }
-  }, suppress2);
+  }, suppress3);
   return current;
 }
 
@@ -872,7 +889,18 @@ function ErrorBoundary(nodeFactory, showErr) {
 // out/swapper.js
 function Swapper(nodeFactory) {
   const span = new ElementSpan();
-  effect(() => span.replaceWith(nodeFactory()));
+  let cleanup;
+  effect(() => {
+    cleanup?.();
+    const output = nodeFactory();
+    if (isNodeOptions(output)) {
+      span.replaceWith(output.node);
+      cleanup = output.cleanup;
+    } else {
+      span.replaceWith(output);
+      cleanup = void 0;
+    }
+  });
   return span.removeAsFragment();
 }
 
