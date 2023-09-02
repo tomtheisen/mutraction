@@ -860,6 +860,15 @@ function PromiseLoader(promise, spinner = document.createTextNode(""), onError =
   return span.removeAsFragment();
 }
 
+// out/errorBoundary.js
+function ErrorBoundary(nodeFactory, showErr) {
+  try {
+    return nodeFactory();
+  } catch (ex) {
+    return showErr(ex);
+  }
+}
+
 // out/swapper.js
 function Swapper(nodeFactory) {
   const span = new ElementSpan();
@@ -918,6 +927,7 @@ function Router(...routes) {
 var version = "0.18.0";
 export {
   DependencyList,
+  ErrorBoundary,
   ForEach,
   ForEachPersist,
   PromiseLoader,
