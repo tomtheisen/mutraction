@@ -1,4 +1,4 @@
-import { track, defaultTracker as tracker, effect, Tracker } from '../src/index.js';
+import { track, defaultTracker as tracker, effect, Tracker, isTracked } from '../src/index.js';
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
@@ -71,6 +71,16 @@ test('auto transact', () => {
 
     tr.undo();
     assert.equal({ ...model }, { a:1, b:12, c:3 });
+});
+
+test('no promises', () => {
+    const model = track({
+        o1: { foo: 231 },
+        o2: Promise.resolve(231),
+    });
+
+    assert.ok(isTracked(model.o1));
+    assert.not.ok(isTracked(model.o2));
 });
 
 test.run();
