@@ -51,9 +51,12 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
         if (typeof result === 'function' && tracker.options.autoTransactionalize && name !== "constructor") {
             const original = result as Function;
             function proxyWrapped() {
+                // Promise objects throw if you try to use a different `this` when invoking their methods
+                const needsOriginalThis = target instanceof Promise;
+
                 const autoTransaction = tracker.startTransaction(original.name ?? "auto");
                 try {
-                    return original.apply(receiver, arguments);
+                    return original.apply(needsOriginalThis ? target : receiver, arguments);
                 }
                 finally {
                     if (autoTransaction.operations.length > 0) {
