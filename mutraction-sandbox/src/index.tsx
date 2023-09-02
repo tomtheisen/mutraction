@@ -178,7 +178,7 @@ window.addEventListener("keydown", ev => {
     if (ev.key === "Enter" && ev.ctrlKey) {
         run();
     }
-    else if (ev.key === "s" && ev.ctrlKey) {
+    else if ((ev.key === "s" || ev.key ==="S") && ev.ctrlKey && !ev.shiftKey) {
         ev.preventDefault();
         save();
     }
