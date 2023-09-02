@@ -30,6 +30,17 @@ function linkProxyToObject(obj, proxy) {
   });
   obj[ProxyOf] = proxy;
 }
+function isTrackable(val) {
+  if (val == null)
+    return false;
+  if (typeof val !== "object")
+    return false;
+  if (isTracked(val))
+    return false;
+  if (val instanceof Promise)
+    return false;
+  return true;
+}
 function makeProxyHandler(model, tracker) {
   function getOrdinary(target, name, receiver) {
     if (name === TrackerOf)
@@ -38,7 +49,7 @@ function makeProxyHandler(model, tracker) {
       return target;
     tracker[RecordDependency](createOrRetrievePropRef(target, name));
     let result = Reflect.get(target, name, receiver);
-    if (typeof result === "object" && !isTracked(result)) {
+    if (isTrackable(result)) {
       const original = result;
       const handler = makeProxyHandler(original, tracker);
       result = target[name] = new Proxy(original, handler);
@@ -46,10 +57,9 @@ function makeProxyHandler(model, tracker) {
     }
     if (typeof result === "function" && tracker.options.autoTransactionalize && name !== "constructor") {
       let proxyWrapped2 = function() {
-        const needsOriginalThis = target instanceof Promise;
         const autoTransaction = tracker.startTransaction(original.name ?? "auto");
         try {
-          return original.apply(needsOriginalThis ? target : receiver, arguments);
+          return original.apply(receiver, arguments);
         } finally {
           if (autoTransaction.operations.length > 0) {
             tracker.commit(autoTransaction);
@@ -81,7 +91,7 @@ function makeProxyHandler(model, tracker) {
   }
   let setsCompleted = 0;
   function setOrdinary(target, name, newValue, receiver) {
-    if (typeof newValue === "object" && !newValue[TrackerOf]) {
+    if (isTrackable(newValue)) {
       const handler = makeProxyHandler(newValue, tracker);
       newValue = new Proxy(newValue, handler);
     }
@@ -840,9 +850,20 @@ function choose(...choices) {
 }
 
 // out/promiseLoader.js
-function PromiseLoader(promise, spinner = document.createTextNode("")) {
+function defaultError(reason) {
+  return document.createTextNode(String(reason));
+}
+function PromiseLoader(promise, spinner = document.createTextNode(""), onError = defaultError) {
   const span = new ElementSpan(spinner);
   promise.then((result) => span.replaceWith(result));
+  promise.catch((reason) => span.replaceWith(typeof onError === "function" ? onError(reason) : onError));
+  return span.removeAsFragment();
+}
+
+// out/swapper.js
+function Swapper(nodeFactory) {
+  const span = new ElementSpan();
+  effect(() => span.replaceWith(nodeFactory()));
   return span.removeAsFragment();
 }
 
@@ -894,7 +915,7 @@ function Router(...routes) {
 }
 
 // out/index.js
-var version = "0.17.3";
+var version = "0.18.0";
 export {
   DependencyList,
   ForEach,
@@ -902,6 +923,7 @@ export {
   PromiseLoader,
   PropReference,
   Router,
+  Swapper,
   Tracker,
   child,
   choose,

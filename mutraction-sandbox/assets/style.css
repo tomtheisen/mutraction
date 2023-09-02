@@ -125,3 +125,12 @@ iframe {
     display: block;
 }
 
+.drop-list menu li a.err {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: 20em;
+    overflow: hidden;
+    display: inline-block;
+    cursor: not-allowed;
+    color: #bbb;    
+}

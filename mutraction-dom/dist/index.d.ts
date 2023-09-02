@@ -206,13 +206,21 @@ export declare function track<TModel extends object>(model: TModel): TModel;
  * @returns true if and only if the input is a proxy-wrapped object
  */
 export declare function isTracked(obj: object): boolean;
+type ErrorResult = Node | ((reason: any) => Node);
 /**
  * Generates a DOM node that's replaced with loading data whenever it's ready.
  * @param promise is a promise resolving to a node with the loading data.
  * @param spinner optional - is loading indicator to display until the loading is done.
  * @returns a DOM node which contains the spinner, and then the loaded data.
  */
-export declare function PromiseLoader(promise: Promise<Node>, spinner?: Node): DocumentFragment;
+export declare function PromiseLoader(promise: Promise<Node>, spinner?: Node, onError?: ErrorResult): DocumentFragment;
+/**
+ * Automatically replaces an entire DOM node when its dependencies change.
+ * Normally, only node contents and attributes are dynamically updated, but not DOM nodes themselves.
+ * @param nodeFactory produces a DOM node, and has a dependency on one or more tracked properties.
+ * @returns a DOM node that replaces itself when its dependencies change.
+ */
+export declare function Swapper(nodeFactory: () => Node): DocumentFragment;
 type EffectOptions = {
 	suppressUntrackedWarning?: boolean;
 	tracker?: Tracker;

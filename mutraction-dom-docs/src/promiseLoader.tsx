@@ -40,6 +40,13 @@ export function promiseLoader() {
                         If provided, this document node will be shown until the promise is resolved.
                     </p>
                 </li>
+                <li>
+                    <code>onError</code> - optional
+                    <p>
+                        This can be either a document node, or a function that produces a node given a promise failure reason.
+                        If provided, when the promise rejects, this will be used to display the result.
+                    </p>
+                </li>
             </ul>
 
             { codeSample(`

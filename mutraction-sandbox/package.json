@@ -7,7 +7,7 @@
   "scripts": {
     "build": "npx tsc && npm run transform && npm run bundle && npm run publish && npm run get-deps && npm run clean",
     "transform": "npx babel out -d out2",
-    "bundle": "npx esbuild out2/index.js --bundle --outfile=dist/index.bundle.js --format=esm --external:monaco-editor --minify",
+    "bundle": "npx esbuild out2/index.js --bundle --outfile=dist/index.bundle.js --format=esm --external:monaco-editor",
     "get-deps": "npm run get-mudom && npm run get-monaco",
     "get-mudom": "copy /y ..\\mutraction-dom\\dist\\index.js publish\\mutraction-dom.js",
     "get-monaco": "xcopy /s /y ..\\node_modules\\monaco-editor\\min\\ publish\\monaco\\",
@@ -21,7 +21,7 @@
     "@babel/standalone": "^7.22.10",
     "client-zip": "^2.4.4",
     "monaco-editor": "^0.41.0",
-    "mutraction-dom": "^0.17.4"
+    "mutraction-dom": "^0.18.0"
   },
   "devDependencies": {
     "@types/babel__standalone": "^7.1.4",

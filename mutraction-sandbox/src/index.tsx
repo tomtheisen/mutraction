@@ -1,5 +1,5 @@
 import { muLogo } from "./mulogo.js";
-import { effect, track, version } from "mutraction-dom";
+import { PromiseLoader, Swapper, effect, track, version } from "mutraction-dom";
 import { compress, decompress } from "./compress.js";
 import { defaultSource } from "./defaultSource.js";
 import type * as monacoType from "monaco-editor";
@@ -56,8 +56,8 @@ const frame = <iframe src="output.html"></iframe> as HTMLIFrameElement;
 function hamburger() {
     const hamburgerState = track({ 
         isActive: false, 
-        downloadScaffoldLink: "", 
-        downloadSelfContainedLink: "",
+        downloadScaffoldLink: Promise.resolve(""), 
+        downloadSelfContainedLink: Promise.resolve(""),
     });
     const containerStyle = {
         display: "inline-block",
@@ -80,10 +80,8 @@ function hamburger() {
             window.addEventListener("blur", () => hamburgerState.isActive = false, { once: true });
             const code = editor?.getValue();
             if (code) {
-                hamburgerState.downloadScaffoldLink = "";
-                hamburgerState.downloadSelfContainedLink = "";
-                getScaffoldZipUrl(code).then(link => hamburgerState.downloadScaffoldLink = link);
-                getSelfContainedUrl(code).then(link => hamburgerState.downloadSelfContainedLink = link);
+                hamburgerState.downloadScaffoldLink = getScaffoldZipUrl(code);
+                hamburgerState.downloadSelfContainedLink = getSelfContainedUrl(code);
             }
         }
         else {
@@ -99,18 +97,20 @@ function hamburger() {
             <div className="drop-list" hidden={ !hamburgerState.isActive }>
                 <menu>
                     <li>
-                        <a mu:if={ !!hamburgerState.downloadScaffoldLink }
-                            download="mutraction-project.zip" 
-                            href={ hamburgerState.downloadScaffoldLink }
-                            innerText="📦 Get .zip of this app" />
-                        <a mu:else>Compressing …</a>
+                        { Swapper(() => PromiseLoader(
+                            hamburgerState.downloadScaffoldLink.then(url =>
+                                <a download="mutraction-project.zip" href={ url }>📦 Get .zip of this app</a>),
+                            <a>Compressing …</a>,
+                            err => <a className="err">{ err }</a>
+                        )) }
                     </li>
                     <li>
-                        <a mu:if={ !!hamburgerState.downloadSelfContainedLink }
-                            download="app.html" 
-                            href={ hamburgerState.downloadSelfContainedLink }
-                            innerText="📄 Download as self-contained .html" />
-                        <a mu:else>Compressing …</a>
+                        { Swapper(() => PromiseLoader(
+                            hamburgerState.downloadSelfContainedLink.then(url =>
+                                <a download="app.html" href={ url }>📄 Download as self-contained .html</a>),
+                            <a>Compressing …</a>,
+                            err => <a className="err">{ err }</a>
+                        )) }
                     </li>
                     <li onclick={ () => editor?.setValue(defaultSource) }><a>✨ New</a></li>
                     <li onclick={ () => appState.view = "code" }>
@@ -166,6 +166,7 @@ export function run(code: string | undefined = editor?.getValue()) {
             color: "#ff9e9e",
             padding: "1em",
             position: "relative",
+            overflowX: "auto",            
         };
         const clearStyle: Partial<CSSStyleDeclaration> = {
             position: "absolute",
