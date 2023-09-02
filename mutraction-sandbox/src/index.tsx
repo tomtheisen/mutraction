@@ -80,6 +80,8 @@ function hamburger() {
             window.addEventListener("blur", () => hamburgerState.isActive = false, { once: true });
             const code = editor?.getValue();
             if (code) {
+                hamburgerState.downloadScaffoldLink = "";
+                hamburgerState.downloadSelfContainedLink = "";
                 getScaffoldZipUrl(code).then(link => hamburgerState.downloadScaffoldLink = link);
                 getSelfContainedUrl(code).then(link => hamburgerState.downloadSelfContainedLink = link);
             }
@@ -96,8 +98,20 @@ function hamburger() {
             </button>
             <div className="drop-list" hidden={ !hamburgerState.isActive }>
                 <menu>
-                    <li><a download="mutraction-project.zip" href={ hamburgerState.downloadScaffoldLink }>📦 Get .zip of this app</a></li>
-                    <li><a download="app.html" href={ hamburgerState.downloadSelfContainedLink }>📄 Download as self-contained .html</a></li>
+                    <li>
+                        <a mu:if={ !!hamburgerState.downloadScaffoldLink }
+                            download="mutraction-project.zip" 
+                            href={ hamburgerState.downloadScaffoldLink }
+                            innerText="📦 Get .zip of this app" />
+                        <a mu:else>Compressing …</a>
+                    </li>
+                    <li>
+                        <a mu:if={ !!hamburgerState.downloadSelfContainedLink }
+                            download="app.html" 
+                            href={ hamburgerState.downloadSelfContainedLink }
+                            innerText="📄 Download as self-contained .html" />
+                        <a mu:else>Compressing …</a>
+                    </li>
                     <li onclick={ () => editor?.setValue(defaultSource) }><a>✨ New</a></li>
                     <li onclick={ () => appState.view = "code" }>
                         <a>⟺ Fullscreen editor</a>

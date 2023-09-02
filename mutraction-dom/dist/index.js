@@ -46,9 +46,10 @@ function makeProxyHandler(model, tracker) {
     }
     if (typeof result === "function" && tracker.options.autoTransactionalize && name !== "constructor") {
       let proxyWrapped2 = function() {
+        const needsOriginalThis = target instanceof Promise;
         const autoTransaction = tracker.startTransaction(original.name ?? "auto");
         try {
-          return original.apply(receiver, arguments);
+          return original.apply(needsOriginalThis ? target : receiver, arguments);
         } finally {
           if (autoTransaction.operations.length > 0) {
             tracker.commit(autoTransaction);
