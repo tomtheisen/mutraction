@@ -103,7 +103,7 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
     // so if the number of completed sets changes between start and end of parent set, then don't record it
     let setsCompleted = 0;
     function setOrdinary(target: TModel, name: TKey, newValue: any, receiver: TModel) {
-        if (typeof newValue === 'object' && !newValue[TrackerOf]) {
+        if (isTrackable(newValue)) {
             const handler = makeProxyHandler(newValue, tracker);
             newValue = new Proxy(newValue, handler);
         }
