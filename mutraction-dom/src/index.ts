@@ -8,4 +8,4 @@ export { effect } from './effect.js';
 export { DependencyList } from './dependency.js'
 export { Router } from './router.js';
 
-export const version = "__VER__";
+export const version = "__VER__" as string;
