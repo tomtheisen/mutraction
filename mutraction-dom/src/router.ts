@@ -10,6 +10,13 @@ type Route = {
 }
 
 const fragmentMap: WeakMap<DocumentFragment, ElementSpan> = new WeakMap;
+
+/**
+ * A simple router that uses the #fragment part of the url.
+ * The pattern array is iterated for a match every time the `hashchange` event fires.
+ * @param routes is an array of pattern definitions
+ * @returns an in-place updating DOM node
+ */
 export function Router(...routes: Route[]): Node {
     if (routes.some(route => "pattern" in route && route.pattern instanceof RegExp && route.pattern.global))
         throw Error("Global-flagged route patterns not supported");

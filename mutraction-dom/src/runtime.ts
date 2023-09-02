@@ -10,6 +10,14 @@ function effectDefault(sideEffect: (dep: DependencyList) => (void | (() => void)
     effect(sideEffect, suppress);
 }
 
+/**
+ * Generates DOM nodes for an array of values.  The resulting nodes track the array indices.
+ * Re-ordering the array will cause affected nodes to be re-generated.
+ * @see ForEachPersist if you want DOM nodes to follow the array elements through order changes
+ * @param array is the input array
+ * @param map is the callback function to produce DOM nodes
+ * @returns a DOM node you can include in a document
+ */
 export function ForEach<TIn, TOut extends Node>(array: TIn[], map: (item: TIn, index: number, array: TIn[]) => TOut): Node {
     const result = new ElementSpan();
     const containers: ElementSpan[] = [];
@@ -39,6 +47,13 @@ export function ForEach<TIn, TOut extends Node>(array: TIn[], map: (item: TIn, i
     return result.removeAsFragment();
 }
 
+/**
+ * Generates DOM nes for an array of objects.  The resulting nodes track the array elements.
+ * Re-ordering the array will cause the generated nodes to re-ordered in parallel
+ * @param array is the input array of objects.  Primitive values can't be used.
+ * @param map is the callback function to produce DOM nodes
+ * @returns a DOM node you can include in a document
+ */
 export function ForEachPersist<TIn extends object>(array: TIn[], map: (e: TIn) => Node): Node {
     const result = new ElementSpan();
     const containers: ElementSpan[] = [];

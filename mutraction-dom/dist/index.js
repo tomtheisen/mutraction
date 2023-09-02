@@ -317,8 +317,11 @@ var Tracker = class {
     }
     this.options = Object.freeze(appliedOptions);
   }
-  // turn on change tracking
-  // returns a proxied model object, and tracker to control history
+  /**
+   * Turn on change tracking for an object.
+   * @param model
+   * @returns a proxied model object
+   */
   track(model) {
     if (isTracked(model))
       throw Error("Object already tracked");
@@ -331,6 +334,14 @@ var Tracker = class {
     model[ProxyOf] = proxied;
     return proxied;
   }
+  /**
+   * Turn on change tracking for an object.  This is behaviorally identical
+   * to `track()`.  It differs only in the typescript return type, which is a deep
+   * read-only type wrapper.  This might be useful if you want to enforce all mutations
+   * to be done through methods.
+   * @param model
+   * @returns a proxied model object
+   */
   trackAsReadonlyDeep(model) {
     return this.track(model);
   }
@@ -339,6 +350,8 @@ var Tracker = class {
       throw Error("History tracking disabled.");
     return this.#transaction;
   }
+  /** Retrieves the mutation history.  Active transactions aren't represented here.
+   */
   get history() {
     this.#ensureHistory();
     this.#dependencyTrackers[0]?.trackAllChanges();
@@ -347,7 +360,7 @@ var Tracker = class {
       throw Error("History tracking enabled, but no root transaction. Probably mutraction internal error.");
     return this.#rootTransaction.operations;
   }
-  /** add another transaction to the stack  */
+  /** Add another transaction to the stack  */
   startTransaction(name) {
     const transaction = this.#ensureHistory();
     this.#transaction = { type: "transaction", parent: transaction, operations: [] };
@@ -425,7 +438,7 @@ var Tracker = class {
       createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
     }
   }
-  /** repeat last undone mutation  */
+  /** Repeat last undone mutation  */
   redo() {
     const transaction = this.#ensureHistory();
     const mutation = this.#redos.shift();
@@ -464,11 +477,12 @@ var Tracker = class {
       createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
     }
   }
-  /** clear the redo stack */
-  // any direct mutation implicitly does this
+  /** Clear the redo stack. Any direct mutation implicitly does this.
+   */
   clearRedos() {
     this.#redos.length = 0;
   }
+  /** Commits all transactions, then empties the undo and redo history. */
   clearHistory() {
     const transaction = this.#ensureHistory();
     transaction.parent = void 0;
@@ -488,6 +502,7 @@ var Tracker = class {
     }
   }
   #dependencyTrackers = [];
+  /** Create a new `DependencyList` from this tracker  */
   startDependencyTrack() {
     const deps = new DependencyList(this);
     this.#dependencyTrackers.unshift(deps);

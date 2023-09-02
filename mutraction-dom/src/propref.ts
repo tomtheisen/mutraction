@@ -3,6 +3,10 @@ import { ProxyOf } from "./symbols.js";
 import { isTracked } from "./proxy.js";
 import { DependencyList } from "./dependency.js";
 
+/**
+ * Represents a particular named property on a particular object.
+ * Similar to a property descriptor.
+ */
 export class PropReference<T = any> {
     readonly object: any;
     readonly prop: Key;

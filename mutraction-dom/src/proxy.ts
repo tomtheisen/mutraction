@@ -171,6 +171,11 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
     return { get, set, deleteProperty };
 }
 
+/**
+ * checks whether the input is an object currently tracked by this instance of mutraction
+ * @param obj value to check
+ * @returns true if and only if the input is a proxy-wrapped object
+ */
 export function isTracked(obj: object) {
     return typeof obj === "object" && !!(obj as any)[TrackerOf];
 }
