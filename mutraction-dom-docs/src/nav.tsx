@@ -1,6 +1,6 @@
 export const nav = 
     <nav>
-        <ul style={{ position: "sticky", top: "1em", paddingLeft: "0" }}>
+        <ul>
             <li><a href="?">Introduction</a></li>
             <li><a href="#start">Getting Started</a></li>
             <li>
