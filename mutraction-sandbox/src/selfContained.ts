@@ -6,10 +6,11 @@ const selfContainedTemplate = decompress("7T39c9RGsr/zV4w3qbCGtQxc6uXKxvg4MHdUQU
 let lastUrl: string | undefined;
 export async function getSelfContainedUrl(appSource: string) {
     if (lastUrl) URL.revokeObjectURL(lastUrl);
-    
+
+    const commentSafeSource = appSource.replaceAll("-->", "-- >");
     const html = (await selfContainedTemplate)
         .replace("__MU_TEMPLATE_TRANSFORMED__", muCompile(appSource))
-        .replace("__MU_TEMPLATE_SOURCE__", appSource);
+        .replace("__MU_TEMPLATE_SOURCE__", commentSafeSource);
     const blob = new Blob([html]);
     lastUrl = URL.createObjectURL(blob);
     return lastUrl;
