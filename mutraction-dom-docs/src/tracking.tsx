@@ -80,7 +80,6 @@ export const tracking = (
             <li>Module Namespaces</li>
             <li>Immutable Prototype objects</li>
         </ol>
-
         <p>
             Strings don't pose a problem because they're immutable.  When you write <code>str += "abc"</code>,
             you're creating a new string.  The original string is unmodified.
@@ -89,6 +88,15 @@ export const tracking = (
         <p>
             Mutraction makes no effort to support the remainder of the exotic objects.
             Maybe some day it might.
+        </p>
+
+        <h2>Anything else?</h2>
+        <p>
+            <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise">Promises</a>.
+            They're not categorized as "exotic" objects, but they still don't work with the tracking proxy.
+            In particular, promise resolution explicitly checks that the <code>this</code> reference is not a proxy.
+            For mutraction, this is not a problem.  Mutraction treats promises as opaque values like primitives.
+            It's not generally desirable to track mutations on the internal representation of a promise.
         </p>
     </>
 );

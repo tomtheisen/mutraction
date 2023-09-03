@@ -27,3 +27,12 @@ export type ReadonlyDeep<T extends object> = {
 export type Subscription = {
     dispose(): void;
 }
+
+export function isNodeOptions(arg: unknown): arg is NodeOptions {
+    return arg != null && typeof arg === "object" && "node" in arg && arg.node instanceof Node;
+}
+
+export type NodeOptions = {
+    node: Node;
+    cleanup?: () => void;
+};

@@ -9,6 +9,14 @@ type EffectOptions = {
     tracker?: Tracker;
 }
 
+/**
+ * Runs a callback, and remembers the tracked properties accessed.
+ * Any time one of them changes, it runs the callback again.
+ * Each time it runs, the set of dependencies is re-calculated so branches and short-circuits are generally safe.
+ * @param sideEffect is the callback to invoke.
+ * @param options 
+ * @returns a subscription that can be disposed to turn the effect off.
+ */
 export function effect(sideEffect: (dep: DependencyList) => (void | (() => void)), options: EffectOptions = {}): Subscription {
     const { tracker = defaultTracker, suppressUntrackedWarning = false } = options;
     let dep = tracker.startDependencyTrack();

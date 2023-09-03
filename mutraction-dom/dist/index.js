@@ -30,6 +30,17 @@ function linkProxyToObject(obj, proxy) {
   });
   obj[ProxyOf] = proxy;
 }
+function isTrackable(val) {
+  if (val == null)
+    return false;
+  if (typeof val !== "object")
+    return false;
+  if (isTracked(val))
+    return false;
+  if (val instanceof Promise)
+    return false;
+  return true;
+}
 function makeProxyHandler(model, tracker) {
   function getOrdinary(target, name, receiver) {
     if (name === TrackerOf)
@@ -38,7 +49,7 @@ function makeProxyHandler(model, tracker) {
       return target;
     tracker[RecordDependency](createOrRetrievePropRef(target, name));
     let result = Reflect.get(target, name, receiver);
-    if (typeof result === "object" && !isTracked(result)) {
+    if (isTrackable(result)) {
       const original = result;
       const handler = makeProxyHandler(original, tracker);
       result = target[name] = new Proxy(original, handler);
@@ -80,7 +91,7 @@ function makeProxyHandler(model, tracker) {
   }
   let setsCompleted = 0;
   function setOrdinary(target, name, newValue, receiver) {
-    if (typeof newValue === "object" && !newValue[TrackerOf]) {
+    if (isTrackable(newValue)) {
       const handler = makeProxyHandler(newValue, tracker);
       newValue = new Proxy(newValue, handler);
     }
@@ -317,8 +328,11 @@ var Tracker = class {
     }
     this.options = Object.freeze(appliedOptions);
   }
-  // turn on change tracking
-  // returns a proxied model object, and tracker to control history
+  /**
+   * Turn on change tracking for an object.
+   * @param model
+   * @returns a proxied model object
+   */
   track(model) {
     if (isTracked(model))
       throw Error("Object already tracked");
@@ -331,6 +345,14 @@ var Tracker = class {
     model[ProxyOf] = proxied;
     return proxied;
   }
+  /**
+   * Turn on change tracking for an object.  This is behaviorally identical
+   * to `track()`.  It differs only in the typescript return type, which is a deep
+   * read-only type wrapper.  This might be useful if you want to enforce all mutations
+   * to be done through methods.
+   * @param model
+   * @returns a proxied model object
+   */
   trackAsReadonlyDeep(model) {
     return this.track(model);
   }
@@ -339,6 +361,8 @@ var Tracker = class {
       throw Error("History tracking disabled.");
     return this.#transaction;
   }
+  /** Retrieves the mutation history.  Active transactions aren't represented here.
+   */
   get history() {
     this.#ensureHistory();
     this.#dependencyTrackers[0]?.trackAllChanges();
@@ -347,7 +371,7 @@ var Tracker = class {
       throw Error("History tracking enabled, but no root transaction. Probably mutraction internal error.");
     return this.#rootTransaction.operations;
   }
-  /** add another transaction to the stack  */
+  /** Add another transaction to the stack  */
   startTransaction(name) {
     const transaction = this.#ensureHistory();
     this.#transaction = { type: "transaction", parent: transaction, operations: [] };
@@ -425,7 +449,7 @@ var Tracker = class {
       createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
     }
   }
-  /** repeat last undone mutation  */
+  /** Repeat last undone mutation  */
   redo() {
     const transaction = this.#ensureHistory();
     const mutation = this.#redos.shift();
@@ -464,11 +488,12 @@ var Tracker = class {
       createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
     }
   }
-  /** clear the redo stack */
-  // any direct mutation implicitly does this
+  /** Clear the redo stack. Any direct mutation implicitly does this.
+   */
   clearRedos() {
     this.#redos.length = 0;
   }
+  /** Commits all transactions, then empties the undo and redo history. */
   clearHistory() {
     const transaction = this.#ensureHistory();
     transaction.parent = void 0;
@@ -488,6 +513,7 @@ var Tracker = class {
     }
   }
   #dependencyTrackers = [];
+  /** Create a new `DependencyList` from this tracker  */
   startDependencyTrack() {
     const deps = new DependencyList(this);
     this.#dependencyTrackers.unshift(deps);
@@ -585,131 +611,10 @@ function getMarker(mark) {
   return document.createTextNode(showMarkers ? `\u27EA${mark}\u27EB` : "");
 }
 
-// out/elementSpan.js
-var ElementSpan = class _ElementSpan {
-  static id = 0;
-  startMarker = getMarker("start:" + ++_ElementSpan.id);
-  endMarker = getMarker("end:" + _ElementSpan.id);
-  constructor(...node) {
-    const frag = document.createDocumentFragment();
-    frag.append(this.startMarker, ...node, this.endMarker);
-  }
-  /** extracts the entire span as a fragment */
-  removeAsFragment() {
-    if (this.startMarker.parentNode instanceof DocumentFragment) {
-      return this.startMarker.parentNode;
-    }
-    const nodes = [];
-    for (let walk = this.startMarker; ; walk = walk?.nextSibling) {
-      if (walk == null)
-        throw Error("End marker not found as subsequent document sibling as start marker");
-      nodes.push(walk);
-      if (Object.is(walk, this.endMarker))
-        break;
-    }
-    const result = document.createDocumentFragment();
-    result.append(...nodes);
-    return result;
-  }
-  /** extracts the interior of the span into a fragment, leaving the span container empty */
-  emptyAsFragment() {
-    const nodes = [];
-    for (let walk = this.startMarker.nextSibling; ; walk = walk?.nextSibling) {
-      if (walk == null)
-        throw Error("End marker not found as subsequent document sibling as start marker");
-      if (Object.is(walk, this.endMarker))
-        break;
-      nodes.push(walk);
-    }
-    const result = document.createDocumentFragment();
-    result.append(...nodes);
-    return result;
-  }
-  /** removes the interior contents of the span */
-  clear() {
-    while (!Object.is(this.startMarker.nextSibling, this.endMarker)) {
-      if (this.startMarker.nextSibling == null)
-        throw Error("End marker not found as subsequent document sibling as start marker");
-      this.startMarker.nextSibling.remove();
-    }
-  }
-  /** replaces the interior contents of the span */
-  replaceWith(...nodes) {
-    this.clear();
-    this.append(...nodes);
-  }
-  append(...nodes) {
-    const frag = document.createDocumentFragment();
-    frag.append(...nodes);
-    if (!this.endMarker.parentNode)
-      throw Error("End marker of ElementSpan has no parent");
-    this.endMarker.parentNode.insertBefore(frag, this.endMarker);
-  }
-};
-
 // out/runtime.js
 var suppress = { suppressUntrackedWarning: true };
 function effectDefault(sideEffect) {
   effect(sideEffect, suppress);
-}
-function ForEach(array, map) {
-  const result = new ElementSpan();
-  const containers = [];
-  effectDefault((lengthDep) => {
-    for (let i = containers.length; i < array.length; i++) {
-      const container = new ElementSpan();
-      containers.push(container);
-      effectDefault((itemDep) => {
-        const item = array[i];
-        const newNode = item !== void 0 ? map(item, i, array) : getMarker("ForEach undefined placeholder");
-        container.replaceWith(newNode);
-      });
-      result.append(container.removeAsFragment());
-    }
-    while (containers.length > array.length) {
-      containers.pop().removeAsFragment();
-    }
-  });
-  return result.removeAsFragment();
-}
-function ForEachPersist(array, map) {
-  const result = new ElementSpan();
-  const containers = [];
-  const outputMap = /* @__PURE__ */ new WeakMap();
-  effectDefault(() => {
-    for (let i = containers.length; i < array.length; i++) {
-      const container = new ElementSpan();
-      containers.push(container);
-      effectDefault((dep) => {
-        container.emptyAsFragment();
-        const item = array[i];
-        if (item == null)
-          return;
-        if (typeof item !== "object")
-          throw Error("Elements must be object in ForEachPersist");
-        let newContents = outputMap.get(item);
-        if (newContents == null) {
-          if (dep)
-            dep.active = false;
-          let newNode = map(item);
-          newContents = newNode instanceof HTMLElement ? newNode : new ElementSpan(newNode);
-          outputMap.set(item, newContents);
-          if (dep)
-            dep.active = true;
-        }
-        if (newContents instanceof HTMLElement) {
-          container.replaceWith(newContents);
-        } else {
-          container.replaceWith(newContents.removeAsFragment());
-        }
-      });
-      result.append(container.removeAsFragment());
-    }
-    while (containers.length > array.length) {
-      containers.pop().removeAsFragment();
-    }
-  });
-  return result.removeAsFragment();
 }
 function element(name, staticAttrs, dynamicAttrs, ...children) {
   const el = document.createElement(name);
@@ -776,6 +681,144 @@ function child(getter) {
   return node;
 }
 
+// out/elementSpan.js
+var ElementSpan = class _ElementSpan {
+  static id = 0;
+  startMarker = getMarker("start:" + ++_ElementSpan.id);
+  endMarker = getMarker("end:" + _ElementSpan.id);
+  constructor(...node) {
+    const frag = document.createDocumentFragment();
+    frag.append(this.startMarker, ...node, this.endMarker);
+  }
+  /** extracts the entire span as a fragment */
+  removeAsFragment() {
+    if (this.startMarker.parentNode instanceof DocumentFragment) {
+      return this.startMarker.parentNode;
+    }
+    const nodes = [];
+    for (let walk = this.startMarker; ; walk = walk?.nextSibling) {
+      if (walk == null)
+        throw Error("End marker not found as subsequent document sibling as start marker");
+      nodes.push(walk);
+      if (Object.is(walk, this.endMarker))
+        break;
+    }
+    const result = document.createDocumentFragment();
+    result.append(...nodes);
+    return result;
+  }
+  /** extracts the interior of the span into a fragment, leaving the span container empty */
+  emptyAsFragment() {
+    const nodes = [];
+    for (let walk = this.startMarker.nextSibling; ; walk = walk?.nextSibling) {
+      if (walk == null)
+        throw Error("End marker not found as subsequent document sibling as start marker");
+      if (Object.is(walk, this.endMarker))
+        break;
+      nodes.push(walk);
+    }
+    const result = document.createDocumentFragment();
+    result.append(...nodes);
+    return result;
+  }
+  /** removes the interior contents of the span */
+  clear() {
+    while (!Object.is(this.startMarker.nextSibling, this.endMarker)) {
+      if (this.startMarker.nextSibling == null)
+        throw Error("End marker not found as subsequent document sibling as start marker");
+      this.startMarker.nextSibling.remove();
+    }
+  }
+  /** replaces the interior contents of the span */
+  replaceWith(...nodes) {
+    this.clear();
+    this.append(...nodes);
+  }
+  append(...nodes) {
+    const frag = document.createDocumentFragment();
+    frag.append(...nodes);
+    if (!this.endMarker.parentNode)
+      throw Error("End marker of ElementSpan has no parent");
+    this.endMarker.parentNode.insertBefore(frag, this.endMarker);
+  }
+};
+
+// out/types.js
+function isNodeOptions(arg) {
+  return arg != null && typeof arg === "object" && "node" in arg && arg.node instanceof Node;
+}
+
+// out/foreach.js
+var suppress2 = { suppressUntrackedWarning: true };
+function ForEach(array, map) {
+  const result = new ElementSpan();
+  const outputs = [];
+  effect((lengthDep) => {
+    for (let i = outputs.length; i < array.length; i++) {
+      const output = { container: new ElementSpan() };
+      outputs.push(output);
+      effect((itemDep) => {
+        output.cleanup?.();
+        const item = array[i];
+        const projection = item !== void 0 ? map(item, i, array) : getMarker("ForEach undefined placeholder");
+        if (isNodeOptions(projection)) {
+          output.container.replaceWith(projection.node);
+          output.cleanup = projection.cleanup;
+        } else {
+          output.container.replaceWith(projection);
+          output.cleanup = void 0;
+        }
+      }, suppress2);
+      result.append(output.container.removeAsFragment());
+    }
+    while (outputs.length > array.length) {
+      const { cleanup, container } = outputs.pop();
+      cleanup?.();
+      container.removeAsFragment();
+    }
+  }, suppress2);
+  return result.removeAsFragment();
+}
+function ForEachPersist(array, map) {
+  const result = new ElementSpan();
+  const containers = [];
+  const outputMap = /* @__PURE__ */ new WeakMap();
+  effect(() => {
+    for (let i = containers.length; i < array.length; i++) {
+      const container = new ElementSpan();
+      containers.push(container);
+      effect((dep) => {
+        container.emptyAsFragment();
+        const item = array[i];
+        if (item == null)
+          return;
+        if (typeof item !== "object")
+          throw Error("Elements must be object in ForEachPersist");
+        let newContents = outputMap.get(item);
+        if (newContents == null) {
+          if (dep)
+            dep.active = false;
+          let newNode = map(item);
+          newContents = newNode instanceof HTMLElement ? newNode : new ElementSpan(newNode);
+          outputMap.set(item, newContents);
+          if (dep)
+            dep.active = true;
+        }
+        if (newContents instanceof HTMLElement) {
+          container.replaceWith(newContents);
+        } else {
+          container.replaceWith(newContents.removeAsFragment());
+        }
+      }, suppress2);
+      result.append(container.removeAsFragment());
+    }
+    while (containers.length > array.length) {
+      containers.pop().removeAsFragment();
+    }
+  }, suppress2);
+  return result.removeAsFragment();
+}
+
 // out/memoize.js
 function memoize(getter) {
   let isResolved = false;
@@ -787,7 +830,7 @@ function memoize(getter) {
 }
 
 // out/choose.js
-var suppress2 = { suppressUntrackedWarning: true };
+var suppress3 = { suppressUntrackedWarning: true };
 function choose(...choices) {
   const lazyChoices = [];
   let foundUnconditional = false;
@@ -819,14 +862,45 @@ function choose(...choices) {
         break;
       }
     }
-  }, suppress2);
+  }, suppress3);
   return current;
 }
 
 // out/promiseLoader.js
-function PromiseLoader(promise, spinner = document.createTextNode("")) {
+function defaultError(reason) {
+  return document.createTextNode(String(reason));
+}
+function PromiseLoader(promise, spinner = document.createTextNode(""), onError = defaultError) {
   const span = new ElementSpan(spinner);
   promise.then((result) => span.replaceWith(result));
+  promise.catch((reason) => span.replaceWith(typeof onError === "function" ? onError(reason) : onError));
+  return span.removeAsFragment();
+}
+
+// out/errorBoundary.js
+function ErrorBoundary(nodeFactory, showErr) {
+  try {
+    return nodeFactory();
+  } catch (ex) {
+    return showErr(ex);
+  }
+}
+
+// out/swapper.js
+function Swapper(nodeFactory) {
+  const span = new ElementSpan();
+  let cleanup;
+  effect(() => {
+    cleanup?.();
+    const output = nodeFactory();
+    if (isNodeOptions(output)) {
+      span.replaceWith(output.node);
+      cleanup = output.cleanup;
+    } else {
+      span.replaceWith(output);
+      cleanup = void 0;
+    }
+  });
   return span.removeAsFragment();
 }
 
@@ -878,14 +952,16 @@ function Router(...routes) {
 }
 
 // out/index.js
-var version = "0.17.3";
+var version = "0.18.0";
 export {
   DependencyList,
+  ErrorBoundary,
   ForEach,
   ForEachPersist,
   PromiseLoader,
   PropReference,
   Router,
+  Swapper,
   Tracker,
   child,
   choose,

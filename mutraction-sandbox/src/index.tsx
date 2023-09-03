@@ -1,5 +1,5 @@
 import { muLogo } from "./mulogo.js";
-import { effect, track, version } from "mutraction-dom";
+import { PromiseLoader, Swapper, effect, track, version } from "mutraction-dom";
 import { compress, decompress } from "./compress.js";
 import { defaultSource } from "./defaultSource.js";
 import type * as monacoType from "monaco-editor";
@@ -56,8 +56,8 @@ const frame = <iframe src="output.html"></iframe> as HTMLIFrameElement;
 function hamburger() {
     const hamburgerState = track({ 
         isActive: false, 
-        downloadScaffoldLink: "", 
-        downloadSelfContainedLink: "",
+        downloadScaffoldLink: Promise.resolve(""), 
+        downloadSelfContainedLink: Promise.resolve(""),
     });
     const containerStyle = {
         display: "inline-block",
@@ -80,8 +80,8 @@ function hamburger() {
             window.addEventListener("blur", () => hamburgerState.isActive = false, { once: true });
             const code = editor?.getValue();
             if (code) {
-                getScaffoldZipUrl(code).then(link => hamburgerState.downloadScaffoldLink = link);
-                getSelfContainedUrl(code).then(link => hamburgerState.downloadSelfContainedLink = link);
+                hamburgerState.downloadScaffoldLink = getScaffoldZipUrl(code);
+                hamburgerState.downloadSelfContainedLink = getSelfContainedUrl(code);
             }
         }
         else {
@@ -96,8 +96,22 @@ function hamburger() {
             </button>
             <div className="drop-list" hidden={ !hamburgerState.isActive }>
                 <menu>
-                    <li><a download="mutraction-project.zip" href={ hamburgerState.downloadScaffoldLink }>📦 Get .zip of this app</a></li>
-                    <li><a download="app.html" href={ hamburgerState.downloadSelfContainedLink }>📄 Download as self-contained .html</a></li>
+                    <li>
+                        { Swapper(() => PromiseLoader(
+                            hamburgerState.downloadScaffoldLink.then(url =>
+                                <a download="mutraction-project.zip" href={ url }>📦 Get .zip of this app</a>),
+                            <a>Compressing …</a>,
+                            err => <a className="err">{ err }</a>
+                        )) }
+                    </li>
+                    <li>
+                        { Swapper(() => PromiseLoader(
+                            hamburgerState.downloadSelfContainedLink.then(url =>
+                                <a download="app.html" href={ url }>📄 Download as self-contained .html</a>),
+                            <a>Compressing …</a>,
+                            err => <a className="err">{ err }</a>
+                        )) }
+                    </li>
                     <li onclick={ () => editor?.setValue(defaultSource) }><a>✨ New</a></li>
                     <li onclick={ () => appState.view = "code" }>
                         <a>⟺ Fullscreen editor</a>
@@ -152,6 +166,7 @@ export function run(code: string | undefined = editor?.getValue()) {
             color: "#ff9e9e",
             padding: "1em",
             position: "relative",
+            overflowX: "auto",            
         };
         const clearStyle: Partial<CSSStyleDeclaration> = {
             position: "absolute",
@@ -178,7 +193,7 @@ window.addEventListener("keydown", ev => {
     if (ev.key === "Enter" && ev.ctrlKey) {
         run();
     }
-    else if (ev.key === "s" && ev.ctrlKey) {
+    else if ((ev.key === "s" || ev.key ==="S") && ev.ctrlKey && !ev.shiftKey) {
         ev.preventDefault();
         save();
     }

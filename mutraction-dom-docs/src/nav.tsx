@@ -1,6 +1,6 @@
 export const nav = 
     <nav>
-        <ul style={{ position: "sticky", top: "1em", paddingLeft: "0" }}>
+        <ul>
             <li><a href="?">Introduction</a></li>
             <li><a href="#start">Getting Started</a></li>
             <li>
@@ -21,13 +21,15 @@ export const nav =
                 <details open={true}>
                     <summary><a>Reference</a></summary>
                     <ul>
+                        <li><a href="#ref/track">track()</a></li>
+                        <li><a href="#ref/effect">effect()</a></li>
                         <li><a href="#ref/ifelse">mu:if / mu:else</a></li>
                         <li><a href="#ref/syncEvent">mu:syncEvent</a></li>
                         <li><a href="#ref/ForEach">ForEach()</a></li>
                         <li><a href="#ref/ForEachPersist">ForEachPersist()</a></li>
                         <li><a href="#ref/PromiseLoader">PromiseLoader()</a></li>
-                        <li><a href="#ref/track">track()</a></li>
-                        <li><a href="#ref/effect">effect()</a></li>
+                        <li><a href="#ref/Swapper">Swapper()</a></li>
+                        <li><a href="#ref/ErrorBoundary">ErrorBoundary()</a></li>
                         <li><a href="#ref/Router">Router()</a></li>
                         <li><a href="#ref/Tracker">Tracker</a></li>
                     </ul>
@@ -52,10 +54,13 @@ export const nav =
         </ul>
     </nav> as HTMLElement;
 
-window.addEventListener("hashchange", ev => {
+function updateActiveLink() {
     nav.querySelectorAll("a").forEach(el => {
         if (el instanceof HTMLAnchorElement) {
             el.classList.toggle("active", el.getAttribute("href") === location.hash);
         }
     });
-});
+}
+
+updateActiveLink();
+window.addEventListener("hashchange", updateActiveLink);

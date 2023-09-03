@@ -23,6 +23,6 @@
   },
   "dependencies": {
     "js-tokens": "^8.0.1",
-    "mutraction-dom": "^0.17.3"
+    "mutraction-dom": "^0.18.0"
   }
 }

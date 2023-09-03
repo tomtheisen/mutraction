@@ -2,6 +2,13 @@ import { PropReference, createOrRetrievePropRef } from "./propref.js";
 import { Tracker } from "./tracker.js";
 import { Subscription } from "./types.js";
 
+/**
+ * Accumulates a list of properties that are read from.  
+ * Normally you wouldn't use this directly from application.
+ * Mostly, it's an implementation detail of effect(), but there might be a few uses here and there.
+ * @see PropReference
+ * @see effect
+ */
 export class DependencyList {
     #trackedProperties = new Map<PropReference, Subscription>;
     #tracker: Tracker;

@@ -1,6 +1,5 @@
 import { effect } from "./effect.js"
 import { getMarker } from './getMarker.js';
-import { ElementSpan } from './elementSpan.js';
 import { defaultTracker } from "./tracker.js";
 import { DependencyList } from "./dependency.js";
 import { PropReference } from "./propref.js";
@@ -8,83 +7,6 @@ import { PropReference } from "./propref.js";
 const suppress = { suppressUntrackedWarning: true };
 function effectDefault(sideEffect: (dep: DependencyList) => (void | (() => void))) {
     effect(sideEffect, suppress);
-}
-
-export function ForEach<TIn, TOut extends Node>(array: TIn[], map: (item: TIn, index: number, array: TIn[]) => TOut): Node {
-    const result = new ElementSpan();
-    const containers: ElementSpan[] = [];
-
-    effectDefault(lengthDep => {
-        // i is scoped to each loop body invocation
-        for (let i = containers.length; i < array.length; i++) {
-            const container = new ElementSpan();
-            containers.push(container);
-
-            effectDefault(itemDep => {
-                const item = array[i];
-                // in operations like .splice() elements are removed prior to updating length
-                // so this code needs to be null-tolerant even though the type system says otherwise.
-                const newNode = item !== undefined ? map(item, i, array) : getMarker("ForEach undefined placeholder");
-                container.replaceWith(newNode);
-            });
-
-            result.append(container.removeAsFragment());
-        }
-
-        while (containers.length > array.length) {
-            containers.pop()!.removeAsFragment();
-        }
-    });
-
-    return result.removeAsFragment();
-}
-
-export function ForEachPersist<TIn extends object>(array: TIn[], map: (e: TIn) => Node): Node {
-    const result = new ElementSpan();
-    const containers: ElementSpan[] = [];
-    const outputMap = new WeakMap<TIn, HTMLElement | ElementSpan>;
-
-    effectDefault(() => {
-        // i is scoped to each loop body invocation
-        for (let i = containers.length; i < array.length; i++) {
-            const container = new ElementSpan();
-            containers.push(container);
-
-            effectDefault((dep) => {
-                // this is wild - just keep the contents together with a parent somewhere
-                container.emptyAsFragment();
-
-                const item = array[i];
-                if (item == null) return; // probably an array key deletion
-
-                if (typeof item !== "object") throw Error("Elements must be object in ForEachPersist");
-                
-                let newContents = outputMap.get(item);
-                if (newContents == null) {
-                    if (dep) dep.active = false;
-                    let newNode = map(item);
-                    newContents = newNode instanceof HTMLElement ? newNode : new ElementSpan(newNode);
-                    outputMap.set(item, newContents);
-                    if (dep) dep.active = true;
-                }
-
-                if (newContents instanceof HTMLElement) {
-                    container.replaceWith(newContents);
-                }
-                else {
-                    container.replaceWith(newContents.removeAsFragment());
-                }
-            });
-
-            result.append(container.removeAsFragment());
-        }
-
-        while (containers.length > array.length) {
-            containers.pop()!.removeAsFragment();
-        }
-    });
-
-    return result.removeAsFragment();
 }
 
 type ElementStringProps<E extends keyof HTMLElementTagNameMap> = {

@@ -16,6 +16,8 @@ import { syncEvent } from "./syncEvent.js";
 import { forEach } from "./forEach.js";
 import { forEachPersist } from "./forEachPersist.js";
 import { promiseLoader } from "./promiseLoader.js";
+import { swapper } from "./swapper.js";
+import { errorBoundary } from "./errorBoundary.js";
 import { trackDoc } from "./trackDoc.js";
 import { effectDoc } from "./effectDoc.js";
 import { routerDoc } from "./routerDoc.js";
@@ -47,6 +49,8 @@ export const routes = Router(
     { pattern: '#ref/ForEach', element: forEach },
     { pattern: '#ref/ForEachPersist', element: forEachPersist },
     { pattern: '#ref/PromiseLoader', element: promiseLoader },
+    { pattern: '#ref/Swapper', element: swapper },
+    { pattern: '#ref/ErrorBoundary', element: errorBoundary },
     { pattern: '#ref/track', element: trackDoc },
     { pattern: '#ref/effect', element: effectDoc },
     { pattern: '#ref/Router', element: routerDoc },

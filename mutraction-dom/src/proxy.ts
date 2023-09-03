@@ -32,6 +32,18 @@ function linkProxyToObject(obj: any, proxy: any) {
     obj[ProxyOf] = proxy;
 }
 
+function isTrackable(val: unknown): val is object {
+    if (val == null) return false;
+    if (typeof val !== "object") return false;
+    if (isTracked(val)) return false;
+
+    // Promise resolution does not tolerate being proxied.
+    // So we just skip the whole thing.
+    if (val instanceof Promise) return false;
+
+    return true;
+}
+
 export function makeProxyHandler<TModel extends object>(model: TModel, tracker: Tracker) : ProxyHandler<TModel> {
     type TKey = (keyof TModel) & Key;
     
@@ -41,11 +53,11 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
 
         tracker[RecordDependency](createOrRetrievePropRef(target, name));
 
-        let result = Reflect.get(target, name, receiver) as any;
-        if (typeof result === 'object' && !isTracked(result)) {
+        let result = Reflect.get(target, name, receiver) as TModel[TKey];
+        if (isTrackable(result)) {
             const original = result;
             const handler = makeProxyHandler(original, tracker);
-            result = target[name] = new Proxy(original, handler);
+            result = target[name] = new Proxy(original, handler) as typeof target[TKey];
             linkProxyToObject(original, result);
         }
         if (typeof result === 'function' && tracker.options.autoTransactionalize && name !== "constructor") {
@@ -91,7 +103,7 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
     // so if the number of completed sets changes between start and end of parent set, then don't record it
     let setsCompleted = 0;
     function setOrdinary(target: TModel, name: TKey, newValue: any, receiver: TModel) {
-        if (typeof newValue === 'object' && !newValue[TrackerOf]) {
+        if (isTrackable(newValue)) {
             const handler = makeProxyHandler(newValue, tracker);
             newValue = new Proxy(newValue, handler);
         }
@@ -171,6 +183,11 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
     return { get, set, deleteProperty };
 }
 
+/**
+ * checks whether the input is an object currently tracked by this instance of mutraction
+ * @param obj value to check
+ * @returns true if and only if the input is a proxy-wrapped object
+ */
 export function isTracked(obj: object) {
     return typeof obj === "object" && !!(obj as any)[TrackerOf];
 }

@@ -13,6 +13,10 @@ const defaultTrackerOptions = {
 
 export type TrackerOptions = Partial<typeof defaultTrackerOptions>;
 
+/**
+ * Oversees object mutations and allows history manipulation.
+ * @see track
+ */
 export class Tracker {
     #transaction?: Transaction;
     #rootTransaction?: Transaction;
@@ -45,8 +49,11 @@ export class Tracker {
         this.options = Object.freeze(appliedOptions);
     }
 
-    // turn on change tracking
-    // returns a proxied model object, and tracker to control history
+    /**
+     * Turn on change tracking for an object.
+     * @param model 
+     * @returns a proxied model object 
+     */
     track<TModel extends object>(model: TModel): TModel {
         if (isTracked(model)) throw Error('Object already tracked');
         const proxied = new Proxy(model, makeProxyHandler(model, this));
@@ -61,6 +68,14 @@ export class Tracker {
         return proxied;
     }
 
+    /**
+     * Turn on change tracking for an object.  This is behaviorally identical
+     * to `track()`.  It differs only in the typescript return type, which is a deep
+     * read-only type wrapper.  This might be useful if you want to enforce all mutations
+     * to be done through methods.
+     * @param model 
+     * @returns a proxied model object 
+     */    
     trackAsReadonlyDeep<TModel extends object>(model: TModel): ReadonlyDeep<TModel> {
         return this.track(model);
     }
@@ -70,6 +85,8 @@ export class Tracker {
         return this.#transaction;
     }
 
+    /** Retrieves the mutation history.  Active transactions aren't represented here.
+     */
     get history(): ReadonlyArray<Readonly<Mutation>> {
         this.#ensureHistory();
 
@@ -85,7 +102,7 @@ export class Tracker {
         return this.#rootTransaction.operations; 
     }
 
-    /** add another transaction to the stack  */
+    /** Add another transaction to the stack  */
     startTransaction(name?: string): Transaction {
         const transaction = this.#ensureHistory();
         this.#transaction = { type: "transaction", parent: transaction, operations: [] };
@@ -163,7 +180,7 @@ export class Tracker {
         }
     }
 
-    /** repeat last undone mutation  */
+    /** Repeat last undone mutation  */
     redo() {
         const transaction = this.#ensureHistory();
         const mutation = this.#redos.shift();
@@ -195,12 +212,13 @@ export class Tracker {
         }
     }
 
-    /** clear the redo stack */
-    // any direct mutation implicitly does this
+    /** Clear the redo stack. Any direct mutation implicitly does this.
+     */
     clearRedos() {
         this.#redos.length = 0;
     }
     
+    /** Commits all transactions, then empties the undo and redo history. */
     clearHistory() {
         const transaction = this.#ensureHistory();
         transaction.parent = undefined;
@@ -229,6 +247,7 @@ export class Tracker {
 
     #dependencyTrackers: DependencyList[] = [];
 
+    /** Create a new `DependencyList` from this tracker  */
     startDependencyTrack(): DependencyList {
         const deps = new DependencyList(this);
         this.#dependencyTrackers.unshift(deps);
@@ -287,8 +306,18 @@ export class Tracker {
     }
 }
 
+/** This is the default `Tracker` instance, and the one used for all JSX node updates
+ * @see Tracker
+ */
 export const defaultTracker: Tracker = new Tracker;
 
+/**
+ * This is the main entry point of mutraction.  This returns a tracked proxy wrapping
+ * the provided input object.  Always uses the default `Tracker`.
+ * @see Tracker
+ * @param model is a model object.  Primitive values cannot be tracked, since they cannot be mutated. 
+ * @returns a proxy-wrapped representation of the model object
+ */
 export function track<TModel extends object>(model: TModel): TModel {
     return defaultTracker.track(model);
 }
