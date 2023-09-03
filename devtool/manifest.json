@@ -9,7 +9,7 @@
   "content_scripts": [
     {
       "matches": [
-        "*://*.mozilla.org/*"
+        "<all_urls>"
       ],
       "js": [
         "content_script.js"
@@ -31,7 +31,8 @@
     "default_title": "mutraction-devtool"
   },
   "background": {
-    "scripts": ["background_scripts/background.js"]
+    "scripts": ["background_scripts/background.js"],
+    "persistent": false
   },
   
   "permissions": [
