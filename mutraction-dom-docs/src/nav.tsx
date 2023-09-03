@@ -54,10 +54,13 @@ export const nav =
         </ul>
     </nav> as HTMLElement;
 
-window.addEventListener("hashchange", ev => {
+function updateActiveLink() {
     nav.querySelectorAll("a").forEach(el => {
         if (el instanceof HTMLAnchorElement) {
             el.classList.toggle("active", el.getAttribute("href") === location.hash);
         }
     });
-});
+}
+
+updateActiveLink();
+window.addEventListener("hashchange", updateActiveLink);
