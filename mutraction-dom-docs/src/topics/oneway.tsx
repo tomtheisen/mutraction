@@ -1,5 +1,5 @@
 import { track } from "mutraction-dom";
-import { codeSample } from "./codesample.js";
+import { codeSample } from "../codesample.js";
 
 export function oneWay() {
     const model = track({ clicks: 0 });

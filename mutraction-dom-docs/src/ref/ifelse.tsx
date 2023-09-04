@@ -1,5 +1,5 @@
 import { track } from "mutraction-dom";
-import { codeSample } from "../codesample.jsx";
+import { codeSample } from "../codesample.js";
 
 function ex1() {
     const model = track({ checked: true });

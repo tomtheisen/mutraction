@@ -47,7 +47,6 @@ export const nav =
                         <li><a href="#recipes/lazy">Lazy loading</a></li>
                         <li><a href="#recipes/array">Arrays</a></li>
                         <li><a href="#recipes/html">Raw HTML</a></li>
-                        <li><a href="#recipes/scopedStyle">Scoped styles</a></li>
                     </ul>
                 </details>
             </li>

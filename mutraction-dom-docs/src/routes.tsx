@@ -23,7 +23,7 @@ import { trackDoc } from "./ref/trackDoc.js";
 import { effectDoc } from "./ref/effectDoc.js";
 import { routerDoc } from "./ref/routerDoc.js";
 import { trackerDoc } from "./ref/trackerDoc.js";
-import { makeLocalStylesheet } from "./ref/makeLocalStylesheet.js";
+import { makeLocalStyleDoc } from "./ref/makeLocalStyleDoc.js";
 
 import { mounting } from "./recipes/mounting.js";
 import { radio } from "./recipes/radio.js";
@@ -31,7 +31,6 @@ import { spinner } from "./recipes/spinner.js";
 import { lazy } from "./recipes/lazy.js";
 import { array } from "./recipes/array.js";
 import { html } from "./recipes/html.js";
-import { scopedStyle } from "./recipes/scopedStyle.js";
 
 import { examples } from "./examples.js";
 import { faq } from "./faq.js";
@@ -62,7 +61,7 @@ export const routes = Router(
     { pattern: '#ref/Router', element: routerDoc },
     { pattern: '#ref/Tracker', element: trackerDoc },
     { pattern: '#ref/apply', element: apply },
-    { pattern: '#ref/makeLocalStylesheet', element: makeLocalStylesheet },
+    { pattern: '#ref/makeLocalStylesheet', element: makeLocalStyleDoc },
 
     { pattern: '#recipes/mounting', element: mounting },
     { pattern: '#recipes/radio', element: radio },
@@ -70,7 +69,6 @@ export const routes = Router(
     { pattern: '#recipes/lazy', element: lazy },
     { pattern: '#recipes/array', element: array },
     { pattern: '#recipes/html', element: html },
-    { pattern: '#recipes/scopedStyle', element: scopedStyle },
 
     { pattern: '#examples', element: examples },
     { pattern: '#why', element: why },

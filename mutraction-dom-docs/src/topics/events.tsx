@@ -1,4 +1,4 @@
-import { codeSample } from "../codesample.jsx";
+import { codeSample } from "../codesample.js";
 
 function ex1() {
     const app = <button onclick={ () => alert("Hello") }>Click</button>;

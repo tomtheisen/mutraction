@@ -1,4 +1,4 @@
-import { codeSample } from "../codesample.jsx";
+import { codeSample } from "../codesample.js";
 
 export function getStarted() {
     return (

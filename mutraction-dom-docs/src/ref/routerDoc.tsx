@@ -1,5 +1,5 @@
 import { track, Router } from "mutraction-dom";
-import { codeSample } from "../codesample.jsx";
+import { codeSample } from "../codesample.js";
 
 export function routerDoc() {
     return (
