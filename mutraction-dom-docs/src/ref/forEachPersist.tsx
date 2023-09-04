@@ -1,5 +1,5 @@
 import { ForEach, ForEachPersist, track } from "mutraction-dom";
-import { codeSample } from "./codesample.js";
+import { codeSample } from "../codesample.jsx";
 
 function ex1() {
     const model = track([{ label: "X" }, { label: "Y" }, { label: "Z" }]);

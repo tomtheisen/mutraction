@@ -1,6 +1,6 @@
 import { track } from "mutraction-dom";
-import { codeSample } from "./codesample.js";
-import { muLogo } from "./mulogo.js";
+import { codeSample } from "../codesample.jsx";
+import { muLogo } from "../mulogo.jsx";
 
 export function intro() {
     const model = track({ clicks: 0 });

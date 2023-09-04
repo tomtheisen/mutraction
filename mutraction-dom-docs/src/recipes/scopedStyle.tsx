@@ -1,0 +1,4 @@
+export function scopedStyle() {
+    return <>
+    </>;
+}
