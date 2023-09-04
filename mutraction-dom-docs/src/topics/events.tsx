@@ -16,7 +16,7 @@ export function events() {
             </p>
             { codeSample(`
                 const app = <button onclick={ () => alert("Hello") }>Click</button>;
-                `, ex1(), { sandboxLink: true, docAppend: "app" }
+                `, ex1(), { sandboxLink: true, docAppend: "app", sandboxImports: [] }
             ) }
 
         </>

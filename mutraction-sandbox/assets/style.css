@@ -51,6 +51,9 @@ header {
     justify-content: flex-start;
     background-color: hsl(var(--brand-hue), 31%, 16%);
     padding: 2px 1em;
+    box-shadow: #000 0 0 6px;
+    position: relative;
+    z-index: 1;    
 }
 
 h1 {

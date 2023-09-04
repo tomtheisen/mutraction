@@ -10,8 +10,8 @@ async function compress(data: string): Promise<string> {
     return btoa(binaryString);
 }
 
-export async function getSandboxLink(body: string, neededImports: string[] = []) {
-    if (neededImports.length) {
+export async function getSandboxLink(body: string, neededImports?: string[]) {
+    if (neededImports) {
         body = `import { ${ neededImports.join(", ") } } from "mutraction-dom";\n\n` + body;
     }
     return `sandbox/#` + await(compress(body));

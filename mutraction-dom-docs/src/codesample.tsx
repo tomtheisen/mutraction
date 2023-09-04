@@ -32,7 +32,7 @@ type CodeSampleOptions = {
     docAppend?: string;
 }
 export function codeSample(code: string, output?: Node, options?: CodeSampleOptions): Node {
-    const { caption, highlight = true, sandboxLink = false, sandboxImports = [], docAppend } = options ?? {};
+    const { caption, highlight = true, sandboxLink = false, sandboxImports, docAppend } = options ?? {};
 
     const dedented = dedent(code);
     let codeFormatted: string | Node = dedented;
