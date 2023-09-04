@@ -1,3 +1,8 @@
+/** For use with mu:apply */
+type NodeModifier = {
+    readonly $muType: string;
+}
+
 type MutractionElement<ElementType extends keyof HTMLElementTagNameMap> = {
     [Prop in keyof HTMLElementTagNameMap[ElementType]]?:
         Prop extends "classList" ? Record<string, boolean> :
@@ -8,7 +13,7 @@ type MutractionElement<ElementType extends keyof HTMLElementTagNameMap> = {
     "mu:if"?: boolean;
     "mu:else"?: boolean;
     "mu:syncEvent"?: (keyof HTMLElementEventMap) | string;
-    "mu:localStyle"?: [name: string, value: string]; // this is actually just set-attribute
+    "mu:apply"?: NodeModifier | NodeModifier[];
 };
 
 export namespace JSX {

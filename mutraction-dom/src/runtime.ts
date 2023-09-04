@@ -3,6 +3,7 @@ import { getMarker } from './getMarker.js';
 import { defaultTracker } from "./tracker.js";
 import { DependencyList } from "./dependency.js";
 import { PropReference } from "./propref.js";
+import { NodeModifier } from "./types.js";
 
 const suppress = { suppressUntrackedWarning: true };
 function effectDefault(sideEffect: (dep: DependencyList) => (void | (() => void))) {
@@ -15,6 +16,29 @@ type ElementStringProps<E extends keyof HTMLElementTagNameMap> = {
 type ElementPropGetters<E extends keyof HTMLElementTagNameMap> = {
     [K in keyof HTMLElementTagNameMap[E]]: () => HTMLElementTagNameMap[E][K];
 };
+
+function isNodeModifier(obj: unknown): obj is NodeModifier {
+    return obj != null && typeof obj === "object" && "$muType" in obj && typeof obj.$muType === "string"; 
+}
+
+function doApply(el: HTMLElement, mod: unknown) {
+    if (Array.isArray(mod)) {
+        mod.forEach(mod => doApply(el, mod));
+        return;
+    }
+
+    if (!isNodeModifier(mod))
+        throw Error("Expected a node modifier for 'mu:apply', but got " + typeof mod);
+
+    switch (mod.$muType) {
+        case "attribute":
+            el.setAttribute(mod.name, mod.value);
+            break;
+            
+        default:
+            throw Error("Unknown node modifier type: " + mod.$muType);
+    }
+}
 
 export function element<E extends keyof HTMLElementTagNameMap>(
     name: E, 
@@ -30,6 +54,10 @@ export function element<E extends keyof HTMLElementTagNameMap>(
         switch (name) {
             case "mu:syncEvent":
                 syncEvents = value;
+                break;
+
+            case "mu:apply":
+                doApply(el, value);
                 break;
 
             default:

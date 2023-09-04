@@ -162,6 +162,14 @@ export default function(_: Babel): PluginObj {
                                         t.objectProperty(t.stringLiteral("mu:syncEvent"), value, true /* computed */)
                                     );
                                     break;
+
+                                case "apply":
+                                    if (value?.type !== "JSXExpressionContainer" || value.expression.type === "JSXEmptyExpression") 
+                                        throw path.buildCodeFrameError(`Expression value expected for '${ name.name.name }'`);
+                                    staticPropsForRuntime.push(
+                                        t.objectProperty(t.stringLiteral("mu:apply"), value.expression, true /* computed */)
+                                    );
+                                    break;
                                     
                                 default:
                                     throw path.buildCodeFrameError(`Unsupported mutraction JSX attribute ${ name.name.name }`);

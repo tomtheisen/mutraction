@@ -36,3 +36,12 @@ export type NodeOptions = {
     node: Node;
     cleanup?: () => void;
 };
+
+type NodeModifierAttribute = {
+    readonly $muType: "attribute";
+    name: string;
+    value: string;
+};
+
+// when more concrete modifiers are added, this will become a union
+export type NodeModifier = NodeModifierAttribute;
