@@ -49,7 +49,7 @@ function ex2() {
 
 export function makeLocalStyleDoc() {
     return <>
-        <h1><code>makeLocalStylesheet()</code></h1>
+        <h1><code>makeLocalStyle()</code></h1>
         <p>
             This function constructs and adopts a stylesheet.
             It can be applied to specific sub-trees so that the rules don't affect the entire document.

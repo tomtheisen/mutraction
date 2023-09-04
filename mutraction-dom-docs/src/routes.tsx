@@ -61,7 +61,7 @@ export const routes = Router(
     { pattern: '#ref/Router', element: routerDoc },
     { pattern: '#ref/Tracker', element: trackerDoc },
     { pattern: '#ref/apply', element: apply },
-    { pattern: '#ref/makeLocalStylesheet', element: makeLocalStyleDoc },
+    { pattern: '#ref/makeLocalStyle', element: makeLocalStyleDoc },
 
     { pattern: '#recipes/mounting', element: mounting },
     { pattern: '#recipes/radio', element: radio },

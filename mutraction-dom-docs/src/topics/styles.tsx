@@ -155,7 +155,7 @@ export function styles() {
             <h2>Local stylesheets</h2>
             <p>
                 Using this pattern, you can create a stylesheet that applies only to specified
-                sub-trees of your document.  See <a href="#ref/makeLocalStylesheet"><code>makeLocalStylesheet()</code></a> for
+                sub-trees of your document.  See <a href="#ref/makeLocalStyle"><code>makeLocalStylesheet()</code></a> for
                 more details.
             </p>
         </>
