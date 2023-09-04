@@ -991,7 +991,7 @@ function makeLocalStyle(rules) {
 }
 
 // out/index.js
-var version = "0.18.0";
+var version = "0.19.0";
 export {
   DependencyList,
   ErrorBoundary,
