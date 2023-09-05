@@ -16,6 +16,8 @@ const storageKey = "mu_playground_source";
 const query = new URL(location.href).searchParams;
 const appState = track({
     view: query.get("view") ?? "normal" as "normal" | "code" | "preview",
+    outpane: "app" as "app" | "js",
+    compiledCode: ""
 });
 
 function notify(message: string) {
@@ -34,7 +36,7 @@ const saveButton =
         Share <small className="narrow-hide">(<kbd>ctrl + S</kbd>)</small>
     </button>;
 
-const sourceBox = <div style={{ zIndex: "0", height: "calc(100vh - var(--header-height))" }}></div> as HTMLDivElement;
+const sourceBox = <div className="editBox" /> as HTMLDivElement;
 
 effect(() => {
     sourceBox.style.width =
@@ -51,7 +53,8 @@ effect(() => {
     history.replaceState(null, "", "?" + String(query) + location.hash);
 });
 
-const frame = <iframe src="output.html"></iframe> as HTMLIFrameElement;
+const frame = <iframe src="output.html" hidden={ appState.outpane !== "app" } /> as HTMLIFrameElement;
+const jsOutput = <output style={{ display: appState.outpane === "js" ? "block" : "none" }} textContent={ appState.compiledCode } /> as HTMLOutputElement;
 
 function hamburger() {
     const hamburgerState = track({ 
@@ -150,9 +153,9 @@ export function run(code: string | undefined = editor?.getValue()) {
 
     sessionStorage.setItem(storageKey, code);
     try {
-        const compiled = muCompile(code);
+        appState.compiledCode = muCompile(code);
         frame.addEventListener("load", ev => {
-            frame.contentWindow?.postMessage(compiled, "*");
+            frame.contentWindow?.postMessage(appState.compiledCode, "*");
         }, { once: true });
         frame.contentWindow?.location.reload();
 
@@ -173,12 +176,12 @@ export function run(code: string | undefined = editor?.getValue()) {
             top: "1em",
             right: "0",
         };
-        const el = 
+        const errBanner = 
             <div style={ style }>
                 <button style={clearStyle} onclick={ () => editor?.setBanner(null, 20) }>✕</button>
                 { err instanceof Error ? err.message : String(err) }
             </div> as HTMLElement;
-        editor?.setBanner(el, 20);
+        editor?.setBanner(errBanner, 20);
         if (err && typeof err === "object" && "loc" in err) {
             const { line = undefined, column = undefined } = err?.loc ?? {} as any;
             if (typeof line === "number" && typeof column === "number") {
@@ -240,9 +243,20 @@ const app =
                 mutraction-dom<wbr />@{ version }
             </span>
         </header>
-        { sourceBox }
-        <div id="sizer" onmousedown={ startSizing }></div>
-        { frame }
+        <main>
+            { sourceBox }
+            <div id="sizer" onmousedown={ startSizing }></div>
+            <div className="outpane">
+                <div className="outcontrols">
+                    <menu>
+                        <li classList={{ active: appState.outpane === "app"}}><a onclick={ () => appState.outpane = "app" }>App</a></li>
+                        <li classList={{ active: appState.outpane === "js"}}><a onclick={ () => appState.outpane = "js" }>JS output</a></li>
+                    </menu>
+                </div>
+                { frame }
+                { jsOutput }
+            </div>
+        </main>
     </>;
 
 document.body.append(app);
