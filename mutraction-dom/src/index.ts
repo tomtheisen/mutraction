@@ -11,5 +11,6 @@ export { effect } from './effect.js';
 export { DependencyList } from './dependency.js'
 export { Router } from './router.js';
 export { makeLocalStyle } from './makeLocalStyle.js';
+import "./init.js";
 
 export const version = "__VER__" as string;
