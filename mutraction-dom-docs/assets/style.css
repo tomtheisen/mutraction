@@ -26,6 +26,8 @@ header {
     align-items: center;
     justify-content: space-around;
     height: var(--header-height);
+    box-shadow: #000 0 0 6px;
+    position: relative;    
 }
 
 header h1 {

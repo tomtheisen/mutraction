@@ -1,5 +1,5 @@
 import { track } from "mutraction-dom";
-import { codeSample } from "./codesample.js";
+import { codeSample } from "../codesample.js";
 
 function ex1() {
     const model = track({ checked: false });
@@ -151,6 +151,13 @@ export function styles() {
                 );
                 `, ex3(), { sandboxLink: true, sandboxImports: ["track"], docAppend: "app" }
             ) }
+
+            <h2>Local stylesheets</h2>
+            <p>
+                Using this pattern, you can create a stylesheet that applies only to specified
+                sub-trees of your document.  See <a href="#ref/makeLocalStyle"><code>makeLocalStylesheet()</code></a> for
+                more details.
+            </p>
         </>
     )
 }

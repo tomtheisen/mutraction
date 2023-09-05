@@ -59,6 +59,12 @@ declare module 'mutraction-dom' {
 		node: Node;
 		cleanup?: () => void;
 	};
+	type NodeModifierAttribute = {
+		readonly $muType: "attribute";
+		name: string;
+		value: string;
+	};
+	type NodeModifier = NodeModifierAttribute;
 	/**
 	 * Generates DOM nodes for an array of values.  The resulting nodes track the array indices.
 	 * Re-ordering the array will cause affected nodes to be re-generated.
@@ -235,7 +241,7 @@ declare module 'mutraction-dom' {
 	 * @param nodeFactory produces a DOM node, and has a dependency on one or more tracked properties.
 	 * @returns a DOM node that replaces itself when its dependencies change.
 	 */
-	export declare function Swapper(nodeFactory: () => Node): DocumentFragment;
+	export declare function Swapper(nodeFactory: () => Node | NodeOptions): DocumentFragment;
 	type EffectOptions = {
 		suppressUntrackedWarning?: boolean;
 		tracker?: Tracker;
@@ -264,14 +270,34 @@ declare module 'mutraction-dom' {
 	 * @returns an in-place updating DOM node
 	 */
 	export declare function Router(...routes: Route[]): Node;
+	/**
+	 * Makes a reusable scoped stylesheet that can be applied to JSX elements using \`mu:apply\`.
+	 * @param rules is a stylesheet object with selectors as keys and CSS rule delcaration objects as values.
+	 * @returns a node modifier that can be provided to \`mu:apply\`
+	 * @example
+	 * \`\`\`tsx
+	 * const myStyle = makeLocalStyle({
+	 *   "p": { fontFamily: "sans-serif" }
+	 * });
+	 * const app = <div mu:apply={ myStyle }>
+	 *   <p>Hello</p>
+	 * </div>;
+	 * \`\`\`
+	 */	
+	export declare function makeLocalStyle(rules: Record<string, Partial<CSSStyleDeclaration>>): NodeModifier;
 	export declare const version: string;
 	
 	export {};	
-	
+
 }
 `;
 
 export const jsxDTS = `
+/** For use with mu:apply */
+type NodeModifier = {
+    readonly $muType: string;
+}
+
 type MutractionElement<ElementType extends keyof HTMLElementTagNameMap> = {
     [Prop in keyof HTMLElementTagNameMap[ElementType]]?:
         Prop extends "classList" ? Record<string, boolean> :
@@ -282,6 +308,7 @@ type MutractionElement<ElementType extends keyof HTMLElementTagNameMap> = {
     "mu:if"?: boolean;
     "mu:else"?: boolean;
     "mu:syncEvent"?: (keyof HTMLElementEventMap) | string;
+    "mu:apply"?: NodeModifier | NodeModifier[];
 };
 
 export namespace JSX {
@@ -294,4 +321,3 @@ export namespace JSX {
     };
 }
 `;
-

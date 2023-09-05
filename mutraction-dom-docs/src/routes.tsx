@@ -1,37 +1,42 @@
 import { Router } from "mutraction-dom";
-import { getStarted } from "./getStarted.js";
-import { oneWay } from "./oneway.js";
-import { twoWay } from "./twoway.js";
-import { intro } from "./intro.js";
-import { notFound } from "./notFound.js";
-import { tracking } from "./tracking.js";
-import { jsx } from "./jsx.js";
-import { events } from "./events.js";
-import { history } from "./history.js";
-import { styles } from "./styles.js";
-import { why } from "./why.js";
 
-import { ifelse } from "./ifelse.js"
-import { syncEvent } from "./syncEvent.js";
-import { forEach } from "./forEach.js";
-import { forEachPersist } from "./forEachPersist.js";
+import { getStarted } from "./topics/getStarted.js";
+import { oneWay } from "./topics/oneway.js";
+import { twoWay } from "./topics/twoway.js";
+import { intro } from "./topics/intro.js";
+import { notFound } from "./topics/notFound.js";
+import { tracking } from "./topics/tracking.js";
+import { jsx } from "./topics/jsx.js";
+import { events } from "./topics/events.js";
+import { history } from "./topics/history.js";
+import { styles } from "./topics/styles.js";
+
+import { ifelse } from "./ref/ifelse.js"
+import { syncEvent } from "./ref/syncEvent.js";
+import { apply } from "./ref/apply.js";
+import { forEach } from "./ref/forEach.js";
+import { forEachPersist } from "./ref/forEachPersist.js";
 import { promiseLoader } from "./promiseLoader.js";
-import { swapper } from "./swapper.js";
-import { errorBoundary } from "./errorBoundary.js";
-import { trackDoc } from "./trackDoc.js";
-import { effectDoc } from "./effectDoc.js";
-import { routerDoc } from "./routerDoc.js";
-import { trackerDoc } from "./trackerDoc.js";
+import { swapper } from "./ref/swapper.js";
+import { errorBoundary } from "./ref/errorBoundary.js";
+import { trackDoc } from "./ref/trackDoc.js";
+import { effectDoc } from "./ref/effectDoc.js";
+import { routerDoc } from "./ref/routerDoc.js";
+import { trackerDoc } from "./ref/trackerDoc.js";
+import { makeLocalStyleDoc } from "./ref/makeLocalStyleDoc.js";
 
-import { mounting } from "./mounting.js";
-import { radio } from "./radio.js";
-import { spinner } from "./spinner.js";
-import { lazy } from "./lazy.js";
-import { array } from "./array.js";
-import { html } from "./html.js";
+import { mounting } from "./recipes/mounting.js";
+import { radio } from "./recipes/radio.js";
+import { spinner } from "./recipes/spinner.js";
+import { lazy } from "./recipes/lazy.js";
+import { array } from "./recipes/array.js";
+import { html } from "./recipes/html.js";
 
 import { examples } from "./examples.js";
 import { faq } from "./faq.js";
+import { why } from "./why.js";
+
+
 
 export const routes = Router(
     { pattern: '#start', element: getStarted },
@@ -55,6 +60,8 @@ export const routes = Router(
     { pattern: '#ref/effect', element: effectDoc },
     { pattern: '#ref/Router', element: routerDoc },
     { pattern: '#ref/Tracker', element: trackerDoc },
+    { pattern: '#ref/apply', element: apply },
+    { pattern: '#ref/makeLocalStyle', element: makeLocalStyleDoc },
 
     { pattern: '#recipes/mounting', element: mounting },
     { pattern: '#recipes/radio', element: radio },

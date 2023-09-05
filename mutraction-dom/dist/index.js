@@ -616,6 +616,24 @@ var suppress = { suppressUntrackedWarning: true };
 function effectDefault(sideEffect) {
   effect(sideEffect, suppress);
 }
+function isNodeModifier(obj) {
+  return obj != null && typeof obj === "object" && "$muType" in obj && typeof obj.$muType === "string";
+}
+function doApply(el, mod) {
+  if (Array.isArray(mod)) {
+    mod.forEach((mod2) => doApply(el, mod2));
+    return;
+  }
+  if (!isNodeModifier(mod))
+    throw Error("Expected a node modifier for 'mu:apply', but got " + typeof mod);
+  switch (mod.$muType) {
+    case "attribute":
+      el.setAttribute(mod.name, mod.value);
+      break;
+    default:
+      throw Error("Unknown node modifier type: " + mod.$muType);
+  }
+}
 function element(name, staticAttrs, dynamicAttrs, ...children) {
   const el = document.createElement(name);
   el.append(...children);
@@ -624,6 +642,9 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
     switch (name2) {
       case "mu:syncEvent":
         syncEvents = value;
+        break;
+      case "mu:apply":
+        doApply(el, value);
         break;
       default:
         el[name2] = value;
@@ -951,8 +972,26 @@ function Router(...routes) {
   return container.removeAsFragment();
 }
 
+// out/makeLocalStyle.js
+var scopeAttrName = "data-mu-style";
+var instanceId = String(Math.random() * 1e6 | 0);
+var counter = 0;
+function makeLocalStyle(rules) {
+  const sheet = new CSSStyleSheet();
+  const sheetId = instanceId + "-" + ++counter;
+  for (const [selector, declarations] of Object.entries(rules)) {
+    const attributeMatch = `[${scopeAttrName}="${sheetId}"]`;
+    const localSelector = `${attributeMatch}:is(${selector}), ${attributeMatch} :is(${selector}) {}`;
+    sheet.insertRule(localSelector, 0);
+    const rule = sheet.cssRules.item(0);
+    Object.assign(rule.style, declarations);
+  }
+  document.adoptedStyleSheets.push(sheet);
+  return { $muType: "attribute", name: scopeAttrName, value: sheetId };
+}
+
 // out/index.js
-var version = "0.18.0";
+var version = "0.19.0";
 export {
   DependencyList,
   ErrorBoundary,
@@ -970,6 +1009,7 @@ export {
   effect,
   element,
   isTracked,
+  makeLocalStyle,
   track,
   version
 };

@@ -1,4 +1,4 @@
-import { codeSample } from "./codesample.js";
+import { codeSample } from "../codesample.js";
 
 export function mounting() {
     return (

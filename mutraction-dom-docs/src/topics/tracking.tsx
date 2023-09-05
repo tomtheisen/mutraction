@@ -1,4 +1,4 @@
-import { codeSample } from "./codesample.js";
+import { codeSample } from "../codesample.js";
 
 export const tracking = (
     <>
@@ -47,8 +47,8 @@ export const tracking = (
 
         <h2>What about arrays?</h2>
         <p>
-            ECMAScript specifies that arrays are <a href="https://tc39.es/ecma262/multipage/ordinary-and-exotic-objects-behaviours.html#sec-array-exotic-objects">"exotic objects"</a>.
-            This means that writing to the <code>length</code> property can silently change which elements are in the array.
+            ECMAScript specifies that arrays are <a href="https://tc39.es/ecma262/multipage/ordinary-and-exotic-objects-behaviours.html#sec-array-exotic-objects">"exotic objects."</a> This 
+            means that writing to the <code>length</code> property can silently change which elements are in the array.
             It also means that writing a new element to an out-of-bounds index silently changes the <code>length</code> property.
             Mutraction is aware of the special behaviors of arrays, and handles them correctly.
             This means you can mutate arrays in place without taking any special 
@@ -71,7 +71,7 @@ export const tracking = (
 
         <h2>What about the other exotic objects?</h2>
         <p>
-            ECMAScript specifies a small handful of other exotic object types.
+            ECMAScript specifies a small handful of other exotic object types:
         </p>
         <ol>
             <li>Strings</li>

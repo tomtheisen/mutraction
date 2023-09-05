@@ -1,5 +1,5 @@
 import { ForEach, track, ErrorBoundary } from "mutraction-dom";
-import { codeSample } from "./codesample.js";
+import { codeSample } from "../codesample.js";
 
 function ex1() {
     const model = track({
