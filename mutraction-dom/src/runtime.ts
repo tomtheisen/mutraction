@@ -1,5 +1,4 @@
 import { effect } from "./effect.js"
-import { getMarker } from './getMarker.js';
 import { defaultTracker } from "./tracker.js";
 import { DependencyList } from "./dependency.js";
 import { PropReference } from "./propref.js";
@@ -108,7 +107,7 @@ export function child(getter: () => number | string | bigint | null | undefined 
     const result = getter();
     if (result instanceof Node) return result;
     
-    let node = getMarker("placeholder");
+    let node = document.createTextNode("");
     effectDefault(() => {
         const newNode = document.createTextNode(String(getter() ?? ""));
         node.replaceWith(newNode);

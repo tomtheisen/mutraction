@@ -1,6 +1,5 @@
 import { effect } from "./effect.js"
 import { ElementSpan } from './elementSpan.js';
-import { getMarker } from './getMarker.js';
 import { isNodeOptions, type NodeOptions } from "./types.js";
 
 const suppress = { suppressUntrackedWarning: true };
@@ -30,7 +29,7 @@ export function ForEach<TIn>(array: TIn[], map: (item: TIn, index: number, array
 
                 // in operations like .splice() elements are removed prior to updating length
                 // so this code needs to be null-tolerant even though the type system says otherwise.
-                const projection = item !== undefined ? map(item, i, array) : getMarker("ForEach undefined placeholder");
+                const projection = item !== undefined ? map(item, i, array) : document.createTextNode("");
 
                 if (isNodeOptions(projection)) {
                     output.container.replaceWith(projection.node);

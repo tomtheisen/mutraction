@@ -1,7 +1,5 @@
 import { effect } from "./effect.js";
-import { getMarker } from "./getMarker.js";
 import { memoize } from "./memoize.js";
-import { defaultTracker } from "./tracker.js";
 
 type ConditionalElement = {
     nodeGetter: () => CharacterData;
@@ -30,11 +28,11 @@ export function choose(...choices: ConditionalElement[]): Node {
         }
     }
     if (!foundUnconditional) {
-        const empty = getMarker("if:anti-consequent");
+        const empty = document.createTextNode("");
         lazyChoices.push({ nodeGetter: () => empty });
     }
 
-    let current: ChildNode = getMarker("choice-placeholder");
+    let current: ChildNode = document.createTextNode("");
     effect(() => {
         for (const { nodeGetter, conditionGetter } of lazyChoices) {
             if (!conditionGetter || conditionGetter()) {

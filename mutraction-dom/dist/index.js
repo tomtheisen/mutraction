@@ -599,18 +599,6 @@ function effect(sideEffect, options = {}) {
   return { dispose };
 }
 
-// out/config.js
-function getConfig(name) {
-  const meta = globalThis.document?.querySelector(`meta[name=${name.replace(/\W/g, "\\$&")}]`);
-  return meta?.getAttribute("value") ?? void 0;
-}
-var showMarkers = !!getConfig("mu:show-markers");
-
-// out/getMarker.js
-function getMarker(mark) {
-  return document.createTextNode(showMarkers ? `\u27EA${mark}\u27EB` : "");
-}
-
 // out/runtime.js
 var suppress = { suppressUntrackedWarning: true };
 function effectDefault(sideEffect) {
@@ -693,7 +681,7 @@ function child(getter) {
   const result = getter();
   if (result instanceof Node)
     return result;
-  let node = getMarker("placeholder");
+  let node = document.createTextNode("");
   effectDefault(() => {
     const newNode = document.createTextNode(String(getter() ?? ""));
     node.replaceWith(newNode);
@@ -703,10 +691,10 @@ function child(getter) {
 }
 
 // out/elementSpan.js
-var ElementSpan = class _ElementSpan {
+var ElementSpan = class {
   static id = 0;
-  startMarker = getMarker("start:" + ++_ElementSpan.id);
-  endMarker = getMarker("end:" + _ElementSpan.id);
+  startMarker = document.createTextNode("");
+  endMarker = document.createTextNode("");
   constructor(...node) {
     const frag = document.createDocumentFragment();
     frag.append(this.startMarker, ...node, this.endMarker);
@@ -781,7 +769,7 @@ function ForEach(array, map) {
       effect((itemDep) => {
         output.cleanup?.();
         const item = array[i];
-        const projection = item !== void 0 ? map(item, i, array) : getMarker("ForEach undefined placeholder");
+        const projection = item !== void 0 ? map(item, i, array) : document.createTextNode("");
         if (isNodeOptions(projection)) {
           output.container.replaceWith(projection.node);
           output.cleanup = projection.cleanup;
@@ -870,10 +858,10 @@ function choose(...choices) {
     }
   }
   if (!foundUnconditional) {
-    const empty = getMarker("if:anti-consequent");
+    const empty = document.createTextNode("");
     lazyChoices.push({ nodeGetter: () => empty });
   }
-  let current = getMarker("choice-placeholder");
+  let current = document.createTextNode("");
   effect(() => {
     for (const { nodeGetter, conditionGetter } of lazyChoices) {
       if (!conditionGetter || conditionGetter()) {
