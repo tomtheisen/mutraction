@@ -1,3 +1,5 @@
+import { PropReference } from "./propref.js";
+
 export type Key = string | symbol;
 export type BaseSingleMutation = { target: object, name: Key };
 export type CreateProperty = BaseSingleMutation & { type: "create", newValue: any };
@@ -11,7 +13,14 @@ export type ArrayExtend = BaseSingleMutation & { type: "arrayextend", oldLength:
 export type ArrayShorten = BaseSingleMutation & { type: "arrayshorten", oldLength: number, newLength: number, removed: ReadonlyArray<any> };
 
 export type SingleMutation = CreateProperty | DeleteProperty | ChangeProperty | ArrayExtend | ArrayShorten;
-export type Transaction = {type: "transaction", transactionName?: string, parent?: Transaction, operations: Mutation[]};
+
+export type Transaction = {
+    type: "transaction", 
+    transactionName?: string, 
+    parent?: Transaction, 
+    operations: Mutation[],
+    dependencies: Set<PropReference>;
+};
 export type Mutation = SingleMutation | Transaction;
 
 export type ReadonlyDeep<T extends object> = {

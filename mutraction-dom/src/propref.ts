@@ -13,6 +13,10 @@ export class PropReference<T = any> {
     #subscribers: Set<DependencyList> = new Set;
     #notifying: boolean = false;
 
+    get subscribers(): ReadonlySet<DependencyList> {
+        return this.#subscribers;
+    }
+
     constructor(object: object, prop: Key) {
         if (!isTracked(object) && (object as any)[ProxyOf]) {
             object = (object as any)[ProxyOf];

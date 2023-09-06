@@ -1,4 +1,4 @@
-import { track, effect } from "mutraction-dom";
+import { track, effect, defaultTracker } from "mutraction-dom";
 import { codeSample } from "../codesample.js";
 
 function ex1() {
@@ -18,6 +18,31 @@ function ex1() {
     );
 
     return app;
+}
+
+function ex2() {
+    const model = track({ a: 1, b: 2 });
+
+    const output = <output style={{ display: "block" }} /> as HTMLElement;
+    
+    effect(() => {
+        // message is an untracked snapshot
+        const message = `a:${ model.a } b:${ model.b }`;
+        output.append(<p>{ message }</p>);
+    });
+    
+    // effect runs for each mutation
+    model.a = 3;
+    model.b = 4;
+    
+    // effects don't run during a transaction
+    defaultTracker.startTransaction();
+    model.a = 5;
+    model.b = 6;
+    // but wait until commit
+    defaultTracker.commit();
+
+    return output;
 }
 
 export function effectDoc() {
@@ -99,6 +124,37 @@ export function effectDoc() {
                   </>
                 );
                 `, ex1(), { sandboxLink: true, sandboxImports: ["track", "effect"], docAppend: "app" }
+            ) }
+
+            <h2>Composite mutations</h2>
+            <p>
+                If you have several properties you want to change, you might want to avoid notifying dependencies
+                until all the changes are complete.  In that case, you can put the changes in a transaction.
+                Subscribers won't be notified until all the open transactions are committed.  By default, tracked functions
+                implicitly create and commit transactions.
+            </p>
+            { codeSample(`
+                const model = track({ a: 1, b: 2 });
+
+                const output = <output style={{ display: "block" }} /> as HTMLElement;
+                
+                effect(() => {
+                    // message is an untracked snapshot
+                    const message = \`a:\${ model.a } b:\${ model.b }\`;
+                    output.append(<p>{ message }</p>);
+                });
+                
+                // effect runs for each mutation
+                model.a = 3;
+                model.b = 4;
+                
+                // effects don't run during a transaction
+                defaultTracker.startTransaction();
+                model.a = 5;
+                model.b = 6;
+                // but wait until commit
+                defaultTracker.commit();
+                `, ex2(), { sandboxLink: true, docAppend: "output", sandboxImports: ["defaultTracker", "effect", "track"] }
             ) }
         </>
     );

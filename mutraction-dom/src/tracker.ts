@@ -19,7 +19,7 @@ export type TrackerOptions = Partial<typeof defaultTrackerOptions>;
  */
 export class Tracker {
     #transaction?: Transaction;
-    #rootTransaction?: Transaction;
+    #operationHistory?: Mutation[];
     #redos: Mutation[] = [];
     options: Readonly<Required<TrackerOptions>>;
 
@@ -44,7 +44,7 @@ export class Tracker {
 
         if (appliedOptions.trackHistory) {
             // create root transaction to enable history tracking
-            this.#rootTransaction = this.#transaction = { type: "transaction", operations: [] };
+            this.#operationHistory = [];
         }
         this.options = Object.freeze(appliedOptions);
     }
@@ -80,9 +80,8 @@ export class Tracker {
         return this.track(model);
     }
     
-    #ensureHistory(): Transaction {
-        if (!this.#transaction) throw Error("History tracking disabled.");
-        return this.#transaction;
+    #ensureHistory(): void {
+        if (!this.options.trackHistory) throw Error("History tracking disabled.");
     }
 
     /** Retrieves the mutation history.  Active transactions aren't represented here.
@@ -96,16 +95,16 @@ export class Tracker {
 
         this.#historyPropRef ??= createOrRetrievePropRef(this, "history");
 
-        if (!this.#rootTransaction) 
+        if (!this.#operationHistory) 
             throw Error("History tracking enabled, but no root transaction. Probably mutraction internal error.");
 
-        return this.#rootTransaction.operations; 
+        return this.#operationHistory; 
     }
 
     /** Add another transaction to the stack  */
     startTransaction(name?: string): Transaction {
-        const transaction = this.#ensureHistory();
-        this.#transaction = { type: "transaction", parent: transaction, operations: [] };
+        this.#ensureHistory();
+        this.#transaction = { type: "transaction", parent: this.#transaction, operations: [], dependencies: new Set };
         if (name) this.#transaction.transactionName = name;
         return this.#transaction;
     }
@@ -114,21 +113,37 @@ export class Tracker {
       * throws if no transactions are active 
       */
     commit(transaction?: Transaction) {
-        const actualTransaction = this.#ensureHistory();
+        this.#ensureHistory();
 
-        if (transaction && transaction !== actualTransaction)
+        if (!this.#transaction) 
+            throw Error('Attempted to commit transaction when none were open.');
+
+        if (transaction && transaction !== this.#transaction)
             throw Error('Attempted to commit wrong transaction. Transactions must be resolved in stack order.');
-        if (!actualTransaction.parent)
-            throw Error('Cannot commit root transaction');
 
-        if (this.options.compactOnCommit) compactTransaction(actualTransaction);
+        if (this.options.compactOnCommit) compactTransaction(this.#transaction);
 
-        const parent = actualTransaction.parent;
-        parent.operations.push(actualTransaction);
-        actualTransaction.parent = undefined;
-        this.#transaction = parent;
+        if (this.#transaction.parent) {
+            this.#transaction.parent.operations.push(this.#transaction);
+            this.#transaction.dependencies.forEach(d => this.#transaction!.parent!.dependencies.add(d));
+            this.#transaction = this.#transaction.parent;
+        }
+        else {
+            this.#operationHistory!.push(this.#transaction);
 
-        if (this.#transaction.parent == null) {
+            // dedupe
+            const allDependencyLists = new Set<DependencyList>;
+            for (const propRef of this.#transaction.dependencies) {
+                for (const dependencyList of propRef.subscribers) {
+                    allDependencyLists.add(dependencyList);
+                }
+            }
+            allDependencyLists.forEach(depList => depList.notifySubscribers());
+
+            this.#transaction = undefined;
+        }
+
+        if (this.#transaction == null) {
             // top level transaction, notify any history dependency
             this.#historyPropRef?.notifySubscribers();
         }
@@ -139,24 +154,29 @@ export class Tracker {
      * if no transactions are active, undo all mutations
      */
     rollback(transaction?: Transaction) {
-        const actualTransaction = this.#ensureHistory();
+        this.#ensureHistory();
 
-        if (transaction && transaction !== actualTransaction)
+        if (transaction && transaction !== this.#transaction)
             throw Error('Attempted to commit wrong transaction. Transactions must be resolved in stack order.');
 
-        while (actualTransaction.operations.length) this.undo();
-        this.#transaction = actualTransaction.parent ?? actualTransaction;
+        if (this.#transaction) {
+            while (this.#transaction.operations.length) this.undo();
+            this.#transaction = this.#transaction.parent;
+        }
+        else {
+            while (this.#operationHistory!.length) this.undo();
+        }
     }
 
     /** undo last mutation or transaction and push into the redo stack  */
     undo() {
-        const transaction = this.#ensureHistory();
-        const mutation = transaction.operations.pop();
+        this.#ensureHistory();
+        const mutation = (this.#transaction?.operations ?? this.#operationHistory)!.pop();
         if (!mutation) return;
         this.#undoOperation(mutation);
         this.#redos.unshift(mutation);
 
-        if (transaction.parent == null) { // top-level transaction
+        if (this.#transaction == null) { // top-level transaction
             this.#historyPropRef?.notifySubscribers();
         }
     }
@@ -176,19 +196,24 @@ export class Tracker {
                 case 'arrayshorten': targetAny.push(...mutation.removed); break;
                 default: mutation satisfies never;
             }
-            createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
+            if (!this.#transaction) {
+                createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
+                if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
+                    createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
+                }
+            }
         }
     }
 
     /** Repeat last undone mutation  */
     redo() {
-        const transaction = this.#ensureHistory();
+        this.#ensureHistory();
         const mutation = this.#redos.shift();
         if (!mutation) return;
         this.#redoOperation(mutation);
-        transaction.operations.push(mutation);
+        (this.#transaction?.operations ?? this.#operationHistory)!.push(mutation);
 
-        if (transaction.parent == null) { // top-level transaction
+        if (this.#transaction == null) { // top-level transaction
             this.#historyPropRef?.notifySubscribers();
         }
     }
@@ -208,7 +233,12 @@ export class Tracker {
                 case 'arrayshorten': targetAny.length = mutation.newLength; break;
                 default: mutation satisfies never;
             }
-            createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
+            if (!this.#transaction) {
+                createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
+                if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
+                    createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
+                }
+            }
         }
     }
 
@@ -220,27 +250,32 @@ export class Tracker {
     
     /** Commits all transactions, then empties the undo and redo history. */
     clearHistory() {
-        const transaction = this.#ensureHistory();
-        transaction.parent = undefined;
-        transaction.operations.length = 0;
+        this.#ensureHistory();
+        this.#transaction = undefined;
+        this.#operationHistory!.length = 0;
         this.clearRedos();
     }
 
     /** record a mutation, if you have the secret key  */
     [RecordMutation](mutation: SingleMutation) {
-        // if history tracking is enabled
-        this.#transaction?.operations.push(Object.freeze(mutation));
+        if (this.options.trackHistory) {
+            (this.#transaction?.operations ?? this.#operationHistory)!.push(Object.freeze(mutation));
+        }
 
         this.clearRedos();
 
-        // notify granular prop subscribers
-        createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
-        if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
-            createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
+        if (this.#transaction) {
+            this.#transaction.dependencies.add(createOrRetrievePropRef(mutation.target, mutation.name));
+            if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
+                this.#transaction.dependencies.add(createOrRetrievePropRef(mutation.target, "length"));
+            }
         }
-
-        if (this.#transaction && this.#transaction.parent == null) {
-            // top level transaction            
+        else {
+            // notify granular prop subscribers
+            createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
+            if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
+                createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
+            }
             this.#historyPropRef?.notifySubscribers();
         }
     }

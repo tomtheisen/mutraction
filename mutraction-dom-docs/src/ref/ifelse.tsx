@@ -101,6 +101,23 @@ export function ifelse() {
                 );
                 `, ex2(), { sandboxLink: true, sandboxImports: ["track"], docAppend: "app" }
             ) }
+
+            <h2>Consequence of lazy initialization</h2>
+            <p>
+                Because <code>mu:if</code> is a mechanism for <a href="#recipes/lazy">lazy evaluation</a>,
+                there can be some unexpected behavior.  Normally, the result of a <a href="#topics/jsx">JSX</a> expression
+                is the corresponding DOM element.  However, in the case where the condition for <code>mu:if</code> is false,
+                the result of the expression will be an empty <code>Text</code> node.  When inserted into the document,
+                it will be replaced by the appropriate element when the condition becomes true.
+            </p>
+
+            { codeSample(`
+                const div1 = <div mu:if={ true } />;
+                console.log(div1.constructor.name); // HTMLDivElement
+                
+                const div2 = <div mu:if={ false } />;
+                console.log(div2.constructor.name); // Text    
+                `) }
         </>
     );
 }

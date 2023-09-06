@@ -1,6 +1,24 @@
-import { track, defaultTracker as tracker, effect, Tracker } from '../src/index.js';
+import { track, defaultTracker as tracker, effect, Tracker, defaultTracker, createOrRetrievePropRef } from '../src/index.js';
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
+
+test('basic transaction works', () => {
+    const model = track({foo: "bar"});
+
+    defaultTracker.startTransaction();
+    model.foo = "baz";
+    defaultTracker.commit();
+});
+
+test('nested transaction works', () => {
+    const model = track({foo: "bar"});
+
+    defaultTracker.startTransaction();
+    defaultTracker.startTransaction();
+    model.foo = "baz";
+    defaultTracker.commit();
+    defaultTracker.commit();
+});
 
 test('array push and transaction', () => {
     const model = track([] as any);
@@ -45,11 +63,12 @@ test('array length 0 rollback test', () => {
 });
 
 test('transaction does not obscure history', () => {
-    const model = track({} as any);
+    const tr = new Tracker;
+    const model = tr.track({} as any);
 
     model.asdf = 123;
-    tracker.startTransaction();
-    assert.equal(tracker.history.length, 1);
+    tr.startTransaction();
+    assert.equal(tr.history.length, 1);
 });
 
 test('transaction out of order resolution fails', () => {
@@ -94,7 +113,13 @@ test('compact into nothing', () => {
     delete model.x;
     tr.commit();
 
-    assert.equal(tr.history, [{ transactionName: "noop", type:'transaction', parent: undefined, operations: []}]);
+    assert.equal(tr.history, [{ 
+        transactionName: "noop", 
+        type:'transaction', 
+        parent: undefined, 
+        operations: [], 
+        dependencies: new Set([createOrRetrievePropRef(model, "x")])
+    }]);
 });
 
 test('compound noop', () => {
@@ -109,7 +134,7 @@ test('compound noop', () => {
     model.foo = 45;
     tr.commit();
 
-    assert.equal(tr.history, [{ transactionName: "noop2", type:'transaction', parent: undefined, operations: []}]);
+    assert.equal(tr.history, [{ transactionName: "noop2", type:'transaction', parent: undefined, operations: [], dependencies: new Set}]);
 });
 
 test.run();
