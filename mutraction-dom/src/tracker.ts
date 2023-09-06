@@ -123,8 +123,25 @@ export class Tracker {
 
         if (this.options.compactOnCommit) compactTransaction(this.#transaction);
 
-        (this.#transaction.parent?.operations ?? this.#operationHistory)!.push(this.#transaction);
-        this.#transaction = this.#transaction.parent;
+        if (this.#transaction.parent) {
+            this.#transaction.parent.operations.push(this.#transaction);
+            this.#transaction.dependencies.forEach(d => this.#transaction!.parent!.dependencies.add(d));
+            this.#transaction = this.#transaction.parent;
+        }
+        else {
+            this.#operationHistory!.push(this.#transaction);
+
+            // dedupe
+            const allDependencyLists = new Set<DependencyList>;
+            for (const propRef of this.#transaction.dependencies) {
+                for (const dependencyList of propRef.subscribers) {
+                    allDependencyLists.add(dependencyList);
+                }
+            }
+            allDependencyLists.forEach(depList => depList.notifySubscribers());
+
+            this.#transaction = undefined;
+        }
 
         if (this.#transaction == null) {
             // top level transaction, notify any history dependency
@@ -179,7 +196,12 @@ export class Tracker {
                 case 'arrayshorten': targetAny.push(...mutation.removed); break;
                 default: mutation satisfies never;
             }
-            createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
+            if (!this.#transaction) {
+                createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
+                if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
+                    createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
+                }
+            }
         }
     }
 
@@ -211,7 +233,12 @@ export class Tracker {
                 case 'arrayshorten': targetAny.length = mutation.newLength; break;
                 default: mutation satisfies never;
             }
-            createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
+            if (!this.#transaction) {
+                createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
+                if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
+                    createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
+                }
+            }
         }
     }
 
@@ -237,13 +264,18 @@ export class Tracker {
 
         this.clearRedos();
 
-        // notify granular prop subscribers
-        createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
-        if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
-            createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
+        if (this.#transaction) {
+            this.#transaction.dependencies.add(createOrRetrievePropRef(mutation.target, mutation.name));
+            if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
+                this.#transaction.dependencies.add(createOrRetrievePropRef(mutation.target, "length"));
+            }
         }
-
-        if (this.#transaction == null) {
+        else {
+            // notify granular prop subscribers
+            createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
+            if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
+                createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
+            }
             this.#historyPropRef?.notifySubscribers();
         }
     }

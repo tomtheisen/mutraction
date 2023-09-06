@@ -1,4 +1,4 @@
-import { track, defaultTracker as tracker, effect, Tracker, defaultTracker } from '../src/index.js';
+import { track, defaultTracker as tracker, effect, Tracker, defaultTracker, createOrRetrievePropRef } from '../src/index.js';
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
@@ -113,7 +113,13 @@ test('compact into nothing', () => {
     delete model.x;
     tr.commit();
 
-    assert.equal(tr.history, [{ transactionName: "noop", type:'transaction', parent: undefined, operations: [], dependencies: new Set}]);
+    assert.equal(tr.history, [{ 
+        transactionName: "noop", 
+        type:'transaction', 
+        parent: undefined, 
+        operations: [], 
+        dependencies: new Set([createOrRetrievePropRef(model, "x")])
+    }]);
 });
 
 test('compound noop', () => {

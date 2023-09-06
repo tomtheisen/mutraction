@@ -8,127 +8,8 @@ type ElementPropGetters<E extends keyof HTMLElementTagNameMap> = {
 };
 export declare function element<E extends keyof HTMLElementTagNameMap>(name: E, staticAttrs: ElementStringProps<E>, dynamicAttrs: ElementPropGetters<E>, ...children: (Node | string)[]): HTMLElementTagNameMap[E] | Text;
 export declare function child(getter: () => number | string | bigint | null | undefined | HTMLElement | Text): ChildNode;
-type Key = string | symbol;
-type BaseSingleMutation = {
-	target: object;
-	name: Key;
-};
-type CreateProperty = BaseSingleMutation & {
-	type: "create";
-	newValue: any;
-};
-type DeleteProperty = BaseSingleMutation & {
-	type: "delete";
-	oldValue: any;
-};
-type ChangeProperty = BaseSingleMutation & {
-	type: "change";
-	oldValue: any;
-	newValue: any;
-};
-type ArrayExtend = BaseSingleMutation & {
-	type: "arrayextend";
-	oldLength: number;
-	newIndex: number;
-	newValue: any;
-};
-type ArrayShorten = BaseSingleMutation & {
-	type: "arrayshorten";
-	oldLength: number;
-	newLength: number;
-	removed: ReadonlyArray<any>;
-};
-type SingleMutation = CreateProperty | DeleteProperty | ChangeProperty | ArrayExtend | ArrayShorten;
-type Transaction = {
-	type: "transaction";
-	transactionName?: string;
-	parent?: Transaction;
-	operations: Mutation[];
-};
-type Mutation = SingleMutation | Transaction;
-type ReadonlyDeep<T extends object> = {
-	readonly [K in keyof T]: T[K] extends Array<infer E> ? ReadonlyArray<E> : T[K] extends Set<infer E> ? ReadonlySet<E> : T[K] extends Map<infer D, infer E> ? ReadonlyMap<D, E> : T[K] extends Function ? T[K] : T[K] extends object ? ReadonlyDeep<T[K]> : T[K];
-};
-type Subscription = {
-	dispose(): void;
-};
-type NodeOptions = {
-	node: Node;
-	cleanup?: () => void;
-};
-type NodeModifierAttribute = {
-	readonly $muType: "attribute";
-	name: string;
-	value: string;
-};
-type NodeModifier = NodeModifierAttribute;
-/**
- * Generates DOM nodes for an array of values.  The resulting nodes track the array indices.
- * Re-ordering the array will cause affected nodes to be re-generated.
- * @see ForEachPersist if you want DOM nodes to follow the array elements through order changes
- * @param array is the input array
- * @param map is the callback function to produce DOM nodes
- * @returns a DOM node you can include in a document
- */
-export declare function ForEach<TIn>(array: TIn[], map: (item: TIn, index: number, array: TIn[]) => Node | NodeOptions): Node;
-/**
- * Generates DOM nes for an array of objects.  The resulting nodes track the array elements.
- * Re-ordering the array will cause the generated nodes to re-ordered in parallel
- * @param array is the input array of objects.  Primitive values can't be used.
- * @param map is the callback function to produce DOM nodes
- * @returns a DOM node you can include in a document
- */
-export declare function ForEachPersist<TIn extends object>(array: TIn[], map: (e: TIn) => Node): Node;
-type ConditionalElement = {
-	nodeGetter: () => CharacterData;
-	conditionGetter?: () => boolean;
-};
-export declare function choose(...choices: ConditionalElement[]): Node;
 declare const RecordMutation: unique symbol;
 declare const RecordDependency: unique symbol;
-/**
- * Represents a particular named property on a particular object.
- * Similar to a property descriptor.
- */
-export declare class PropReference<T = any> {
-	#private;
-	readonly object: any;
-	readonly prop: Key;
-	constructor(object: object, prop: Key);
-	subscribe(dependencyList: DependencyList): Subscription;
-	notifySubscribers(): void;
-	get current(): T;
-	set current(newValue: T);
-}
-/**
- * Gets a PropReference for an object property.
- * This allows getting and setting a particular property on a particular object.
- * @param object is the target object
- * @param prop is the property name
- * @returns PropReference
- */
-export declare function createOrRetrievePropRef(object: object, key: Key): PropReference<unknown>;
-export declare function createOrRetrievePropRef<TObj extends object, TKey extends Key & keyof TObj>(object: TObj, prop: TKey): PropReference<TObj[TKey]>;
-/**
- * Accumulates a list of properties that are read from.
- * Normally you wouldn't use this directly from application.
- * Mostly, it's an implementation detail of effect(), but there might be a few uses here and there.
- * @see PropReference
- * @see effect
- */
-export declare class DependencyList {
-	#private;
-	active: boolean;
-	constructor(tracker: Tracker);
-	get trackedProperties(): ReadonlyArray<PropReference>;
-	addDependency(propRef: PropReference): void;
-	subscribe(callback: () => void): Subscription;
-	notifySubscribers(): void;
-	endDependencyTrack(): void;
-	/** Indicates that this dependency list is dependent on *all* tracked changes */
-	trackAllChanges(): void;
-	untrackAll(): void;
-}
 declare const defaultTrackerOptions: {
 	trackHistory: boolean;
 	autoTransactionalize: boolean;
@@ -210,6 +91,127 @@ export declare const defaultTracker: Tracker;
  * @returns a proxy-wrapped representation of the model object
  */
 export declare function track<TModel extends object>(model: TModel): TModel;
+/**
+ * Accumulates a list of properties that are read from.
+ * Normally you wouldn't use this directly from application.
+ * Mostly, it's an implementation detail of effect(), but there might be a few uses here and there.
+ * @see PropReference
+ * @see effect
+ */
+export declare class DependencyList {
+	#private;
+	active: boolean;
+	constructor(tracker: Tracker);
+	get trackedProperties(): ReadonlyArray<PropReference>;
+	addDependency(propRef: PropReference): void;
+	subscribe(callback: () => void): Subscription;
+	notifySubscribers(): void;
+	endDependencyTrack(): void;
+	/** Indicates that this dependency list is dependent on *all* tracked changes */
+	trackAllChanges(): void;
+	untrackAll(): void;
+}
+/**
+ * Represents a particular named property on a particular object.
+ * Similar to a property descriptor.
+ */
+export declare class PropReference<T = any> {
+	#private;
+	readonly object: any;
+	readonly prop: Key;
+	get subscribers(): ReadonlySet<DependencyList>;
+	constructor(object: object, prop: Key);
+	subscribe(dependencyList: DependencyList): Subscription;
+	notifySubscribers(): void;
+	get current(): T;
+	set current(newValue: T);
+}
+/**
+ * Gets a PropReference for an object property.
+ * This allows getting and setting a particular property on a particular object.
+ * @param object is the target object
+ * @param prop is the property name
+ * @returns PropReference
+ */
+export declare function createOrRetrievePropRef(object: object, key: Key): PropReference<unknown>;
+export declare function createOrRetrievePropRef<TObj extends object, TKey extends Key & keyof TObj>(object: TObj, prop: TKey): PropReference<TObj[TKey]>;
+type Key = string | symbol;
+type BaseSingleMutation = {
+	target: object;
+	name: Key;
+};
+type CreateProperty = BaseSingleMutation & {
+	type: "create";
+	newValue: any;
+};
+type DeleteProperty = BaseSingleMutation & {
+	type: "delete";
+	oldValue: any;
+};
+type ChangeProperty = BaseSingleMutation & {
+	type: "change";
+	oldValue: any;
+	newValue: any;
+};
+type ArrayExtend = BaseSingleMutation & {
+	type: "arrayextend";
+	oldLength: number;
+	newIndex: number;
+	newValue: any;
+};
+type ArrayShorten = BaseSingleMutation & {
+	type: "arrayshorten";
+	oldLength: number;
+	newLength: number;
+	removed: ReadonlyArray<any>;
+};
+type SingleMutation = CreateProperty | DeleteProperty | ChangeProperty | ArrayExtend | ArrayShorten;
+type Transaction = {
+	type: "transaction";
+	transactionName?: string;
+	parent?: Transaction;
+	operations: Mutation[];
+	dependencies: Set<PropReference>;
+};
+type Mutation = SingleMutation | Transaction;
+type ReadonlyDeep<T extends object> = {
+	readonly [K in keyof T]: T[K] extends Array<infer E> ? ReadonlyArray<E> : T[K] extends Set<infer E> ? ReadonlySet<E> : T[K] extends Map<infer D, infer E> ? ReadonlyMap<D, E> : T[K] extends Function ? T[K] : T[K] extends object ? ReadonlyDeep<T[K]> : T[K];
+};
+type Subscription = {
+	dispose(): void;
+};
+type NodeOptions = {
+	node: Node;
+	cleanup?: () => void;
+};
+type NodeModifierAttribute = {
+	readonly $muType: "attribute";
+	name: string;
+	value: string;
+};
+type NodeModifier = NodeModifierAttribute;
+/**
+ * Generates DOM nodes for an array of values.  The resulting nodes track the array indices.
+ * Re-ordering the array will cause affected nodes to be re-generated.
+ * @see ForEachPersist if you want DOM nodes to follow the array elements through order changes
+ * @param array is the input array
+ * @param map is the callback function to produce DOM nodes
+ * @returns a DOM node you can include in a document
+ */
+export declare function ForEach<TIn>(array: TIn[], map: (item: TIn, index: number, array: TIn[]) => Node | NodeOptions): Node;
+/**
+ * Generates DOM nes for an array of objects.  The resulting nodes track the array elements.
+ * Re-ordering the array will cause the generated nodes to re-ordered in parallel
+ * @param array is the input array of objects.  Primitive values can't be used.
+ * @param map is the callback function to produce DOM nodes
+ * @returns a DOM node you can include in a document
+ */
+export declare function ForEachPersist<TIn extends object>(array: TIn[], map: (e: TIn) => Node): Node;
+type ConditionalElement = {
+	nodeGetter: () => CharacterData;
+	conditionGetter?: () => boolean;
+};
+export declare function choose(...choices: ConditionalElement[]): Node;
 /**
  * checks whether the input is an object currently tracked by this instance of mutraction
  * @param obj value to check

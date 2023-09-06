@@ -1,4 +1,4 @@
-import { track, defaultTracker as tracker, DependencyList, isTracked, Tracker } from '../src/index.js';
+import { track, defaultTracker as tracker, DependencyList, isTracked, Tracker, effect, defaultTracker } from '../src/index.js';
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
@@ -100,6 +100,26 @@ test('only top dependency notified', () => {
 
     assert.equal(d1.trackedProperties.length, 2);
     assert.equal(d2.trackedProperties.length, 1);
+});
+
+test('array extend undo length dep', () => {
+    const model = track([99]);
+
+    let runs = 0;
+    effect(() => {
+        [model.length];
+        ++runs;
+    });
+    assert.equal(runs, 1);
+
+    model[1] = 77;
+    assert.equal(runs, 2);
+
+    defaultTracker.undo();
+    assert.equal(runs, 3);
+
+    defaultTracker.redo();
+    assert.equal(runs, 4);
 });
 
 test.run();

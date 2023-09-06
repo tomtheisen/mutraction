@@ -199,4 +199,30 @@ test('effects run only after transaction commitment', () => {
     assert.equal(runs, 2);
 });
 
+test('effects never run for uncommitted transaction', () => {
+    const model = track({ foo: 1 });
+
+    let runs = 0;
+    effect(() => {
+        [model.foo];
+        ++runs;
+    });
+    assert.equal(runs, 1);
+
+    defaultTracker.startTransaction();
+    model.foo = 3;
+    assert.equal(runs, 1);
+
+    defaultTracker.undo();
+    assert.equal(model.foo, 1);
+    assert.equal(runs, 1);
+
+    defaultTracker.redo();
+    assert.equal(model.foo, 3);
+    assert.equal(runs, 1);
+
+    defaultTracker.rollback();
+    assert.equal(runs, 1);
+});
+
 test.run();
