@@ -73,7 +73,7 @@ export function ForEachPersist<TIn extends object>(array: TIn[], map: (e: TIn) =
             containers.push(container);
 
             effect((dep) => {
-                // this is wild - just keep the contents together with a parent somewhere
+                // just keep the contents together with a parent somewhere
                 container.emptyAsFragment();
 
                 const item = array[i];
