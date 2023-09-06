@@ -3,15 +3,17 @@ import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
 test('undo delete redo', () => {
-    const model = track({ foo: "bar", x: 123 } as any);
+    const tr = new Tracker;
+    const model = tr.track({ foo: "bar", x: 123 } as any);
 
     delete model.foo;
     assert.not("foo" in model);
+    assert.equal(tr.history.length, 1);
 
-    tracker.undo();
+    tr.undo();
     assert.is(model.foo, "bar");
 
-    tracker.redo();
+    tr.redo();
     assert.not("foo" in model);
 });
 
@@ -32,13 +34,9 @@ test('array extend', () => {
 test('array shift rollback test', () => {
     const model = track(['a','b','c'] as any);
 
-    console.log("asrt 1");
-
     model.shift();
     assert.equal(model, ['b', 'c']);
 
-    console.log("asrt 2");
-    
     tracker.rollback();
     assert.equal(model, ['a', 'b', 'c']);
 });
