@@ -156,6 +156,31 @@ export function effectDoc() {
                 defaultTracker.commit();
                 `, ex2(), { sandboxLink: true, docAppend: "output", sandboxImports: ["defaultTracker", "effect", "track"] }
             ) }
+
+            <h2>Async effects</h2>
+            <p>
+                If the effect callback is <code>async</code>, some of the dependencies may not be recorded.
+                Only those dependencies that are read prior to the first <code>await</code> will be recorded.
+                If you want to ensure all the dependencies are honored, reference their values prior to <code>await</code>ing.
+            </p>
+            { codeSample(`
+                // Bad 📛
+                effect(() => {
+                    console.log(model.a);
+                    await doAsyncStuff();
+                    // Changes to model.b may not re-trigger the effect
+                    console.log(model.b);
+                });
+
+                // Good ✅
+                effect(() => {
+                    // The effect callback will trigger as expected
+                    const a = model.a, b = model.b;
+                    console.log(a);
+                    await doAsyncStuff();
+                    console.log(b);
+                });
+                `) }
         </>
     );
 }
