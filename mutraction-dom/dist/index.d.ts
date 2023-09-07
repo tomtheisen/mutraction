@@ -24,6 +24,7 @@ export declare class Tracker {
 	#private;
 	options: Readonly<Required<TrackerOptions>>;
 	constructor(options?: TrackerOptions);
+	setOptions(options?: TrackerOptions): void;
 	/**
 	 * Turn on change tracking for an object.
 	 * @param model

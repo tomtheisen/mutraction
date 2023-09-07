@@ -310,15 +310,22 @@ var Tracker = class {
   #transaction;
   #operationHistory;
   #redos = [];
-  options;
+  #inUse = false;
+  options = defaultTrackerOptions;
   // If defined this will be the prop reference for the "history" property of this Tracker instance
   // If so, it should be notified whenever the history is affected
   //      mutations outside of transactions
   //      non-nested transaction committed
   #historyPropRef;
   constructor(options = {}) {
-    if (options.trackHistory === false && options.compactOnCommit == null) {
-      options.compactOnCommit = false;
+    this.setOptions(options);
+  }
+  setOptions(options = {}) {
+    if (this.#inUse)
+      throw Error("Cannot change options for a tracker that has already started tracking");
+    if (options.trackHistory === false) {
+      options.compactOnCommit ??= false;
+      options.autoTransactionalize ??= false;
     }
     const appliedOptions = { ...defaultTrackerOptions, ...options };
     if (appliedOptions.autoTransactionalize && !appliedOptions.trackHistory)
@@ -339,6 +346,7 @@ var Tracker = class {
   track(model) {
     if (isTracked(model))
       throw Error("Object already tracked");
+    this.#inUse = true;
     const proxied = new Proxy(model, makeProxyHandler(model, this));
     Object.defineProperty(model, ProxyOf, {
       enumerable: false,

@@ -21,7 +21,8 @@ export class Tracker {
     #transaction?: Transaction;
     #operationHistory?: Mutation[];
     #redos: Mutation[] = [];
-    options: Readonly<Required<TrackerOptions>>;
+    #inUse = false;
+    options: Readonly<Required<TrackerOptions>> = defaultTrackerOptions;
 
     // If defined this will be the prop reference for the "history" property of this Tracker instance
     // If so, it should be notified whenever the history is affected
@@ -30,9 +31,17 @@ export class Tracker {
     #historyPropRef: PropReference | undefined;
 
     constructor(options: TrackerOptions = {}) {
-        if (options.trackHistory === false && options.compactOnCommit == null) {
+        this.setOptions(options);
+    }
+
+    setOptions(options: TrackerOptions = {}) {
+        if (this.#inUse)
+            throw Error("Cannot change options for a tracker that has already started tracking");
+
+        if (options.trackHistory === false) {
             // user specified no history tracking, so turn off compactOnCommit which requires it
-            options.compactOnCommit = false;
+            options.compactOnCommit ??= false;
+            options.autoTransactionalize ??= false;
         }
 
         const appliedOptions = { ...defaultTrackerOptions, ...options };
@@ -56,6 +65,7 @@ export class Tracker {
      */
     track<TModel extends object>(model: TModel): TModel {
         if (isTracked(model)) throw Error('Object already tracked');
+        this.#inUse = true;
         const proxied = new Proxy(model, makeProxyHandler(model, this));
 
         Object.defineProperty(model, ProxyOf, {
