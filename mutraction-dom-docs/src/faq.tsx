@@ -21,6 +21,15 @@ export function faq() {
                 Fast.  This site is all <code>mutraction-dom</code>.  Click around.  Really get a sense for it.
             </p>
 
+            <h2>Won't the undo feature cause a memory leak?</h2>
+            <p>
+                Technically it does leak memory.  But not much.  But don't take my word for it.
+                I encourage you to check out the javascript heap size in your favorite profiling tools.
+                You can turn off history tracking altogether also if you don't need transactions or undo.
+                Just have <code>{`defaultTracker.setOptions({ trackHistory: false });`}</code> at the beginning of
+                your application.
+            </p>
+
             <h2>There are so many front-end frameworks.  Why another one?</h2>
             <p>
                 I was so sure that someone must have already written one that worked like how I want.
