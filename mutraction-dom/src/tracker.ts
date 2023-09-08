@@ -3,7 +3,7 @@ import { DependencyList } from "./dependency.js";
 import { compactTransaction } from "./compactTransaction.js";
 import type { Mutation, ReadonlyDeep, SingleMutation, Transaction } from "./types.js";
 import { PropReference, createOrRetrievePropRef } from "./propref.js";
-import { isTracked, makeProxyHandler } from "./proxy.js";
+import { canBeProxied, isTracked, makeProxyHandler } from "./proxy.js";
 
 const defaultTrackerOptions = {
     trackHistory: true,
@@ -66,6 +66,7 @@ export class Tracker {
     track<TModel extends object>(model: TModel): TModel {
         if (isTracked(model)) throw Error('Object already tracked');
         this.#inUse = true;
+        if (!canBeProxied) throw Error("This object type cannot be proxied");
         const proxied = new Proxy(model, makeProxyHandler(model, this));
 
         Object.defineProperty(model, ProxyOf, {

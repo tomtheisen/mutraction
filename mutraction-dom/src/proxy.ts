@@ -33,14 +33,14 @@ function linkProxyToObject(obj: any, proxy: any) {
 }
 
 // Some types do not tolerate being proxied
-const untrackableConstructors: Set<Function> = new Set([RegExp, Promise]);
+const unproxyableConstructors: Set<Function> = new Set([RegExp, Promise, window.constructor]);
 
-function isTrackable(val: unknown): val is object {
+export function canBeProxied(val: unknown): val is object {
     if (val == null) return false;
     if (typeof val !== "object") return false;
     if (isTracked(val)) return false;
 
-    if (untrackableConstructors.has(val.constructor)) return false;
+    if (unproxyableConstructors.has(val.constructor)) return false;
 
     return true;
 }
@@ -55,7 +55,7 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
         tracker[RecordDependency](createOrRetrievePropRef(target, name));
 
         let result = Reflect.get(target, name, receiver) as TModel[TKey];
-        if (isTrackable(result)) {
+        if (canBeProxied(result)) {
             const original = result;
             const handler = makeProxyHandler(original, tracker);
             result = target[name] = new Proxy(original, handler) as typeof target[TKey];
@@ -104,7 +104,7 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
     // so if the number of completed sets changes between start and end of parent set, then don't record it
     let setsCompleted = 0;
     function setOrdinary(target: TModel, name: TKey, newValue: any, receiver: TModel) {
-        if (isTrackable(newValue)) {
+        if (canBeProxied(newValue)) {
             const handler = makeProxyHandler(newValue, tracker);
             newValue = new Proxy(newValue, handler);
         }
