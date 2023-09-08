@@ -20,8 +20,14 @@ type EffectOptions = {
 export function effect(sideEffect: (dep: DependencyList) => (void | (() => void)), options: EffectOptions = {}): Subscription {
     const { tracker = defaultTracker, suppressUntrackedWarning = false } = options;
     let dep = tracker.startDependencyTrack();
-    let lastResult = sideEffect(dep);
-    dep.endDependencyTrack();
+
+    let lastResult: ReturnType<typeof sideEffect>;
+    try {
+        lastResult = sideEffect(dep);
+    }
+    finally {
+        dep.endDependencyTrack();
+    }
 
     if (dep.trackedProperties.length === 0) {
         if(!suppressUntrackedWarning) {

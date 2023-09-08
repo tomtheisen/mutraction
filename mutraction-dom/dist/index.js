@@ -618,8 +618,12 @@ var emptyEffect = { dispose: () => {
 function effect(sideEffect, options = {}) {
   const { tracker = defaultTracker, suppressUntrackedWarning = false } = options;
   let dep = tracker.startDependencyTrack();
-  let lastResult = sideEffect(dep);
-  dep.endDependencyTrack();
+  let lastResult;
+  try {
+    lastResult = sideEffect(dep);
+  } finally {
+    dep.endDependencyTrack();
+  }
   if (dep.trackedProperties.length === 0) {
     if (!suppressUntrackedWarning) {
       console.warn("effect() callback has no dependencies on any tracked properties.  It will not fire again.");
