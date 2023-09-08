@@ -1015,7 +1015,7 @@ function makeLocalStyle(rules) {
 }
 
 // out/index.js
-var version = "0.19.1";
+var version = "0.20.0";
 export {
   DependencyList,
   ForEach,
