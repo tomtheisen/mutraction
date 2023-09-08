@@ -32,14 +32,15 @@ function linkProxyToObject(obj: any, proxy: any) {
     obj[ProxyOf] = proxy;
 }
 
+// Some types do not tolerate being proxied
+const untrackableConstructors: Set<Function> = new Set([RegExp, Promise]);
+
 function isTrackable(val: unknown): val is object {
     if (val == null) return false;
     if (typeof val !== "object") return false;
     if (isTracked(val)) return false;
 
-    // Promise resolution does not tolerate being proxied.
-    // So we just skip the whole thing.
-    if (val instanceof Promise) return false;
+    if (untrackableConstructors.has(val.constructor)) return false;
 
     return true;
 }

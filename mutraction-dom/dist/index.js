@@ -30,6 +30,7 @@ function linkProxyToObject(obj, proxy) {
   });
   obj[ProxyOf] = proxy;
 }
+var untrackableConstructors = /* @__PURE__ */ new Set([RegExp, Promise]);
 function isTrackable(val) {
   if (val == null)
     return false;
@@ -37,7 +38,7 @@ function isTrackable(val) {
     return false;
   if (isTracked(val))
     return false;
-  if (val instanceof Promise)
+  if (untrackableConstructors.has(val.constructor))
     return false;
   return true;
 }
