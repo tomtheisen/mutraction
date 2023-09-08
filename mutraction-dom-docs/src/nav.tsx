@@ -30,7 +30,6 @@ export const nav =
                         <li><a href="#ref/ForEachPersist">ForEachPersist()</a></li>
                         <li><a href="#ref/PromiseLoader">PromiseLoader()</a></li>
                         <li><a href="#ref/Swapper">Swapper()</a></li>
-                        <li><a href="#ref/ErrorBoundary">ErrorBoundary()</a></li>
                         <li><a href="#ref/Router">Router()</a></li>
                         <li><a href="#ref/makeLocalStyle">makeLocalStyle()</a></li>
                         <li><a href="#ref/Tracker">Tracker</a></li>

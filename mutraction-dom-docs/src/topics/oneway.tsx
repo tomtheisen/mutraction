@@ -20,7 +20,7 @@ export function oneWay() {
 
             <h2>But how <em>precisely</em> does that work?</h2>
             <p>
-                Let's walk through it this example.  It is totally unnecessary to follow all this.
+                Let's walk through it in this example.  It is totally unnecessary to follow all this.
                 It just works.  But if you want to know how, read on.
             </p>
             { codeSample(`
@@ -61,7 +61,7 @@ export function oneWay() {
                         Each one registers a dependency with the property reference on the proxy.
                     </p>
                     <p>
-                        In this case, there's one dependency dependency registered for child text node.
+                        In this case, there's one dependency registered for the child text node.
                     </p>
                 </li>
                 <li>Time passes…</li>

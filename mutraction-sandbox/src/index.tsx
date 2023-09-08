@@ -3,7 +3,7 @@ import { PromiseLoader, Swapper, effect, track, version } from "mutraction-dom";
 import { compress, decompress } from "./compress.js";
 import { defaultSource } from "./defaultSource.js";
 import type * as monacoType from "monaco-editor";
-import { jsxDTS, mutractionDomModule } from "./mutractionDomModuleTypeSource.js";
+import { getJsxDts, getMutractionDom as getMutractionDomDts } from "./mutractionDomModuleTypeSource.js";
 import { getScaffoldZipUrl } from "./makeZip.js";
 import { getSelfContainedUrl } from "./selfContained.js";
 import { muCompile } from "./compile.js";
@@ -268,6 +268,9 @@ async function init() {
         : sessionStorage.getItem(storageKey) ?? defaultSource;
     run(source);
 
+    const indexDts = await getMutractionDomDts();
+    const jsxDts = await getJsxDts();
+
     // this stuff is actually async, but not awaitable
     require.config({ paths: { vs: 'monaco/vs' } });
     require(['vs/editor/editor.main'], function () {
@@ -281,10 +284,10 @@ async function init() {
         });
 
         // mutraction typedefs
-        monaco.languages.typescript.typescriptDefaults.addExtraLib(mutractionDomModule, "mutraction-dom.ts");
+        monaco.languages.typescript.typescriptDefaults.addExtraLib(indexDts, "mutraction-dom.ts");
 
         // jsx types
-        monaco.languages.typescript.typescriptDefaults.addExtraLib(jsxDTS, "file:///node_modules/mutraction-dom/jsx-runtime/index.d.ts");
+        monaco.languages.typescript.typescriptDefaults.addExtraLib(jsxDts, "file:///node_modules/mutraction-dom/jsx-runtime/index.d.ts");
         
         // create the editor
         editor = monaco.editor.create(sourceBox, { 

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.20.0] - 2023-09-08
+
+### Removed
+
+- `ErrorBoundary` - turns out it wasn't that good, and you can accomplish most of what you'd care about with `catch`
+
 ## [0.19.1] - 2023-09-05
 
 ### Changed

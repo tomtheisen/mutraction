@@ -24,6 +24,7 @@ export declare class Tracker {
 	#private;
 	options: Readonly<Required<TrackerOptions>>;
 	constructor(options?: TrackerOptions);
+	setOptions(options?: TrackerOptions): void;
 	/**
 	 * Turn on change tracking for an object.
 	 * @param model
@@ -198,7 +199,7 @@ type NodeModifier = NodeModifierAttribute;
  * @param map is the callback function to produce DOM nodes
  * @returns a DOM node you can include in a document
  */
-export declare function ForEach<TIn>(array: TIn[], map: (item: TIn, index: number, array: TIn[]) => Node | NodeOptions): Node;
+export declare function ForEach<TIn>(array: TIn[], map: (item: TIn, index: number, array: TIn[]) => (Node | NodeOptions)): Node;
 /**
  * Generates DOM nes for an array of objects.  The resulting nodes track the array elements.
  * Re-ordering the array will cause the generated nodes to re-ordered in parallel
@@ -226,14 +227,6 @@ type ErrorResult = Node | ((reason: any) => Node);
  * @returns a DOM node which contains the spinner, and then the loaded data.
  */
 export declare function PromiseLoader(promise: Promise<Node>, spinner?: Node, onError?: ErrorResult): DocumentFragment;
-/**
- * Shows a node constructed from a factory unless it throws.  In that case,
- * fall back to the error node factory.
- * @param nodeFactory produces the normal content to show.
- * @param showErr produces the error fallback content in case an error is thrown.
- * @returns a DOM node
- */
-export declare function ErrorBoundary(nodeFactory: () => Node, showErr: (err: any) => Node): Node;
 /**
  * Automatically replaces an entire DOM node when its dependencies change.
  * Normally, only node contents and attributes are dynamically updated, but not DOM nodes themselves.

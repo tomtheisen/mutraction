@@ -14,15 +14,16 @@ export function Swapper(nodeFactory: () => Node | NodeOptions) {
 
     effect(() => {
         cleanup?.();
+        cleanup = undefined;
 
         const output = nodeFactory();
+
         if (isNodeOptions(output)) {
             span.replaceWith(output.node);
             cleanup = output.cleanup;
         }
-        else {
+        else if (output != null) {
             span.replaceWith(output);
-            cleanup = undefined;
         }
     });
     return span.removeAsFragment();

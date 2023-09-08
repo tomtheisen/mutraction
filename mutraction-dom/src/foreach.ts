@@ -12,7 +12,7 @@ const suppress = { suppressUntrackedWarning: true };
  * @param map is the callback function to produce DOM nodes
  * @returns a DOM node you can include in a document
  */
-export function ForEach<TIn>(array: TIn[], map: (item: TIn, index: number, array: TIn[]) => Node | NodeOptions): Node {
+export function ForEach<TIn>(array: TIn[], map: (item: TIn, index: number, array: TIn[]) => (Node | NodeOptions)): Node {
     const result = new ElementSpan();
     type Output = { container: ElementSpan, cleanup?: () => void };
     const outputs: Output[] = [];
@@ -26,16 +26,12 @@ export function ForEach<TIn>(array: TIn[], map: (item: TIn, index: number, array
             effect(itemDep => {
                 output.cleanup?.();
                 const item = array[i];
-
-                // in operations like .splice() elements are removed prior to updating length
-                // so this code needs to be null-tolerant even though the type system says otherwise.
                 const projection = item !== undefined ? map(item, i, array) : document.createTextNode("");
-
                 if (isNodeOptions(projection)) {
                     output.container.replaceWith(projection.node);
                     output.cleanup = projection.cleanup;
                 }
-                else {
+                else if (projection != null) {
                     output.container.replaceWith(projection);
                     output.cleanup = undefined;
                 }
@@ -84,16 +80,20 @@ export function ForEachPersist<TIn extends object>(array: TIn[], map: (e: TIn) =
                 let newContents = outputMap.get(item);
                 if (newContents == null) {
                     if (dep) dep.active = false;
-                    let newNode = map(item);
-                    newContents = newNode instanceof HTMLElement ? newNode : new ElementSpan(newNode);
-                    outputMap.set(item, newContents);
-                    if (dep) dep.active = true;
+                    try {
+                        const newNode = map(item); // this is the line that might throw
+                        newContents = newNode instanceof HTMLElement ? newNode : new ElementSpan(newNode);
+                        outputMap.set(item, newContents);
+                    }
+                    finally {
+                        if (dep) dep.active = true;
+                    }
                 }
 
                 if (newContents instanceof HTMLElement) {
                     container.replaceWith(newContents);
                 }
-                else {
+                else if (newContents != null) {
                     container.replaceWith(newContents.removeAsFragment());
                 }
             }, suppress);

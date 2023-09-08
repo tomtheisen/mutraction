@@ -30,14 +30,15 @@ function linkProxyToObject(obj, proxy) {
   });
   obj[ProxyOf] = proxy;
 }
-function isTrackable(val) {
+var unproxyableConstructors = /* @__PURE__ */ new Set([RegExp, Promise, window.constructor]);
+function canBeProxied(val) {
   if (val == null)
     return false;
   if (typeof val !== "object")
     return false;
   if (isTracked(val))
     return false;
-  if (val instanceof Promise)
+  if (unproxyableConstructors.has(val.constructor))
     return false;
   return true;
 }
@@ -49,7 +50,7 @@ function makeProxyHandler(model, tracker) {
       return target;
     tracker[RecordDependency](createOrRetrievePropRef(target, name));
     let result = Reflect.get(target, name, receiver);
-    if (isTrackable(result)) {
+    if (canBeProxied(result)) {
       const original = result;
       const handler = makeProxyHandler(original, tracker);
       result = target[name] = new Proxy(original, handler);
@@ -91,7 +92,7 @@ function makeProxyHandler(model, tracker) {
   }
   let setsCompleted = 0;
   function setOrdinary(target, name, newValue, receiver) {
-    if (isTrackable(newValue)) {
+    if (canBeProxied(newValue)) {
       const handler = makeProxyHandler(newValue, tracker);
       newValue = new Proxy(newValue, handler);
     }
@@ -310,15 +311,22 @@ var Tracker = class {
   #transaction;
   #operationHistory;
   #redos = [];
-  options;
+  #inUse = false;
+  options = defaultTrackerOptions;
   // If defined this will be the prop reference for the "history" property of this Tracker instance
   // If so, it should be notified whenever the history is affected
   //      mutations outside of transactions
   //      non-nested transaction committed
   #historyPropRef;
   constructor(options = {}) {
-    if (options.trackHistory === false && options.compactOnCommit == null) {
-      options.compactOnCommit = false;
+    this.setOptions(options);
+  }
+  setOptions(options = {}) {
+    if (this.#inUse)
+      throw Error("Cannot change options for a tracker that has already started tracking");
+    if (options.trackHistory === false) {
+      options.compactOnCommit ??= false;
+      options.autoTransactionalize ??= false;
     }
     const appliedOptions = { ...defaultTrackerOptions, ...options };
     if (appliedOptions.autoTransactionalize && !appliedOptions.trackHistory)
@@ -339,6 +347,9 @@ var Tracker = class {
   track(model) {
     if (isTracked(model))
       throw Error("Object already tracked");
+    this.#inUse = true;
+    if (!canBeProxied)
+      throw Error("This object type cannot be proxied");
     const proxied = new Proxy(model, makeProxyHandler(model, this));
     Object.defineProperty(model, ProxyOf, {
       enumerable: false,
@@ -610,8 +621,12 @@ var emptyEffect = { dispose: () => {
 function effect(sideEffect, options = {}) {
   const { tracker = defaultTracker, suppressUntrackedWarning = false } = options;
   let dep = tracker.startDependencyTrack();
-  let lastResult = sideEffect(dep);
-  dep.endDependencyTrack();
+  let lastResult;
+  try {
+    lastResult = sideEffect(dep);
+  } finally {
+    dep.endDependencyTrack();
+  }
   if (dep.trackedProperties.length === 0) {
     if (!suppressUntrackedWarning) {
       console.warn("effect() callback has no dependencies on any tracked properties.  It will not fire again.");
@@ -765,17 +780,9 @@ var ElementSpan = class {
     result.append(...nodes);
     return result;
   }
-  /** removes the interior contents of the span */
-  clear() {
-    while (!Object.is(this.startMarker.nextSibling, this.endMarker)) {
-      if (this.startMarker.nextSibling == null)
-        throw Error("End marker not found as subsequent document sibling as start marker");
-      this.startMarker.nextSibling.remove();
-    }
-  }
   /** replaces the interior contents of the span */
   replaceWith(...nodes) {
-    this.clear();
+    this.emptyAsFragment();
     this.append(...nodes);
   }
   append(...nodes) {
@@ -808,7 +815,7 @@ function ForEach(array, map) {
         if (isNodeOptions(projection)) {
           output.container.replaceWith(projection.node);
           output.cleanup = projection.cleanup;
-        } else {
+        } else if (projection != null) {
           output.container.replaceWith(projection);
           output.cleanup = void 0;
         }
@@ -842,15 +849,18 @@ function ForEachPersist(array, map) {
         if (newContents == null) {
           if (dep)
             dep.active = false;
-          let newNode = map(item);
-          newContents = newNode instanceof HTMLElement ? newNode : new ElementSpan(newNode);
-          outputMap.set(item, newContents);
-          if (dep)
-            dep.active = true;
+          try {
+            const newNode = map(item);
+            newContents = newNode instanceof HTMLElement ? newNode : new ElementSpan(newNode);
+            outputMap.set(item, newContents);
+          } finally {
+            if (dep)
+              dep.active = true;
+          }
         }
         if (newContents instanceof HTMLElement) {
           container.replaceWith(newContents);
-        } else {
+        } else if (newContents != null) {
           container.replaceWith(newContents.removeAsFragment());
         }
       }, suppress2);
@@ -921,28 +931,19 @@ function PromiseLoader(promise, spinner = document.createTextNode(""), onError =
   return span.removeAsFragment();
 }
 
-// out/errorBoundary.js
-function ErrorBoundary(nodeFactory, showErr) {
-  try {
-    return nodeFactory();
-  } catch (ex) {
-    return showErr(ex);
-  }
-}
-
 // out/swapper.js
 function Swapper(nodeFactory) {
   const span = new ElementSpan();
   let cleanup;
   effect(() => {
     cleanup?.();
+    cleanup = void 0;
     const output = nodeFactory();
     if (isNodeOptions(output)) {
       span.replaceWith(output.node);
       cleanup = output.cleanup;
-    } else {
+    } else if (output != null) {
       span.replaceWith(output);
-      cleanup = void 0;
     }
   });
   return span.removeAsFragment();
@@ -1017,10 +1018,9 @@ function makeLocalStyle(rules) {
 console.log("setting up mutraction");
 
 // out/index.js
-var version = "0.19.1";
+var version = "0.20.0";
 export {
   DependencyList,
-  ErrorBoundary,
   ForEach,
   ForEachPersist,
   PromiseLoader,

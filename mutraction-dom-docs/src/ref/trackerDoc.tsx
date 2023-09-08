@@ -37,14 +37,6 @@ export function trackerDoc() {
                             </p>
                         </li>
                         <li>
-                            <code>deferNotifications</code> - default <code>false</code>
-                            <p>
-                                Normally dependency subscribers are notified synchronously
-                                when a property changes.  This option will cause notifications
-                                to be scheduled in a <a href="https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide">microtask</a>.
-                            </p>
-                        </li>
-                        <li>
                             <code>compactOnCommit</code> - default <code>true</code>
                             <p>
                                 Transactions often have series of mutations that
@@ -87,6 +79,15 @@ export function trackerDoc() {
                         The return value is a deeply read-only version of the input type.
                         This may be useful if you want to force all mutations to happen
                         in model methods, rather that direct mutations.
+                    </p>
+                </li>
+                <li>
+                    <code>setOptions(options)</code>
+                    <p>
+                        This configures the tracker.
+                        The available options are the same as listed for the constructor.
+                        This method cannot be called after <code>track()</code> has been invoked on this tracker.
+                        The primary use case for this method is to configure the default <code>Tracker</code> instance.
                     </p>
                 </li>
                 <li>

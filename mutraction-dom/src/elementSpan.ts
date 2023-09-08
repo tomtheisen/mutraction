@@ -47,18 +47,9 @@ export class ElementSpan {
         return result;
     }
 
-    /** removes the interior contents of the span */
-    clear() {
-        while (!Object.is(this.startMarker.nextSibling, this.endMarker)) {
-            if (this.startMarker.nextSibling == null)
-                throw Error("End marker not found as subsequent document sibling as start marker");
-            this.startMarker.nextSibling.remove();
-        }
-    }
-
     /** replaces the interior contents of the span */
     replaceWith(...nodes: Node[]) {
-        this.clear();
+        this.emptyAsFragment();
         this.append(...nodes);
     }
 
