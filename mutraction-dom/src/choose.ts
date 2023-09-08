@@ -1,5 +1,6 @@
 import { effect } from "./effect.js";
 import { memoize } from "./memoize.js";
+import { ScopeTypes, getScopedValue } from "./scope.js";
 
 type ConditionalElement = {
     nodeGetter: () => CharacterData;
@@ -10,6 +11,7 @@ const suppress = { suppressUntrackedWarning: true } as const;
 
 export function choose(...choices: ConditionalElement[]): Node {
     const lazyChoices: ConditionalElement[] = [];
+    const errorBoundary = getScopedValue(ScopeTypes.errorBoundary);
     let foundUnconditional = false;
 
     for (const choice of choices) {
@@ -36,9 +38,19 @@ export function choose(...choices: ConditionalElement[]): Node {
     effect(() => {
         for (const { nodeGetter, conditionGetter } of lazyChoices) {
             if (!conditionGetter || conditionGetter()) {
-                const newNode = nodeGetter();
-                current.replaceWith(newNode);
-                current = newNode;
+                function doReplace() {
+                    const newNode = nodeGetter();
+                    current.replaceWith(newNode);
+                    current = newNode;
+                }
+                
+                if (errorBoundary) {
+                    try { doReplace(); }
+                    catch (err) { errorBoundary(err); }
+                }
+                else {
+                    doReplace();
+                }
                 break;
             }
         }

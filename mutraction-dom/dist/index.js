@@ -778,17 +778,9 @@ var ElementSpan = class {
     result.append(...nodes);
     return result;
   }
-  /** removes the interior contents of the span */
-  clear() {
-    while (!Object.is(this.startMarker.nextSibling, this.endMarker)) {
-      if (this.startMarker.nextSibling == null)
-        throw Error("End marker not found as subsequent document sibling as start marker");
-      this.startMarker.nextSibling.remove();
-    }
-  }
   /** replaces the interior contents of the span */
   replaceWith(...nodes) {
-    this.clear();
+    this.emptyAsFragment();
     this.append(...nodes);
   }
   append(...nodes) {
@@ -800,6 +792,34 @@ var ElementSpan = class {
   }
 };
 
+// out/scope.js
+function createScopeType(name) {
+  return Object.freeze({ name });
+}
+var ScopeTypes = Object.freeze({
+  errorBoundary: createScopeType("error boundary")
+});
+var currentScope;
+function enterScope(type, value) {
+  currentScope = { type, value, parent: currentScope };
+}
+function exitScope(type) {
+  if (!currentScope)
+    throw Error("No active scope to exit.");
+  if (!Object.is(type, currentScope?.type))
+    throw Error(`Tried to exit scope: ${type.name} instead of ${currentScope.type.name}`);
+  currentScope = currentScope?.parent;
+}
+function scopeIsOfType(scope, type) {
+  return Object.is(scope.type, type);
+}
+function getScopedValue(type) {
+  for (let s = currentScope; s; s = s.parent) {
+    if (scopeIsOfType(s, type))
+      return s.value;
+  }
+}
+
 // out/types.js
 function isNodeOptions(arg) {
   return arg != null && typeof arg === "object" && "node" in arg && arg.node instanceof Node;
@@ -810,6 +830,7 @@ var suppress2 = { suppressUntrackedWarning: true };
 function ForEach(array, map) {
   const result = new ElementSpan();
   const outputs = [];
+  const errorBoundary = getScopedValue(ScopeTypes.errorBoundary);
   effect((lengthDep) => {
     for (let i = outputs.length; i < array.length; i++) {
       const output = { container: new ElementSpan() };
@@ -817,11 +838,20 @@ function ForEach(array, map) {
       effect((itemDep) => {
         output.cleanup?.();
         const item = array[i];
-        const projection = item !== void 0 ? map(item, i, array) : document.createTextNode("");
+        let projection;
+        if (errorBoundary) {
+          try {
+            projection = item !== void 0 ? map(item, i, array) : document.createTextNode("");
+          } catch (err) {
+            errorBoundary(err);
+          }
+        } else {
+          projection = item !== void 0 ? map(item, i, array) : document.createTextNode("");
+        }
         if (isNodeOptions(projection)) {
           output.container.replaceWith(projection.node);
           output.cleanup = projection.cleanup;
-        } else {
+        } else if (projection != null) {
           output.container.replaceWith(projection);
           output.cleanup = void 0;
         }
@@ -840,6 +870,7 @@ function ForEachPersist(array, map) {
   const result = new ElementSpan();
   const containers = [];
   const outputMap = /* @__PURE__ */ new WeakMap();
+  const errorBoundary = getScopedValue(ScopeTypes.errorBoundary);
   effect(() => {
     for (let i = containers.length; i < array.length; i++) {
       const container = new ElementSpan();
@@ -855,15 +886,23 @@ function ForEachPersist(array, map) {
         if (newContents == null) {
           if (dep)
             dep.active = false;
-          let newNode = map(item);
-          newContents = newNode instanceof HTMLElement ? newNode : new ElementSpan(newNode);
-          outputMap.set(item, newContents);
-          if (dep)
-            dep.active = true;
+          try {
+            const newNode = map(item);
+            newContents = newNode instanceof HTMLElement ? newNode : new ElementSpan(newNode);
+            outputMap.set(item, newContents);
+          } catch (err) {
+            if (errorBoundary)
+              errorBoundary(err);
+            else
+              throw err;
+          } finally {
+            if (dep)
+              dep.active = true;
+          }
         }
         if (newContents instanceof HTMLElement) {
           container.replaceWith(newContents);
-        } else {
+        } else if (newContents != null) {
           container.replaceWith(newContents.removeAsFragment());
         }
       }, suppress2);
@@ -890,6 +929,7 @@ function memoize(getter) {
 var suppress3 = { suppressUntrackedWarning: true };
 function choose(...choices) {
   const lazyChoices = [];
+  const errorBoundary = getScopedValue(ScopeTypes.errorBoundary);
   let foundUnconditional = false;
   for (const choice of choices) {
     if ("conditionGetter" in choice) {
@@ -913,9 +953,21 @@ function choose(...choices) {
   effect(() => {
     for (const { nodeGetter, conditionGetter } of lazyChoices) {
       if (!conditionGetter || conditionGetter()) {
-        const newNode = nodeGetter();
-        current.replaceWith(newNode);
-        current = newNode;
+        let doReplace2 = function() {
+          const newNode = nodeGetter();
+          current.replaceWith(newNode);
+          current = newNode;
+        };
+        var doReplace = doReplace2;
+        if (errorBoundary) {
+          try {
+            doReplace2();
+          } catch (err) {
+            errorBoundary(err);
+          }
+        } else {
+          doReplace2();
+        }
         break;
       }
     }
@@ -936,26 +988,44 @@ function PromiseLoader(promise, spinner = document.createTextNode(""), onError =
 
 // out/errorBoundary.js
 function ErrorBoundary(nodeFactory, showErr) {
-  try {
-    return nodeFactory();
-  } catch (ex) {
-    return showErr(ex);
+  const span = new ElementSpan();
+  function handleErr(err) {
+    span.replaceWith(showErr(err));
   }
+  try {
+    enterScope(ScopeTypes.errorBoundary, handleErr);
+    span.append(nodeFactory());
+  } catch (err) {
+    handleErr(err);
+  } finally {
+    exitScope(ScopeTypes.errorBoundary);
+  }
+  return span.removeAsFragment();
 }
 
 // out/swapper.js
 function Swapper(nodeFactory) {
   const span = new ElementSpan();
+  const errorBoundary = getScopedValue(ScopeTypes.errorBoundary);
   let cleanup;
   effect(() => {
     cleanup?.();
-    const output = nodeFactory();
+    cleanup = void 0;
+    let output;
+    if (errorBoundary) {
+      try {
+        output = nodeFactory();
+      } catch (err) {
+        errorBoundary(err);
+      }
+    } else {
+      output = nodeFactory();
+    }
     if (isNodeOptions(output)) {
       span.replaceWith(output.node);
       cleanup = output.cleanup;
-    } else {
+    } else if (output != null) {
       span.replaceWith(output);
-      cleanup = void 0;
     }
   });
   return span.removeAsFragment();

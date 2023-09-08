@@ -1,5 +1,6 @@
 import { effect } from "./effect.js";
 import { ElementSpan } from "./elementSpan.js";
+import { ScopeTypes, getScopedValue } from "./scope.js";
 import { NodeOptions, isNodeOptions } from "./types.js";
 
 /**
@@ -10,19 +11,31 @@ import { NodeOptions, isNodeOptions } from "./types.js";
  */
 export function Swapper(nodeFactory: () => Node | NodeOptions) {
     const span = new ElementSpan();
+    const errorBoundary = getScopedValue(ScopeTypes.errorBoundary);
     let cleanup: (() => void) | undefined;
 
     effect(() => {
         cleanup?.();
+        cleanup = undefined;
 
-        const output = nodeFactory();
+        let output: Node | NodeOptions | undefined;
+        if (errorBoundary) {
+            try {
+                output = nodeFactory();
+            }
+            catch (err) {
+                errorBoundary(err);
+            }
+        }
+        else {
+            output = nodeFactory();
+        }
         if (isNodeOptions(output)) {
             span.replaceWith(output.node);
             cleanup = output.cleanup;
         }
-        else {
+        else if (output != null) {
             span.replaceWith(output);
-            cleanup = undefined;
         }
     });
     return span.removeAsFragment();

@@ -52,5 +52,6 @@ type NodeModifierAttribute = {
     value: string;
 };
 
+// applied with mu:apply
 // when more concrete modifiers are added, this will become a union
 export type NodeModifier = NodeModifierAttribute;

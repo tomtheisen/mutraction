@@ -199,7 +199,7 @@ type NodeModifier = NodeModifierAttribute;
  * @param map is the callback function to produce DOM nodes
  * @returns a DOM node you can include in a document
  */
-export declare function ForEach<TIn>(array: TIn[], map: (item: TIn, index: number, array: TIn[]) => Node | NodeOptions): Node;
+export declare function ForEach<TIn>(array: TIn[], map: (item: TIn, index: number, array: TIn[]) => (Node | NodeOptions)): Node;
 /**
  * Generates DOM nes for an array of objects.  The resulting nodes track the array elements.
  * Re-ordering the array will cause the generated nodes to re-ordered in parallel
