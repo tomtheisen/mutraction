@@ -1,6 +1,5 @@
 import { effect } from "./effect.js"
 import { ElementSpan } from './elementSpan.js';
-import { getScopedValue, ScopeTypes } from "./scope.js";
 import { isNodeOptions, type NodeOptions } from "./types.js";
 
 const suppress = { suppressUntrackedWarning: true };
@@ -17,7 +16,6 @@ export function ForEach<TIn>(array: TIn[], map: (item: TIn, index: number, array
     const result = new ElementSpan();
     type Output = { container: ElementSpan, cleanup?: () => void };
     const outputs: Output[] = [];
-    const errorBoundary = getScopedValue(ScopeTypes.errorBoundary);
 
     effect(lengthDep => {
         // i is scoped to each loop body invocation
@@ -28,23 +26,7 @@ export function ForEach<TIn>(array: TIn[], map: (item: TIn, index: number, array
             effect(itemDep => {
                 output.cleanup?.();
                 const item = array[i];
-
-                let projection: Node | NodeOptions | undefined;
-
-                if (errorBoundary) {
-                    try {
-                        // in operations like .splice() elements are removed prior to updating length
-                        // so this code needs to be null-tolerant even though the type system says otherwise.
-                        projection = item !== undefined ? map(item, i, array) : document.createTextNode("");
-                    }
-                    catch (err) {
-                        errorBoundary(err);
-                    }
-                }
-                else {
-                    projection = item !== undefined ? map(item, i, array) : document.createTextNode("");
-                }
-
+                const projection = item !== undefined ? map(item, i, array) : document.createTextNode("");
                 if (isNodeOptions(projection)) {
                     output.container.replaceWith(projection.node);
                     output.cleanup = projection.cleanup;
@@ -79,7 +61,6 @@ export function ForEachPersist<TIn extends object>(array: TIn[], map: (e: TIn) =
     const result = new ElementSpan();
     const containers: ElementSpan[] = [];
     const outputMap = new WeakMap<TIn, HTMLElement | ElementSpan>;
-    const errorBoundary = getScopedValue(ScopeTypes.errorBoundary);
 
     effect(() => {
         // i is scoped to each loop body invocation
@@ -103,10 +84,6 @@ export function ForEachPersist<TIn extends object>(array: TIn[], map: (e: TIn) =
                         const newNode = map(item); // this is the line that might throw
                         newContents = newNode instanceof HTMLElement ? newNode : new ElementSpan(newNode);
                         outputMap.set(item, newContents);
-                    }
-                    catch (err) {
-                        if (errorBoundary) errorBoundary(err);
-                        else throw err;
                     }
                     finally {
                         if (dep) dep.active = true;

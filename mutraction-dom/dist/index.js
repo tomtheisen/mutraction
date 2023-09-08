@@ -30,15 +30,15 @@ function linkProxyToObject(obj, proxy) {
   });
   obj[ProxyOf] = proxy;
 }
-var untrackableConstructors = /* @__PURE__ */ new Set([RegExp, Promise]);
-function isTrackable(val) {
+var unproxyableConstructors = /* @__PURE__ */ new Set([RegExp, Promise, window.constructor]);
+function canBeProxied(val) {
   if (val == null)
     return false;
   if (typeof val !== "object")
     return false;
   if (isTracked(val))
     return false;
-  if (untrackableConstructors.has(val.constructor))
+  if (unproxyableConstructors.has(val.constructor))
     return false;
   return true;
 }
@@ -50,7 +50,7 @@ function makeProxyHandler(model, tracker) {
       return target;
     tracker[RecordDependency](createOrRetrievePropRef(target, name));
     let result = Reflect.get(target, name, receiver);
-    if (isTrackable(result)) {
+    if (canBeProxied(result)) {
       const original = result;
       const handler = makeProxyHandler(original, tracker);
       result = target[name] = new Proxy(original, handler);
@@ -92,7 +92,7 @@ function makeProxyHandler(model, tracker) {
   }
   let setsCompleted = 0;
   function setOrdinary(target, name, newValue, receiver) {
-    if (isTrackable(newValue)) {
+    if (canBeProxied(newValue)) {
       const handler = makeProxyHandler(newValue, tracker);
       newValue = new Proxy(newValue, handler);
     }
@@ -348,6 +348,8 @@ var Tracker = class {
     if (isTracked(model))
       throw Error("Object already tracked");
     this.#inUse = true;
+    if (!canBeProxied)
+      throw Error("This object type cannot be proxied");
     const proxied = new Proxy(model, makeProxyHandler(model, this));
     Object.defineProperty(model, ProxyOf, {
       enumerable: false,
@@ -792,34 +794,6 @@ var ElementSpan = class {
   }
 };
 
-// out/scope.js
-function createScopeType(name) {
-  return Object.freeze({ name });
-}
-var ScopeTypes = Object.freeze({
-  errorBoundary: createScopeType("error boundary")
-});
-var currentScope;
-function enterScope(type, value) {
-  currentScope = { type, value, parent: currentScope };
-}
-function exitScope(type) {
-  if (!currentScope)
-    throw Error("No active scope to exit.");
-  if (!Object.is(type, currentScope?.type))
-    throw Error(`Tried to exit scope: ${type.name} instead of ${currentScope.type.name}`);
-  currentScope = currentScope?.parent;
-}
-function scopeIsOfType(scope, type) {
-  return Object.is(scope.type, type);
-}
-function getScopedValue(type) {
-  for (let s = currentScope; s; s = s.parent) {
-    if (scopeIsOfType(s, type))
-      return s.value;
-  }
-}
-
 // out/types.js
 function isNodeOptions(arg) {
   return arg != null && typeof arg === "object" && "node" in arg && arg.node instanceof Node;
@@ -830,7 +804,6 @@ var suppress2 = { suppressUntrackedWarning: true };
 function ForEach(array, map) {
   const result = new ElementSpan();
   const outputs = [];
-  const errorBoundary = getScopedValue(ScopeTypes.errorBoundary);
   effect((lengthDep) => {
     for (let i = outputs.length; i < array.length; i++) {
       const output = { container: new ElementSpan() };
@@ -838,16 +811,7 @@ function ForEach(array, map) {
       effect((itemDep) => {
         output.cleanup?.();
         const item = array[i];
-        let projection;
-        if (errorBoundary) {
-          try {
-            projection = item !== void 0 ? map(item, i, array) : document.createTextNode("");
-          } catch (err) {
-            errorBoundary(err);
-          }
-        } else {
-          projection = item !== void 0 ? map(item, i, array) : document.createTextNode("");
-        }
+        const projection = item !== void 0 ? map(item, i, array) : document.createTextNode("");
         if (isNodeOptions(projection)) {
           output.container.replaceWith(projection.node);
           output.cleanup = projection.cleanup;
@@ -870,7 +834,6 @@ function ForEachPersist(array, map) {
   const result = new ElementSpan();
   const containers = [];
   const outputMap = /* @__PURE__ */ new WeakMap();
-  const errorBoundary = getScopedValue(ScopeTypes.errorBoundary);
   effect(() => {
     for (let i = containers.length; i < array.length; i++) {
       const container = new ElementSpan();
@@ -890,11 +853,6 @@ function ForEachPersist(array, map) {
             const newNode = map(item);
             newContents = newNode instanceof HTMLElement ? newNode : new ElementSpan(newNode);
             outputMap.set(item, newContents);
-          } catch (err) {
-            if (errorBoundary)
-              errorBoundary(err);
-            else
-              throw err;
           } finally {
             if (dep)
               dep.active = true;
@@ -929,7 +887,6 @@ function memoize(getter) {
 var suppress3 = { suppressUntrackedWarning: true };
 function choose(...choices) {
   const lazyChoices = [];
-  const errorBoundary = getScopedValue(ScopeTypes.errorBoundary);
   let foundUnconditional = false;
   for (const choice of choices) {
     if ("conditionGetter" in choice) {
@@ -953,21 +910,9 @@ function choose(...choices) {
   effect(() => {
     for (const { nodeGetter, conditionGetter } of lazyChoices) {
       if (!conditionGetter || conditionGetter()) {
-        let doReplace2 = function() {
-          const newNode = nodeGetter();
-          current.replaceWith(newNode);
-          current = newNode;
-        };
-        var doReplace = doReplace2;
-        if (errorBoundary) {
-          try {
-            doReplace2();
-          } catch (err) {
-            errorBoundary(err);
-          }
-        } else {
-          doReplace2();
-        }
+        const newNode = nodeGetter();
+        current.replaceWith(newNode);
+        current = newNode;
         break;
       }
     }
@@ -986,41 +931,14 @@ function PromiseLoader(promise, spinner = document.createTextNode(""), onError =
   return span.removeAsFragment();
 }
 
-// out/errorBoundary.js
-function ErrorBoundary(nodeFactory, showErr) {
-  const span = new ElementSpan();
-  function handleErr(err) {
-    span.replaceWith(showErr(err));
-  }
-  try {
-    enterScope(ScopeTypes.errorBoundary, handleErr);
-    span.append(nodeFactory());
-  } catch (err) {
-    handleErr(err);
-  } finally {
-    exitScope(ScopeTypes.errorBoundary);
-  }
-  return span.removeAsFragment();
-}
-
 // out/swapper.js
 function Swapper(nodeFactory) {
   const span = new ElementSpan();
-  const errorBoundary = getScopedValue(ScopeTypes.errorBoundary);
   let cleanup;
   effect(() => {
     cleanup?.();
     cleanup = void 0;
-    let output;
-    if (errorBoundary) {
-      try {
-        output = nodeFactory();
-      } catch (err) {
-        errorBoundary(err);
-      }
-    } else {
-      output = nodeFactory();
-    }
+    const output = nodeFactory();
     if (isNodeOptions(output)) {
       span.replaceWith(output.node);
       cleanup = output.cleanup;
@@ -1100,7 +1018,6 @@ function makeLocalStyle(rules) {
 var version = "0.19.1";
 export {
   DependencyList,
-  ErrorBoundary,
   ForEach,
   ForEachPersist,
   PromiseLoader,

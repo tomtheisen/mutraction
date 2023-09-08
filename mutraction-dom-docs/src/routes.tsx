@@ -18,7 +18,6 @@ import { forEach } from "./ref/forEach.js";
 import { forEachPersist } from "./ref/forEachPersist.js";
 import { promiseLoader } from "./promiseLoader.js";
 import { swapper } from "./ref/swapper.js";
-import { errorBoundary } from "./ref/errorBoundary.js";
 import { trackDoc } from "./ref/trackDoc.js";
 import { effectDoc } from "./ref/effectDoc.js";
 import { routerDoc } from "./ref/routerDoc.js";
@@ -55,7 +54,6 @@ export const routes = Router(
     { pattern: '#ref/ForEachPersist', element: forEachPersist },
     { pattern: '#ref/PromiseLoader', element: promiseLoader },
     { pattern: '#ref/Swapper', element: swapper },
-    { pattern: '#ref/ErrorBoundary', element: errorBoundary },
     { pattern: '#ref/track', element: trackDoc },
     { pattern: '#ref/effect', element: effectDoc },
     { pattern: '#ref/Router', element: routerDoc },
