@@ -2,6 +2,7 @@
     --brand-hue: 215;
     --primary-color: hsl(var(--brand-hue), 100%, 50%);
     --header-height: 3.5em;
+    color-scheme: dark;
 }
 
 .primary {
