@@ -4,11 +4,11 @@ In here, we can create our panel.
 */
 
 function handleShown() {
-  console.log("panel is being shown");
+  port.postMessage({ type: "panel-shown" });
 }
 
 function handleHidden() {
-  console.log("panel is being hidden");
+  port.postMessage({ type: "panel-hidden" });
 }
 
 /**
@@ -26,7 +26,5 @@ browser.devtools.panels.create(
 const port = browser.runtime.connect({ name: 'devtools' });
 
 browser.devtools.network.onNavigated.addListener((url) => {
-  console.log('[devtool] Navigated to:', url);
-  // You can perform actions when the inspected document navigates here
   port.postMessage({ type: "navigation" });
 });

@@ -18,5 +18,12 @@ export { makeLocalStyle } from './makeLocalStyle.js';
 export const version = "__VER__" as string;
 
 // for devtool
-const key: any = Symbol.for("mutraction-dom");
-Object.assign(window, { [key]: Object.freeze({ isTracked, defaultTracker, version, createOrRetrievePropRef }) });
+const devtoolKey: any = Symbol.for("mutraction-dom");
+const devtoolExported = {
+    version,
+    isTracked,
+    defaultTracker,
+    createOrRetrievePropRef,
+    session: { "": "This is a storage for persisting state between mutraction devtools messages." },
+};
+Object.assign(window, { [devtoolKey]: Object.freeze(devtoolExported) });

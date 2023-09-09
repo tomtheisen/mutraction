@@ -39,11 +39,27 @@ browser.runtime.onConnect.addListener((port) => {
             devtoolsPort = port;
 
             port.onMessage.addListener((message) => {
+                switch (message.type) {
+                    case 'navigation':
+                        panelPort?.postMessage({ type: "init"  });
+                        break;
+
+                    case "panel-shown":
+                        panelPort?.postMessage({ type: "init"  });
+                        break;
+
+                    case "panel-hidden":
+                        break;
+
+                    default:
+                        console.warn('[background] unknown devtools message type ' + message.type);
+                }
                 console.log("[background] message from devtools", message);
             });
+            break;
 
         default:
-            console.warn("[background] connect connect unknown");
+            console.warn("[background] connect unknown", port.name);
             break;
     }
 });
