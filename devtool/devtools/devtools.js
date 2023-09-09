@@ -21,4 +21,12 @@ browser.devtools.panels.create(
 ).then((newPanel) => {
   newPanel.onShown.addListener(handleShown);
   newPanel.onHidden.addListener(handleHidden);
-}); 
+});
+
+const port = browser.runtime.connect({ name: 'devtools' });
+
+browser.devtools.network.onNavigated.addListener((url) => {
+  console.log('[devtool] Navigated to:', url);
+  // You can perform actions when the inspected document navigates here
+  port.postMessage({ type: "navigation" });
+});

@@ -1,3 +1,6 @@
+const extensionId = browser.runtime.id;
+console.log("setting up pannel");
+
 // for stringification
 function doHighlight() {
   let highlighted = undefined;
@@ -14,16 +17,14 @@ function doHighlight() {
   document.body.addEventListener("mousedown", clickHandler, { once: true, capture: true });
 }
 
+function shipFunction(fn) {
+  return browser.devtools.inspectedWindow.eval(`(${ fn.toString() })();`);
+}
 
 document.getElementById("button_inspected_eval").addEventListener("click", async () => {
-  console.log("devtools-panel.js eval buton");
-  const [result, err] = await browser.devtools.inspectedWindow.eval(`{ ${doHighlight.toString()} doHighlight(); }`);
-  // const [result, err] = await browser.devtools.inspectedWindow.eval(`inspect(document.body)`);
+  const [result, err] = await shipFunction(doHighlight);
   console.log({result, err});
 });
-
-const extensionId = browser.runtime.id;
-console.log("setting up pannel");
 
 // Your extension script (e.g., DevTools panel script or popup script)
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -35,10 +36,30 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   sendResponse(responseMessage);
 });
 
-const bgPort = browser.runtime.connect({ name: 'devtools-panel' });
-console.log("devtools background port", bgPort);
+const port = browser.runtime.connect({ name: 'devtools-panel' });
 
+port.onMessage.addListener((m) => {
+  console.log("devtool panel port received", m)
+});
 
 document.getElementById("button_msg_content").addEventListener("click", () => {
-  bgPort.postMessage({ name: "message posted from devtools" });
+  port.postMessage({ name: "message posted from devtools" });
 });
+
+document.getElementById("button_version").addEventListener("click", async () => {
+  const [result, err] = await shipFunction(() => window[Symbol.for("mutraction-dom")]?.version )
+  console.log("version", result);
+  if (err) {
+    document.getElementById("version").innerText = JSON.stringify(err);
+  }
+  else if (result) {
+    document.getElementById("version").innerText = `Mutraction found @${ result }`;
+  }
+  else {
+    document.getElementById("version").innerText = "No mutraction detected 😞";
+  }
+});
+
+
+shipFunction(() => { console.log("setting up mu devtool stuff"); window.marker="was here"; });
+

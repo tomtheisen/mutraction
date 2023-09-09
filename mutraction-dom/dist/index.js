@@ -1014,11 +1014,10 @@ function makeLocalStyle(rules) {
   return { $muType: "attribute", name: scopeAttrName, value: sheetId };
 }
 
-// out/init.js
-console.log("setting up mutraction");
-
 // out/index.js
 var version = "0.20.0";
+var key = Symbol.for("mutraction-dom");
+Object.assign(window, { [key]: Object.freeze({ isTracked, defaultTracker, version, createOrRetrievePropRef }) });
 export {
   DependencyList,
   ForEach,
