@@ -1,15 +1,8 @@
-/**
-This script is run whenever the devtools are open.
-In here, we can create our panel.
-*/
+const port = browser.runtime.connect({ name: 'devtools' });
 
-function handleShown() {
-  port.postMessage({ type: "panel-shown" });
-}
-
-function handleHidden() {
-  port.postMessage({ type: "panel-hidden" });
-}
+browser.devtools.network.onNavigated.addListener((url) => {
+  port.postMessage({ type: "navigation" });
+});
 
 /**
 Create a panel, and add listeners for panel show/hide events.
@@ -19,12 +12,7 @@ browser.devtools.panels.create(
   "/icons/mu.png",
   "/devtools/panel/panel.html"
 ).then((newPanel) => {
-  newPanel.onShown.addListener(handleShown);
-  newPanel.onHidden.addListener(handleHidden);
+  newPanel.onShown.addListener(() => port.postMessage({ type: "panel-shown" }));
+  newPanel.onHidden.addListener(() => port.postMessage({ type: "panel-hidden" }));
 });
 
-const port = browser.runtime.connect({ name: 'devtools' });
-
-browser.devtools.network.onNavigated.addListener((url) => {
-  port.postMessage({ type: "navigation" });
-});

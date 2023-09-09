@@ -16,10 +16,14 @@ function serializableMakeLocalSheet() {
 
 async function init() {
     console.log("[panel] init");
+    document.body.classList.remove("connected");
     await shipFunction(serializableMakeLocalSheet);
 
     const versionEl = document.getElementById("version");
     versionEl.innerText = "…";
-    const version = await shipFunction(() => window[Symbol.for("mutraction-dom")]?.version )
-    versionEl.innerText = version ? `Mutraction found @${ version }` : "No mutraction detected 😞";
+    const version = await shipFunction(() => window[Symbol.for("mutraction-dom")]?.version );
+    if (version) {
+        document.body.classList.add("connected");
+        versionEl.innerText = version;
+    }
 }

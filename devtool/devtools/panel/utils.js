@@ -8,3 +8,17 @@ async function shipFunction(fn) {
 	return result;
 }
 
+function displaySection(name) {
+    console.log("[panel] displaying section", name);
+    document.querySelectorAll("section[data-section]").forEach(el => {
+        console.log("[panel] found query result", el);
+        el.hidden = el.getAttribute("data-section") !== name;
+    });
+}
+
+function htmlEncode(str) {
+    return str
+        .replace(/>/g, '&gt;')   
+        .replace(/</g, '&lt;')    
+        .replace(/&/g, '&amp;');
+}

@@ -1016,8 +1016,15 @@ function makeLocalStyle(rules) {
 
 // out/index.js
 var version = "0.20.0";
-var key = Symbol.for("mutraction-dom");
-Object.assign(window, { [key]: Object.freeze({ isTracked, defaultTracker, version, createOrRetrievePropRef }) });
+var devtoolKey = Symbol.for("mutraction-dom");
+var devtoolExported = {
+  version,
+  isTracked,
+  defaultTracker,
+  createOrRetrievePropRef,
+  session: { "": "This is a storage for persisting state between mutraction devtools messages." }
+};
+Object.assign(window, { [devtoolKey]: Object.freeze(devtoolExported) });
 export {
   DependencyList,
   ForEach,

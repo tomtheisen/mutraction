@@ -49,6 +49,7 @@ browser.runtime.onConnect.addListener((port) => {
                         break;
 
                     case "panel-hidden":
+                        panelPort?.postMessage({ type: "cleanup" });
                         break;
 
                     default:

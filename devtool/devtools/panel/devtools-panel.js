@@ -7,9 +7,14 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 const port = browser.runtime.connect({ name: 'devtools-panel' });
 
-document.getElementById("button_inspected_eval").addEventListener("click", async () => {
-	const result = await shipFunction(serializableDoHighlight);
-	console.log(result);
+displaySection("");
+document.getElementById("button_dom_state").addEventListener("click", async () => {
+    displaySection("choose-element");
+	shipFunction(serializableDoHighlight);
+});
+
+document.getElementById("button_history").addEventListener("click", () => {
+    displaySection("history");
 });
 
 document.getElementById("button_msg_content").addEventListener("click", () => {
@@ -19,11 +24,25 @@ document.getElementById("button_msg_content").addEventListener("click", () => {
 port.onMessage.addListener((message) => {
 	switch (message.type) {
 		case "init":
+            displaySection("");
 			init();
 			break;
 
+        case "selected-element":
+            displaySection("element");
+            const tag = message.tagName.toLowerCase();
+            const attributes = Object.entries(message.attributes ?? {}).map(attr => 
+                `${ attr[0] }="${ attr[1] }"`
+            ).join(' ');
+            document.getElementById("element-tag").innerText = `<${ tag } ${ attributes }>`;
+            break;
+
+        case "cleanup":
+            shipFunction(serializableClearHighlight);
+            break;
+
 		default:
-			console.warn("[panel] unknown message type " + message.type);
+			console.warn("[panel] unknown message type " + message.type, message);
 			break;
 	}
 });

@@ -1,21 +1,48 @@
+function serializableClearHighlight() {
+    const highlightKey = "data-mutraction-devtool-highlight";
+    const { session } = window[Symbol.for("mutraction-dom")];
+    session.selectedElement?.removeAttribute(highlightKey);
+    session.selectedElement = undefined;
+}
+
 function serializableDoHighlight() {
     const highlightKey = "data-mutraction-devtool-highlight";
-    const session = window[Symbol.for("mutraction-dom")];
+    const { session } = window[Symbol.for("mutraction-dom")];
+    console.log("[doHighlight]", session);
 
     let highlighted = undefined;
+    session.selectedElement?.removeAttribute(highlightKey);
+    session.selectedElement = undefined;
+    
     function moveHandler(ev) {
         highlighted?.removeAttribute(highlightKey);
 
         highlighted = ev.target;
         highlighted.setAttribute(highlightKey, true);
     }
+    
     function clickHandler(ev) {
         highlighted?.removeAttribute(highlightKey);
+        session.selectedElement = ev.target;
+        session.selectedElement.setAttribute(highlightKey, true);
 
         document.body.removeEventListener("mousemove", moveHandler);
-        window.postMessage({ msg: "actually clicked on " + ev.target.tagName })
+        const msg = { 
+            type: "selected-element", 
+            tagName: ev.target.tagName, 
+            attributes: Object.fromEntries(
+                Array
+                    .from(ev.target.attributes)
+                    .filter(attr => !attr.name.startsWith("data-mutraction"))
+                    .map(attr => [attr.name, attr.value])
+            ),
+        };
+        window.postMessage(msg);
+
+        ev.preventDefault();
     }
+
     document.body.addEventListener("mousemove", moveHandler);
-    document.body.addEventListener("mousedown", clickHandler, { once: true, capture: true });
+    document.body.addEventListener("click", clickHandler, { once: true, capture: true });
 }
 
