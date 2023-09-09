@@ -1,22 +1,26 @@
-console.log("background.js");
-
-let contentPort, bgPort;
+let contentPort, devtoolsPort;
 
 browser.runtime.onConnect.addListener((port) => {
-    console.log("background connect", { port });
+    console.log("background connect", port.name);
     if (port.name === 'content-script') {
         contentPort = port;
 
         port.onMessage.addListener((message) => {
-            console.log("background message", { message, devtoolsPort: bgPort });
-            bgPort?.postMessage({ ...message, customs: true });
+            console.log("background message from content", { message, devtoolsPort });
+            devtoolsPort?.postMessage({ ...message, customs: true });
+        });
+
+        port.onDisconnect.addListener(p => {
+            console.log("background content port disconnection", p);
+            if (p.error) console.warn(p.error);
+            contentPort = undefined;
         });
     } 
     else if (port.name === 'devtools-panel') {
-        bgPort = port;
+        devtoolsPort = port;
 
         port.onMessage.addListener((message) => {
-            console.log("background message", { message, contentPort });
+            console.log("background message from devtool", { message, contentPort });
             contentPort?.postMessage({ ...message, customs: true });
         });
     }

@@ -6,9 +6,14 @@
     <link rel="stylesheet" href="devtools-style.css">
   </head>
   <body>
-    <button id="button_h1">Inspect h1</button>
-    <button id="button_background">Reddinate inspected element</button>
-    <button id="button_log">Console log</button>
+    <div style="position: relative; width: 50px; height: 50px; display: inline-block; text-align: left;">
+      <div style="position: absolute; left: 0px; top: 0px; display: inline-block; width: 100%; height: 100%; border-radius: 100%; background: radial-gradient(rgb(255, 255, 255) 40%, rgb(0, 0, 0) 41%, rgb(0, 0, 0) 63%, rgba(0, 0, 0, 0) 64%), conic-gradient(from 90deg, rgb(0, 0, 0) 0turn, rgb(0, 0, 0) 0.03125turn, rgba(0, 0, 0, 0) 0.03125turn, rgba(0, 0, 0, 0) 0.0625turn, rgb(0, 0, 0) 0.0625turn, rgb(0, 0, 0) 0.09375turn, rgba(0, 0, 0, 0) 0.09375turn, rgba(0, 0, 0, 0) 0.125turn, rgb(0, 0, 0) 0.125turn, rgb(0, 0, 0) 0.15625turn, rgba(0, 0, 0, 0) 0.15625turn, rgba(0, 0, 0, 0) 0.1875turn, rgb(0, 0, 0) 0.1875turn, rgb(0, 0, 0) 0.21875turn, rgba(0, 0, 0, 0) 0.21875turn, rgba(0, 0, 0, 0) 0.25turn, rgb(0, 0, 0) 0.25turn, rgb(0, 0, 0) 0.28125turn, rgba(0, 0, 0, 0) 0.28125turn, rgba(0, 0, 0, 0) 0.3125turn, rgb(0, 0, 0) 0.3125turn, rgb(0, 0, 0) 0.34375turn, rgba(0, 0, 0, 0) 0.34375turn, rgba(0, 0, 0, 0) 0.375turn, rgb(0, 0, 0) 0.375turn, rgb(0, 0, 0) 0.40625turn, rgba(0, 0, 0, 0) 0.40625turn, rgba(0, 0, 0, 0) 0.4375turn, rgb(0, 0, 0) 0.4375turn, rgb(0, 0, 0) 0.46875turn, rgba(0, 0, 0, 0) 0.46875turn, rgba(0, 0, 0, 0) 0.5turn, rgb(0, 0, 0) 0.5turn, rgb(0, 0, 0) 0.53125turn, rgba(0, 0, 0, 0) 0.53125turn, rgba(0, 0, 0, 0) 0.5625turn, rgb(0, 0, 0) 0.5625turn, rgb(0, 0, 0) 0.59375turn, rgba(0, 0, 0, 0) 0.59375turn, rgba(0, 0, 0, 0) 0.625turn, rgb(0, 0, 0) 0.625turn, rgb(0, 0, 0) 0.65625turn, rgba(0, 0, 0, 0) 0.65625turn, rgba(0, 0, 0, 0) 0.6875turn, rgb(0, 0, 0) 0.6875turn, rgb(0, 0, 0) 0.71875turn, rgba(0, 0, 0, 0) 0.71875turn, rgba(0, 0, 0, 0) 0.75turn, rgb(0, 0, 0) 0.75turn, rgb(0, 0, 0) 0.78125turn, rgba(0, 0, 0, 0) 0.78125turn, rgba(0, 0, 0, 0) 0.8125turn, rgb(0, 0, 0) 0.8125turn, rgb(0, 0, 0) 0.84375turn, rgba(0, 0, 0, 0) 0.84375turn, rgba(0, 0, 0, 0) 0.875turn, rgb(0, 0, 0) 0.875turn, rgb(0, 0, 0) 0.90625turn, rgba(0, 0, 0, 0) 0.90625turn, rgba(0, 0, 0, 0) 0.9375turn, rgb(0, 0, 0) 0.9375turn, rgb(0, 0, 0) 0.96875turn, rgba(0, 0, 0, 0) 0.96875turn, rgba(0, 0, 0, 0) 1turn); animation: 20s linear 0s infinite normal none running rotating;">
+      </div>
+      <div class="primary" style="position: relative; left: 26%; top: 41%; color: var(--primary-color);">
+        μ
+      </div>
+    </div>
+
     <button id="button_inspected_eval">Inpsected eval</button>
     <button id="button_msg_content">Message to content script</button>
     <script src="devtools-panel.js"></script>
