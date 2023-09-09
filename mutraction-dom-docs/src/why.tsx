@@ -39,15 +39,17 @@ export function why() {
             </p>
 
             { codeSample(`
-                items[idx].status = "complete";
-                `
-            ) }
-
-            { codeSample(`
+                // the other guys 🙁
                 items = items.map((e, i) => i == idx ? { ...e, status: "complete" } : e);
                 `
             ) }
             
+            { codeSample(`
+                // the enlightened mutraction way 🥳
+                items[idx].status = "complete";
+                `
+            ) }
+
             <h2>Stack traces</h2>
             <p>
                 UI frameworks are notorious for generating call stacks with dozens of stack frames of incomprehensible
