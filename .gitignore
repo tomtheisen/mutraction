@@ -6,3 +6,6 @@ out
 out2
 publish
 dist
+
+!devtool/*
+!devtool/**/*
