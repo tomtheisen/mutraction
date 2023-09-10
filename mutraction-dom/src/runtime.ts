@@ -40,13 +40,13 @@ function doApply(el: HTMLElement, mod: unknown) {
 }
 
 /** maps document elements to their dependent objects, mostly for devtools */
-export const elementDependencyMap = new WeakMap<HTMLElement, object[]>;
+export const elementDependencyMap = new WeakMap<HTMLElement, Set<object>>;
 
 function addElementDependencies(el: HTMLElement, dl: DependencyList) {
     if (dl.trackedProperties.length === 0) return;
-    if (!elementDependencyMap.has(el)) elementDependencyMap.set(el, []);
+    if (!elementDependencyMap.has(el)) elementDependencyMap.set(el, new Set);
     const objects = elementDependencyMap.get(el)!;
-    dl.trackedProperties.forEach(pr => objects.push(pr.object))
+    dl.trackedProperties.forEach(pr => objects.add(pr.object))
 }
 
 export function element<E extends keyof HTMLElementTagNameMap>(
@@ -57,6 +57,8 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 ): HTMLElementTagNameMap[E] | Text {
     const el: HTMLElementTagNameMap[E] = document.createElement(name);
     el.append(...children);
+    
+    while (orphans.length) addElementDependencies(el, orphans.pop()!);
 
     let syncEvents: string | undefined;
     for (let [name, value] of Object.entries(staticAttrs) as [string, string][]) {
@@ -120,15 +122,20 @@ export function element<E extends keyof HTMLElementTagNameMap>(
     return el;
 }
 
+// Unclaimed children will be stowed here until an element parent can claim them.
+// Next time element() is called, the non-node children's dependencies will be 
+// added to that element's dependencies for the purpose of devtool reporting.
+const orphans: DependencyList[] = [];
 export function child(getter: () => number | string | bigint | null | undefined | HTMLElement | Text): ChildNode {
     const result = getter();
     if (result instanceof Node) return result;
     
     let node = document.createTextNode("");
-    effectDefault(() => {
+    effectDefault(dl => {
         const newNode = document.createTextNode(String(getter() ?? ""));
         node.replaceWith(newNode);
         node = newNode;
+        orphans.push(dl);
     });
     return node;
 }

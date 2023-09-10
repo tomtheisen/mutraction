@@ -18,6 +18,7 @@
       <header>
         <div style="float: right;">Connected to <code>mutraction-dom @<span id="version"></span></code></div>
         <button id="button_dom_state">👆 Choose element</button>
+        <button id="button_use_inspected">⏹️ Use inspected element</button>
         <button id="button_history">📃Mutation history</button>
         <button id="button_msg_content">Message to content script</button>
       </header>
@@ -26,7 +27,13 @@
         <p>Click on an element in the document to select it.</p>
       </section>
       <section data-section="element">
-        <div class="one-line"><strong>Selected:</strong> <code id="element-tag"></code></div>
+        <div class="one-line">
+          <strong>Selected:</strong>
+          <button id="button_select_parent" title="Select parent">⤴️</button>
+          <code id="element-tag"></code>
+        </div>
+        <ul id="element-dependencies"></ul>
+        <p id="element-message"></p>
       </section>
       <section data-section="history">
         his
@@ -36,6 +43,7 @@
     <script src="utils.js"></script>
     <script src="init.js"></script>
     <script src="doHighlight.js"></script>
+    <script src="getObject.js"></script>
     <script src="devtools-panel.js"></script>
   </body>
 </html>

@@ -44,10 +44,6 @@ button:hover {
     color: var(--button-hover-fore);
 }
 
-code {
-    user-select: all;
-}
-
 .one-line {
     white-space: nowrap;
     overflow: hidden;

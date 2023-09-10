@@ -677,13 +677,15 @@ function addElementDependencies(el, dl) {
   if (dl.trackedProperties.length === 0)
     return;
   if (!elementDependencyMap.has(el))
-    elementDependencyMap.set(el, []);
+    elementDependencyMap.set(el, /* @__PURE__ */ new Set());
   const objects = elementDependencyMap.get(el);
-  dl.trackedProperties.forEach((pr) => objects.push(pr.object));
+  dl.trackedProperties.forEach((pr) => objects.add(pr.object));
 }
 function element(name, staticAttrs, dynamicAttrs, ...children) {
   const el = document.createElement(name);
   el.append(...children);
+  orphans.forEach((dl) => addElementDependencies(el, dl));
+  orphans.length = 0;
   let syncEvents;
   for (let [name2, value] of Object.entries(staticAttrs)) {
     switch (name2) {
@@ -739,15 +741,17 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
   }
   return el;
 }
+var orphans = [];
 function child(getter) {
   const result = getter();
   if (result instanceof Node)
     return result;
   let node = document.createTextNode("");
-  effectDefault(() => {
+  effectDefault((dl) => {
     const newNode = document.createTextNode(String(getter() ?? ""));
     node.replaceWith(newNode);
     node = newNode;
+    orphans.push(dl);
   });
   return node;
 }

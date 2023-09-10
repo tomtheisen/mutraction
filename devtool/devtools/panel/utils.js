@@ -1,8 +1,9 @@
-async function shipFunction(fn) {
+async function shipFunction(fn, ...args) {
 	if (fn.name && !fn.name.startsWith("serializable")) 
 		throw Error(`Tried to ship non-serializable function '${ fn.name }'`);
 
-	const cmd = `(${ fn.toString() })()`;
+    const argsSerialized = args.map(e => JSON.stringify(e)).join();
+	const cmd = `(${ fn.toString() })(${ argsSerialized })`;
 	const [result, err] = await browser.devtools.inspectedWindow.eval(cmd);
 	if (err) throw err;
 	return result;
@@ -17,7 +18,7 @@ function displaySection(name) {
 
 function htmlEncode(str) {
     return str
+        .replace(/&/g, '&amp;')    
         .replace(/>/g, '&gt;')   
-        .replace(/</g, '&lt;')    
-        .replace(/&/g, '&amp;');
+        .replace(/</g, '&lt;');
 }

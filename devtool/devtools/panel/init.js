@@ -3,7 +3,6 @@ function serializableMakeLocalSheet() {
         `[data-mutraction-devtool-highlight] {
             outline: solid #f0f6 8px !important;
             background: #0ff3 !important;
-            cursor: pointer;
         }`
     ];
 
