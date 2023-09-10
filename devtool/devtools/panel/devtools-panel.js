@@ -10,7 +10,7 @@ const port = browser.runtime.connect({ name: 'devtools-panel' });
 displaySection("");
 document.getElementById("button_dom_state").addEventListener("click", async () => {
     displaySection("choose-element");
-	shipFunction(serializableDoHighlight);
+	await shipFunction(serializableDoHighlight);
 });
 
 document.getElementById("button_history").addEventListener("click", () => {
@@ -34,7 +34,7 @@ port.onMessage.addListener((message) => {
             const attributes = Object.entries(message.attributes ?? {}).map(attr => 
                 `${ attr[0] }="${ attr[1] }"`
             ).join(' ');
-            document.getElementById("element-tag").innerText = `<${ tag } ${ attributes }>`;
+            document.getElementById("element-tag").innerText = `<${ tag }${ attributes ? " " : "" }${ attributes }>`;
             break;
 
         case "cleanup":

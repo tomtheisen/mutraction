@@ -1,3 +1,7 @@
+* {
+    box-sizing: border-box;
+}
+
 :root {
     font-family: sans-serif;
     user-select: none;
@@ -7,41 +11,47 @@
     color: var(--primary-color);
 }
 
-* {
-    box-sizing: border-box;
-}
-
 body {
     background: var(--body-back);
     color: var(--body-fore);
     margin: 0;
 }
 
-body > * {
-    display: none;
-}
-
-#disconnected {
-    display: revert;
-}
-
-body.connected #disconnected {
-    display: none;
-}
-
-body.connected > * {
-    display: revert;
-}
-
 header {
     background: var(--content-back);
     color: var(--content-fore);
     border: solid var(--border-color) 1px;
-    padding: 8px;
+    padding: 4px;
 }
 
 section {
-    padding: 1em;
+    padding: 6px;
+}
+
+button {
+    background: var(--button-back);
+    color: var(--button-fore);
+    border-style: none;
+    padding: 4px 8px;
+    margin: 0;
+    border-radius: 4px;
+    line-height: 1em;
+    cursor: pointer;
+}
+
+button:hover {
+    background: var(--button-hover-back);
+    color: var(--button-hover-fore);
+}
+
+code {
+    user-select: all;
+}
+
+.one-line {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 @keyframes rotating {
@@ -67,6 +77,10 @@ section {
     body {
         --body-back: #151517;
         --body-fore: #B3B3B3;
+        --button-back: #4E4E51;
+        --button-fore: #D7D7DB;
+        --button-hover-back: #5E5E63;
+        --button-hover-fore: #D7D7DB;
         --content-back: #232327;
         --content-fore: #B3B3B3;
         --border-color: #38383D;

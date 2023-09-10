@@ -6,19 +6,15 @@
     <link rel="stylesheet" href="devtools-style.css">
   </head>
   <body>
-    <div id="disconnected">
+    <p id="initial">
+      Initializing
+    </p>
+
+    <p id="disconnected" style="margin: 2em;" hidden>
       This page doesn't appear to be a mutraction app. 😞
-    </div>
+    </p>
 
-    <div id="connected">
-      <!-- <div style="position: relative; width: 50px; height: 50px; display: inline-block; text-align: left; ">
-        <div style="position: absolute; left: 0px; top: 0px; display: inline-block; width: 100%; height: 100%; border-radius: 100%; background: radial-gradient(rgb(255, 255, 255) 40%, rgb(0, 0, 0) 41%, rgb(0, 0, 0) 63%, rgba(0, 0, 0, 0) 64%), conic-gradient(from 90deg, rgb(0, 0, 0) 0turn, rgb(0, 0, 0) 0.03125turn, rgba(0, 0, 0, 0) 0.03125turn, rgba(0, 0, 0, 0) 0.0625turn, rgb(0, 0, 0) 0.0625turn, rgb(0, 0, 0) 0.09375turn, rgba(0, 0, 0, 0) 0.09375turn, rgba(0, 0, 0, 0) 0.125turn, rgb(0, 0, 0) 0.125turn, rgb(0, 0, 0) 0.15625turn, rgba(0, 0, 0, 0) 0.15625turn, rgba(0, 0, 0, 0) 0.1875turn, rgb(0, 0, 0) 0.1875turn, rgb(0, 0, 0) 0.21875turn, rgba(0, 0, 0, 0) 0.21875turn, rgba(0, 0, 0, 0) 0.25turn, rgb(0, 0, 0) 0.25turn, rgb(0, 0, 0) 0.28125turn, rgba(0, 0, 0, 0) 0.28125turn, rgba(0, 0, 0, 0) 0.3125turn, rgb(0, 0, 0) 0.3125turn, rgb(0, 0, 0) 0.34375turn, rgba(0, 0, 0, 0) 0.34375turn, rgba(0, 0, 0, 0) 0.375turn, rgb(0, 0, 0) 0.375turn, rgb(0, 0, 0) 0.40625turn, rgba(0, 0, 0, 0) 0.40625turn, rgba(0, 0, 0, 0) 0.4375turn, rgb(0, 0, 0) 0.4375turn, rgb(0, 0, 0) 0.46875turn, rgba(0, 0, 0, 0) 0.46875turn, rgba(0, 0, 0, 0) 0.5turn, rgb(0, 0, 0) 0.5turn, rgb(0, 0, 0) 0.53125turn, rgba(0, 0, 0, 0) 0.53125turn, rgba(0, 0, 0, 0) 0.5625turn, rgb(0, 0, 0) 0.5625turn, rgb(0, 0, 0) 0.59375turn, rgba(0, 0, 0, 0) 0.59375turn, rgba(0, 0, 0, 0) 0.625turn, rgb(0, 0, 0) 0.625turn, rgb(0, 0, 0) 0.65625turn, rgba(0, 0, 0, 0) 0.65625turn, rgba(0, 0, 0, 0) 0.6875turn, rgb(0, 0, 0) 0.6875turn, rgb(0, 0, 0) 0.71875turn, rgba(0, 0, 0, 0) 0.71875turn, rgba(0, 0, 0, 0) 0.75turn, rgb(0, 0, 0) 0.75turn, rgb(0, 0, 0) 0.78125turn, rgba(0, 0, 0, 0) 0.78125turn, rgba(0, 0, 0, 0) 0.8125turn, rgb(0, 0, 0) 0.8125turn, rgb(0, 0, 0) 0.84375turn, rgba(0, 0, 0, 0) 0.84375turn, rgba(0, 0, 0, 0) 0.875turn, rgb(0, 0, 0) 0.875turn, rgb(0, 0, 0) 0.90625turn, rgba(0, 0, 0, 0) 0.90625turn, rgba(0, 0, 0, 0) 0.9375turn, rgb(0, 0, 0) 0.9375turn, rgb(0, 0, 0) 0.96875turn, rgba(0, 0, 0, 0) 0.96875turn, rgba(0, 0, 0, 0) 1turn); animation: 20s linear 0s infinite normal none running rotating;">
-        </div>
-        <div class="primary" style="position: relative; left: 26%; top: 41%; color: var(--primary-color); font: italic bold 40px / 0 Calibri, Arial, Helvetica, sans-serif">
-          μ
-        </div>
-      </div> -->
-
+    <div id="connected" hidden>
       <header>
         <div style="float: right;">Connected to <code>mutraction-dom @<span id="version"></span></code></div>
         <button id="button_dom_state">👆 Choose element</button>
@@ -30,7 +26,7 @@
         <p>Click on an element in the document to select it.</p>
       </section>
       <section data-section="element">
-        <p><code id="element-tag"></code></p>
+        <div class="one-line"><strong>Selected:</strong> <code id="element-tag"></code></div>
       </section>
       <section data-section="history">
         his
