@@ -24,6 +24,11 @@ header {
     padding: 4px;
 }
 
+.logo {
+    color: hsl(215, 100%, 50%);
+    font: italic bold 1.4em / 0 "Calibri", "Arial", "Helvetica", sans-serif;
+}
+
 section {
     padding: 6px;
 }
@@ -50,6 +55,18 @@ button:hover {
     text-overflow: ellipsis;
 }
 
+.spinner {
+    width: 2em;
+    height: 2em;
+    border-radius: 100%;
+    border-style: solid;
+    border-width: 4px;
+    border-left-color: transparent;
+    border-right-color: transparent;
+    animation: rotating 800ms ease infinite;
+    margin: 1em auto;
+}
+  
 @keyframes rotating {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }

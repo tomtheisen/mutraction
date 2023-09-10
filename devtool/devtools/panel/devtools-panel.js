@@ -23,10 +23,6 @@ document.getElementById("button_history").addEventListener("click", () => {
     displaySection("history");
 });
 
-document.getElementById("button_msg_content").addEventListener("click", () => {
-	port.postMessage({ name: "message posted from devtools" });
-});
-
 document.getElementById("button_select_parent").addEventListener("click", async () => {
     await runSessionFunction("selectParent");
 });
@@ -39,6 +35,11 @@ port.onMessage.addListener(async message => {
 			break;
 
         case "selected-element":
+            if (message.tagName == null) {
+                // nothing selected
+                displaySection("choose-element");
+                return;
+            }
             displaySection("element");
             const tag = message.tagName.toLowerCase();
             const attributes = Object.entries(message.attributes ?? {}).map(attr => 
@@ -58,7 +59,7 @@ port.onMessage.addListener(async message => {
                 }
             }
             else {
-                document.getElementById("element-message").innerText = "No dependencies";
+                document.getElementById("element-message").innerText = "No dependencies or parent elements with dependencies";
             }
             break;
 

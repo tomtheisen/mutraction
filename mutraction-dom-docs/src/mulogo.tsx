@@ -34,7 +34,6 @@ export function muLogo(size: number){
         position: "relative",
         left: "26%",
         top: "41%",
-        color: "var(--primary-color)",
         font: `italic bold ${ size * 0.8 }px "Calibri", "Arial", "Helvetica", sans-serif`,
         lineHeight: "0",
     };

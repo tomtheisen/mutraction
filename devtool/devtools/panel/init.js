@@ -68,8 +68,6 @@ function doHighlight() {
     const { session, elementDependencyMap, objectRepository } = window[Symbol.for("mutraction-dom")];
     session.clearHighlight();
 
-    console.log("[doHighlight]", session);
-
     let highlighted = undefined;
 
     function moveHandler(ev) {
@@ -88,7 +86,7 @@ function doHighlight() {
 
         highlighted?.removeAttribute(highlightKey);
 
-        selected = session.getDependentAncestor(ev.target);
+        selected = session.getDependentAncestor(ev.target) ?? ev.target;
         
         selected?.setAttribute(highlightKey, true);
         session.selectedElement = selected;

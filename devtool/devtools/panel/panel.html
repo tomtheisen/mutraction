@@ -6,9 +6,9 @@
     <link rel="stylesheet" href="devtools-style.css">
   </head>
   <body>
-    <p id="initial">
-      Initializing
-    </p>
+    <div id="initial">
+      <div class="spinner"></div>
+    </div>
 
     <p id="disconnected" style="margin: 2em;" hidden>
       This page doesn't appear to be a mutraction app. 😞
@@ -16,11 +16,11 @@
 
     <div id="connected" hidden>
       <header>
+        <span class="logo">μ</span>
         <div style="float: right;">Connected to <code>mutraction-dom @<span id="version"></span></code></div>
         <button id="button_dom_state">👆 Choose element</button>
         <button id="button_use_inspected">⏹️ Use inspected element</button>
         <button id="button_history">📃Mutation history</button>
-        <button id="button_msg_content">Message to content script</button>
       </header>
 
       <section data-section="choose-element">
@@ -29,7 +29,7 @@
       <section data-section="element">
         <div class="one-line">
           <strong>Selected:</strong>
-          <button id="button_select_parent" title="Select parent">⤴️</button>
+          <button id="button_select_parent" title="Select parent">../</button>
           <code id="element-tag"></code>
         </div>
         <ul id="element-dependencies"></ul>

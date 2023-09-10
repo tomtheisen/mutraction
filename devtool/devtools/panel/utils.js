@@ -25,7 +25,6 @@ function htmlEncode(str) {
 
 async function setupSessionFunction(fn) {
     const cmd = `(window[Symbol.for("mutraction-dom")].session.${ fn.name }=${ fn.toString() }).length`;
-    console.log("[util] setting up session function", { cmd });
 	const [result, err] = await browser.devtools.inspectedWindow.eval(cmd);
     if (err) throw err;
     return result;
