@@ -1,3 +1,30 @@
+function serializableSelectInspected() {
+    const highlightKey = "data-mutraction-devtool-highlight";
+    const devtoolExport = window[Symbol.for("mutraction-dom")]
+    const { session, elementDependencyMap, objectRepository } = devtoolExport;
+
+    session.selectedElement?.removeAttribute(highlightKey);
+    session.selectedElement = $0;
+
+    if (!session.selectedElement) return;
+    session.selectedElement?.setAttribute(highlightKey, true);
+
+    const objects = elementDependencyMap.get(session.selectedElement);
+    const objectIds = Array.from(objects ?? [], e => objectRepository.getId(e));
+
+    const msg = { 
+        type: "selected-element", 
+        tagName: session.selectedElement.tagName, 
+        attributes: Object.fromEntries(
+            Array.from(session.selectedElement.attributes)
+                .filter(attr => !attr.name.startsWith("data-mutraction"))
+                .map(attr => [attr.name, attr.value])
+        ),
+        objectIds,
+    };
+    window.postMessage(msg);    
+}
+
 function serializableSelectParent() {
     const highlightKey = "data-mutraction-devtool-highlight";
     const devtoolExport = window[Symbol.for("mutraction-dom")]

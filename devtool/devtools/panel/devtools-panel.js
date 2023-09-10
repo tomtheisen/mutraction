@@ -8,9 +8,15 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 const port = browser.runtime.connect({ name: 'devtools-panel' });
 
 displaySection("");
+
 document.getElementById("button_dom_state").addEventListener("click", async () => {
     displaySection("choose-element");
 	await shipFunction(serializableDoHighlight);
+});
+
+document.getElementById("button_use_inspected").addEventListener("click", async () => {
+    displaySection("element");
+	await shipFunction(serializableSelectInspected);
 });
 
 document.getElementById("button_history").addEventListener("click", () => {
