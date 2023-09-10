@@ -683,9 +683,16 @@ function addElementDependencies(el, dl) {
 }
 function element(name, staticAttrs, dynamicAttrs, ...children) {
   const el = document.createElement(name);
+  for (const child2 of children) {
+    if (child2 instanceof Text) {
+      const textDependency = textNodeDependencies.get(child2);
+      if (textDependency) {
+        addElementDependencies(el, textDependency);
+        textNodeDependencies.delete(child2);
+      }
+    }
+  }
   el.append(...children);
-  orphans.forEach((dl) => addElementDependencies(el, dl));
-  orphans.length = 0;
   let syncEvents;
   for (let [name2, value] of Object.entries(staticAttrs)) {
     switch (name2) {
@@ -741,18 +748,22 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
   }
   return el;
 }
-var orphans = [];
+var textNodeDependencies = /* @__PURE__ */ new WeakMap();
 function child(getter) {
   const result = getter();
   if (result instanceof Node)
     return result;
   let node = document.createTextNode("");
+  let dependencyList;
   effectDefault((dl) => {
     const newNode = document.createTextNode(String(getter() ?? ""));
     node.replaceWith(newNode);
     node = newNode;
-    orphans.push(dl);
+    dependencyList = dl;
   });
+  if (dependencyList?.trackedProperties.length) {
+    textNodeDependencies.set(node, dependencyList);
+  }
   return node;
 }
 

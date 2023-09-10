@@ -13,108 +13,155 @@ function serializableMakeLocalSheet() {
     document.adoptedStyleSheets.push(sheet);
 }
 
-function getDependentAncestor(el) {
-    let selected = el;
-    while (selected && !elementDependencyMap.has(selected)) {
-        selected = selected.parentElement;
-    }
-    return selected;
-}
+const sessionFunctions = {
+    getDependentAncestor: function(el) {
+        let selected = el;
+        while (selected && !elementDependencyMap.has(selected)) {
+            selected = selected.parentElement;
+        }
+        return selected;
+    },
 
-function clearHighlight() {
-    const highlightKey = "data-mutraction-devtool-highlight";
-    const { session } = window[Symbol.for("mutraction-dom")];
-    session.selectedElement?.removeAttribute(highlightKey);
-    session.selectedElement = undefined;
-}
+    clearHighlight: function() {
+        const highlightKey = "data-mutraction-devtool-highlight";
+        const { session } = window[Symbol.for("mutraction-dom")];
+        session.selectedElement?.removeAttribute(highlightKey);
+        session.selectedElement = undefined;
+    },
 
-function selectElement(el) {
-    const highlightKey = "data-mutraction-devtool-highlight";
-    const { session, elementDependencyMap, objectRepository } = window[Symbol.for("mutraction-dom")];
+    selectElement: function(el) {
+        const highlightKey = "data-mutraction-devtool-highlight";
+        const { session, elementDependencyMap, objectRepository } = window[Symbol.for("mutraction-dom")];
 
-    session.selectedElement?.removeAttribute(highlightKey);
-    session.selectedElement = el;
+        session.selectedElement?.removeAttribute(highlightKey);
+        session.selectedElement = el;
 
-    if (!session.selectedElement) return;
-    session.selectedElement?.setAttribute(highlightKey, true);
+        if (!session.selectedElement) return;
+        session.selectedElement?.setAttribute(highlightKey, true);
 
-    const objects = elementDependencyMap.get(session.selectedElement);
-    const objectIds = Array.from(objects ?? [], e => objectRepository.getId(e));
-
-    const msg = { 
-        type: "selected-element", 
-        tagName: session.selectedElement.tagName, 
-        attributes: Object.fromEntries(
-            Array.from(session.selectedElement.attributes)
-                .filter(attr => !attr.name.startsWith("data-mutraction"))
-                .map(attr => [attr.name, attr.value])
-        ),
-        objectIds,
-    };
-    window.postMessage(msg);    
-}
-
-function selectParent() {
-    const { session } = window[Symbol.for("mutraction-dom")];
-    if (!session.selectElement) return;
-    const ancestor = session.getDependentAncestor(session.selectedElement);
-    if (!ancestor) return;
-    session.selectElement(ancestor);
-}
-
-function doHighlight() {
-    const highlightKey = "data-mutraction-devtool-highlight";
-
-    const { session, elementDependencyMap, objectRepository } = window[Symbol.for("mutraction-dom")];
-    session.clearHighlight();
-
-    let highlighted = undefined;
-
-    function moveHandler(ev) {
-        highlighted?.removeAttribute(highlightKey);
-
-        highlighted = ev.target;
-        highlighted.setAttribute(highlightKey, true);
-    }
-    
-    function clickHandler(ev) {
-        ev.preventDefault();
-        ev.stopPropagation();
-
-        document.body.removeEventListener("mousemove", moveHandler);
-        document.body.removeEventListener("mousedown", preventHandler, { capture: true });
-
-        highlighted?.removeAttribute(highlightKey);
-
-        selected = session.getDependentAncestor(ev.target) ?? ev.target;
-        
-        selected?.setAttribute(highlightKey, true);
-        session.selectedElement = selected;
-        
-        const objects = elementDependencyMap.get(selected);
+        const objects = elementDependencyMap.get(session.selectedElement);
         const objectIds = Array.from(objects ?? [], e => objectRepository.getId(e));
+
         const msg = { 
             type: "selected-element", 
-            tagName: selected?.tagName, 
+            tagName: session.selectedElement.tagName, 
             attributes: Object.fromEntries(
-                Array.from(selected?.attributes ?? [])
+                Array.from(session.selectedElement.attributes)
                     .filter(attr => !attr.name.startsWith("data-mutraction"))
                     .map(attr => [attr.name, attr.value])
             ),
             objectIds,
         };
-        window.postMessage(msg);
-    }
+        window.postMessage(msg);    
+    },
 
-    function preventHandler(ev) {
-        ev.preventDefault();
-        ev.stopPropagation();
-    }
+    selectParent: function() {
+        const { session } = window[Symbol.for("mutraction-dom")];
+        if (!session.selectElement) return;
+        const ancestor = session.getDependentAncestor(session.selectedElement);
+        if (!ancestor) return;
+        session.selectElement(ancestor);
+    },
 
-    document.body.addEventListener("mousemove", moveHandler);
-    document.body.addEventListener("click", clickHandler, { once: true, capture: true });
-    document.body.addEventListener("mousedown", preventHandler, { capture: true });
-}
+    doHighlight: function() {
+        const highlightKey = "data-mutraction-devtool-highlight";
+
+        const { session, elementDependencyMap, objectRepository } = window[Symbol.for("mutraction-dom")];
+        session.clearHighlight();
+
+        let highlighted = undefined;
+
+        function moveHandler(ev) {
+            highlighted?.removeAttribute(highlightKey);
+
+            highlighted = ev.target;
+            highlighted.setAttribute(highlightKey, true);
+        }
+        
+        function clickHandler(ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+
+            document.body.removeEventListener("mousemove", moveHandler);
+            document.body.removeEventListener("mousedown", preventHandler, { capture: true });
+
+            highlighted?.removeAttribute(highlightKey);
+
+            selected = session.getDependentAncestor(ev.target) ?? ev.target;
+            
+            selected?.setAttribute(highlightKey, true);
+            session.selectedElement = selected;
+            
+            const objects = elementDependencyMap.get(selected);
+            const objectIds = Array.from(objects ?? [], e => objectRepository.getId(e));
+            const msg = { 
+                type: "selected-element", 
+                tagName: selected?.tagName, 
+                attributes: Object.fromEntries(
+                    Array.from(selected?.attributes ?? [])
+                        .filter(attr => !attr.name.startsWith("data-mutraction"))
+                        .map(attr => [attr.name, attr.value])
+                ),
+                objectIds,
+            };
+            window.postMessage(msg);
+        }
+
+        function preventHandler(ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+        }
+
+        document.body.addEventListener("mousemove", moveHandler);
+        document.body.addEventListener("click", clickHandler, { once: true, capture: true });
+        document.body.addEventListener("mousedown", preventHandler, { capture: true });
+    },
+
+    getObject: function(id) {
+        const { objectRepository } = window[Symbol.for("mutraction-dom")];
+
+        const obj = objectRepository.getObject(Number(id));
+        console.log("[getObject] called", { id, obj });
+        if (!obj) return undefined;
+
+        return Object.entries(obj).map(e => {
+            if (e[1] === null || typeof e[1] !== "object") return e;
+            return [e[0], { id: objectRepository.getId(e[1]) } ];
+        });
+    },
+
+    subscribeToObject: function(id) {
+        const { session, objectRepository } = window[Symbol.for("mutraction-dom")];
+
+        const obj = objectRepository.getObject(Number(id));
+        if (!obj) return undefined;
+
+        const keys = Object.keys(obj);
+        console.log("[session] subscribing to object", { obj, keys });
+        const dl = defaultTracker.startDependencyTrack();
+        for (const key of keys) obj[key];
+        dl.endDependencyTrack();
+
+        session.activeObjectSubscriptions ??= [];
+        session.activeObjectSubscriptions.push(dl);
+
+        dl.subscribe(() => {
+            const msg = {
+                type: "object-update",
+                objectId: id,
+            };
+            window.postMessage(msg);
+        });
+    },
+
+    clearObjectSubscriptions: function() {
+        const { session } = window[Symbol.for("mutraction-dom")];
+
+        if (!session.activeObjectSubscriptions) return;
+        session.activeObjectSubscriptions.forEach(dl => dl.untrackAll());
+        session.activeObjectSubscriptions.length = 0;
+    }
+};
 
 async function init() {
     console.log("[panel] init");
@@ -128,11 +175,11 @@ async function init() {
         versionEl.innerText = version;
 
         await shipFunction(serializableMakeLocalSheet);
-        await setupSessionFunction(getDependentAncestor);
-        await setupSessionFunction(clearHighlight);
-        await setupSessionFunction(selectElement);
-        await setupSessionFunction(selectParent);
-        await setupSessionFunction(doHighlight);
+
+        for (const name in sessionFunctions) {
+            console.log("[init] setting up session function", name);
+            await setupSessionFunction(sessionFunctions[name]);
+        }
     }
     else {
         document.getElementById("disconnected").hidden = false;

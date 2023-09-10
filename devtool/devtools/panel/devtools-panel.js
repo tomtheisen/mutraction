@@ -1,10 +1,5 @@
 const extensionId = browser.runtime.id;
 
-browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-	console.log("Received message from content or background script:", message);
-	sendResponse("Message received in the extension!");
-});
-
 const port = browser.runtime.connect({ name: 'devtools-panel' });
 
 displaySection("");
@@ -35,6 +30,8 @@ port.onMessage.addListener(async message => {
 			break;
 
         case "selected-element":
+            await runSessionFunction("clearObjectSubscriptions");
+
             if (message.tagName == null) {
                 // nothing selected
                 displaySection("choose-element");
@@ -67,6 +64,20 @@ port.onMessage.addListener(async message => {
             await runSessionFunction("clearHighlight");
             break;
 
+        case "object-update":
+            const { objectId } = message;
+            const entries = await runSessionFunction("getObject", String(objectId));
+            for (const entry of entries) {
+                const selector = `ul[data-object-id="${ objectId }"] li[data-prop="${ entry[0] }"]`;
+                for (const el of document.querySelectorAll(selector)) {
+                    // TODO normalize with create
+                    el.innerHTML = typeof entry[1] === "object"
+                        ? `${ htmlEncode(entry[0]) }: <a data-object-id=${ entry[1].id }>obj...</a>`
+                        : `${ htmlEncode(entry[0]) }: ${ htmlEncode(JSON.stringify(entry[1])) }`;
+                }
+            }
+            break;
+
 		default:
 			console.warn("[panel] unknown message type " + message.type, message);
 			break;
@@ -74,16 +85,15 @@ port.onMessage.addListener(async message => {
 });
 
 async function getObjectPropListEl(objectId) {
-    const entries = await shipFunction(serializableGetObject, objectId);
+    await runSessionFunction("subscribeToObject", String(objectId));
 
-    // console.log("[panel] getObjectPropListEl", { objectId, entries });
-
+    const entries = await runSessionFunction("getObject", String(objectId));
     const ul = document.createElement("ul");
     ul.setAttribute("data-object-id", objectId);
     ul.innerHTML = entries.map(e => {
         return typeof e[1] === "object"
-            ? `<li>${ htmlEncode(e[0]) }: <a data-object-id=${ e[1].id }>obj...</a>`
-            : `<li>${ htmlEncode(e[0]) }: ${ htmlEncode(JSON.stringify(e[1])) }`
+            ? `<li data-prop="${ htmlEncode(e[0]) }">${ htmlEncode(e[0]) }: <a data-object-id=${ e[1].id }>obj...</a>`
+            : `<li data-prop="${ htmlEncode(e[0]) }">${ htmlEncode(e[0]) }: ${ htmlEncode(JSON.stringify(e[1])) }`
     }).join('');
 
     return ul;
