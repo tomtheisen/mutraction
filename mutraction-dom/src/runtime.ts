@@ -39,6 +39,16 @@ function doApply(el: HTMLElement, mod: unknown) {
     }
 }
 
+/** maps document elements to their dependent objects, mostly for devtools */
+export const elementDependencyMap = new WeakMap<HTMLElement, object[]>;
+
+function addElementDependencies(el: HTMLElement, dl: DependencyList) {
+    if (dl.trackedProperties.length === 0) return;
+    if (!elementDependencyMap.has(el)) elementDependencyMap.set(el, []);
+    const objects = elementDependencyMap.get(el)!;
+    dl.trackedProperties.forEach(pr => objects.push(pr.object))
+}
+
 export function element<E extends keyof HTMLElementTagNameMap>(
     name: E, 
     staticAttrs: ElementStringProps<E>,
@@ -76,18 +86,25 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 
         switch (name) {
             case "style":
-                effectDefault(() => { Object.assign(el.style, getter()); });
+                effectDefault(dl => {
+                    Object.assign(el.style, getter());
+                    addElementDependencies(el, dl);
+                });
                 break;
 
             case "classList":
-                effectDefault(() => { 
+                effectDefault(dl => { 
                     const classMap = getter() as Record<string, boolean>;
                     for (const e of Object.entries(classMap)) el.classList.toggle(...e);
+                    addElementDependencies(el, dl);
                 });
                 break;
 
             default:
-                effectDefault(() => { (el as any)[name] = getter(); });
+                effectDefault(dl => {
+                    (el as any)[name] = getter();
+                    addElementDependencies(el, dl);
+                });
                 break;
         }
     }

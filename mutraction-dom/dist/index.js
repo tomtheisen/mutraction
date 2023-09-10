@@ -672,6 +672,15 @@ function doApply(el, mod) {
       throw Error("Unknown node modifier type: " + mod.$muType);
   }
 }
+var elementDependencyMap = /* @__PURE__ */ new WeakMap();
+function addElementDependencies(el, dl) {
+  if (dl.trackedProperties.length === 0)
+    return;
+  if (!elementDependencyMap.has(el))
+    elementDependencyMap.set(el, []);
+  const objects = elementDependencyMap.get(el);
+  dl.trackedProperties.forEach((pr) => objects.push(pr.object));
+}
 function element(name, staticAttrs, dynamicAttrs, ...children) {
   const el = document.createElement(name);
   el.append(...children);
@@ -699,20 +708,23 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
     }
     switch (name2) {
       case "style":
-        effectDefault(() => {
+        effectDefault((dl) => {
           Object.assign(el.style, getter());
+          addElementDependencies(el, dl);
         });
         break;
       case "classList":
-        effectDefault(() => {
+        effectDefault((dl) => {
           const classMap = getter();
           for (const e of Object.entries(classMap))
             el.classList.toggle(...e);
+          addElementDependencies(el, dl);
         });
         break;
       default:
-        effectDefault(() => {
+        effectDefault((dl) => {
           el[name2] = getter();
+          addElementDependencies(el, dl);
         });
         break;
     }
@@ -739,6 +751,29 @@ function child(getter) {
   });
   return node;
 }
+
+// out/objectRepository.js
+var ObjectRepository = class {
+  #objects = [];
+  #registry = new FinalizationRegistry((id) => this.#remove(id));
+  #index = /* @__PURE__ */ new WeakMap();
+  #nextId = 1;
+  #remove(id) {
+    delete this.#objects[id];
+  }
+  getId(obj) {
+    let id = this.#index.get(obj);
+    if (typeof id === "number")
+      return id;
+    this.#registry.register(obj, id = this.#nextId++);
+    this.#index.set(obj, id);
+    this.#objects[id] = new WeakRef(obj);
+    return id;
+  }
+  getObject(id) {
+    return this.#objects[id]?.deref();
+  }
+};
 
 // out/elementSpan.js
 var ElementSpan = class {
@@ -1022,6 +1057,8 @@ var devtoolExported = {
   isTracked,
   defaultTracker,
   createOrRetrievePropRef,
+  elementDependencyMap,
+  objectRepository: new ObjectRepository(),
   session: { "": "This is a storage for persisting state between mutraction devtools messages." }
 };
 Object.assign(window, { [devtoolKey]: Object.freeze(devtoolExported) });

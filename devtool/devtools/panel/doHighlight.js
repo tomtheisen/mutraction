@@ -7,13 +7,14 @@ function serializableClearHighlight() {
 
 function serializableDoHighlight() {
     const highlightKey = "data-mutraction-devtool-highlight";
-    const { session } = window[Symbol.for("mutraction-dom")];
+    const devtoolExport = window[Symbol.for("mutraction-dom")]
+    const { session, elementDependencyMap, objectRepository } = devtoolExport;
     console.log("[doHighlight]", session);
 
     let highlighted = undefined;
     session.selectedElement?.removeAttribute(highlightKey);
     session.selectedElement = undefined;
-    
+
     function moveHandler(ev) {
         highlighted?.removeAttribute(highlightKey);
 
@@ -25,6 +26,9 @@ function serializableDoHighlight() {
         highlighted?.removeAttribute(highlightKey);
         session.selectedElement = ev.target;
         session.selectedElement.setAttribute(highlightKey, true);
+        
+        const objects = elementDependencyMap.get(ev.target);
+        const objectIds = objects?.map(e => objectRepository.getId(e));
 
         document.body.removeEventListener("mousemove", moveHandler);
         const msg = { 
@@ -36,6 +40,7 @@ function serializableDoHighlight() {
                     .filter(attr => !attr.name.startsWith("data-mutraction"))
                     .map(attr => [attr.name, attr.value])
             ),
+            objectIds,
         };
         window.postMessage(msg);
 

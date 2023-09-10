@@ -1,6 +1,8 @@
 import { createOrRetrievePropRef } from './propref.js';
 import { isTracked } from './proxy.js';
 import { defaultTracker } from './tracker.js';
+import { elementDependencyMap } from './runtime.js';
+import { ObjectRepository } from './objectRepository.js';
 
 export { element, child } from './runtime.js';
 export { ForEach, ForEachPersist } from './foreach.js';
@@ -24,6 +26,8 @@ const devtoolExported = {
     isTracked,
     defaultTracker,
     createOrRetrievePropRef,
+    elementDependencyMap,
+    objectRepository: new ObjectRepository<object>,
     session: { "": "This is a storage for persisting state between mutraction devtools messages." },
 };
 Object.assign(window, { [devtoolKey]: Object.freeze(devtoolExported) });
