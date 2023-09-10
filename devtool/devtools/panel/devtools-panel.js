@@ -64,7 +64,7 @@ port.onMessage.addListener(async message => {
             break;
 
         case "cleanup":
-            shipFunction(serializableClearHighlight);
+            await runSessionFunction("clearHighlight");
             break;
 
 		default:
@@ -96,4 +96,9 @@ document.getElementById("connected").addEventListener("click", async ev => {
         const ul = getObjectPropListEl(objectId);
         ev.target.replaceWith(ul);
     }
+});
+
+window.addEventListener("keydown", ev => {
+    // allow console drawer to toggle
+    if (ev.key === "Escape") ev.preventDefault();
 });
