@@ -56,9 +56,18 @@ export function element<E extends keyof HTMLElementTagNameMap>(
     ...children: (Node | string)[]
 ): HTMLElementTagNameMap[E] | Text {
     const el: HTMLElementTagNameMap[E] = document.createElement(name);
+
+    // assign dependencies of interior text nodes to this element
+    for (const child of children) {
+        if (child instanceof Text) {
+            const textDependency = textNodeDependencies.get(child);
+            if (textDependency) {
+                addElementDependencies(el, textDependency);
+                textNodeDependencies.delete(child);
+            }
+        }
+    }
     el.append(...children);
-    
-    while (orphans.length) addElementDependencies(el, orphans.pop()!);
 
     let syncEvents: string | undefined;
     for (let [name, value] of Object.entries(staticAttrs) as [string, string][]) {
@@ -122,20 +131,24 @@ export function element<E extends keyof HTMLElementTagNameMap>(
     return el;
 }
 
-// Unclaimed children will be stowed here until an element parent can claim them.
-// Next time element() is called, the non-node children's dependencies will be 
-// added to that element's dependencies for the purpose of devtool reporting.
-const orphans: DependencyList[] = [];
+// Text node dependency lists will be recorded here
+// If and when they are appended to elements later, the text node depencies
+// can then be included in the element's for the purpose of devtool reporting.
+const textNodeDependencies: WeakMap<Text, DependencyList> = new WeakMap;
 export function child(getter: () => number | string | bigint | null | undefined | HTMLElement | Text): ChildNode {
     const result = getter();
     if (result instanceof Node) return result;
     
     let node = document.createTextNode("");
+    let dependencyList: DependencyList | undefined;
     effectDefault(dl => {
         const newNode = document.createTextNode(String(getter() ?? ""));
         node.replaceWith(newNode);
         node = newNode;
-        orphans.push(dl);
+        dependencyList = dl;
     });
+    if (dependencyList?.trackedProperties.length) {
+        textNodeDependencies.set(node, dependencyList);
+    }
     return node;
 }

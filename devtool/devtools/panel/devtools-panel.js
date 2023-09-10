@@ -11,12 +11,12 @@ displaySection("");
 
 document.getElementById("button_dom_state").addEventListener("click", async () => {
     displaySection("choose-element");
-	await shipFunction(serializableDoHighlight);
+	await runSessionFunction("doHighlight");
 });
 
 document.getElementById("button_use_inspected").addEventListener("click", async () => {
     displaySection("element");
-	await shipFunction(serializableSelectInspected);
+    await runSessionFunction("selectElement", "$0");
 });
 
 document.getElementById("button_history").addEventListener("click", () => {
@@ -27,8 +27,8 @@ document.getElementById("button_msg_content").addEventListener("click", () => {
 	port.postMessage({ name: "message posted from devtools" });
 });
 
-document.getElementById("button_select_parent").addEventListener("click", () => {
-    shipFunction(serializableSelectParent);
+document.getElementById("button_select_parent").addEventListener("click", async () => {
+    await runSessionFunction("selectParent");
 });
 
 port.onMessage.addListener(async message => {
