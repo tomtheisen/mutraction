@@ -19,7 +19,7 @@
         <span class="logo">μ</span>
         <div style="float: right;">Connected to <code>mutraction-dom @<span id="version"></span></code></div>
         <button id="button_dom_state">👆 Choose element</button>
-        <button id="button_use_inspected">⏹️ Use inspected element</button>
+        <!-- <button id="button_use_inspected">⏹️ Use inspected element</button> -->
         <button id="button_history">📃Mutation history</button>
       </header>
 
@@ -36,7 +36,9 @@
         <p id="element-message"></p>
       </section>
       <section data-section="history">
-        <h2>Undo history</h2>
+        <button id="button_undo">Undo</button>
+        <button id="button_redo">Redo</button>
+        <h2>Undo history (last 100)</h2>
         <ul id="undo-history"></ul>
       </section>
     </div>

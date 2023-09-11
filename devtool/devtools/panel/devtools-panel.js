@@ -9,7 +9,7 @@ document.getElementById("button_dom_state").addEventListener("click", async () =
 	await runSessionFunction("doHighlight");
 });
 
-document.getElementById("button_use_inspected").addEventListener("click", async () => {
+document.getElementById("button_use_inspected")?.addEventListener("click", async () => {
     displaySection("element");
     await runSessionFunction("selectElement", "$0");
 });
@@ -23,11 +23,20 @@ document.getElementById("button_select_parent").addEventListener("click", async 
     await runSessionFunction("selectParent");
 });
 
+document.getElementById("button_undo").addEventListener("click", async () => {
+    await runSessionFunction("undo");
+});
+
+document.getElementById("button_redo").addEventListener("click", async () => {
+    await runSessionFunction("redo");
+});
+
 port.onMessage.addListener(async message => {
+    console.log("[panel] recieved port message", message);
 	switch (message.type) {
 		case "init":
             displaySection("");
-			init();
+			await init();
 			break;
 
         case "selected-element":
@@ -63,6 +72,7 @@ port.onMessage.addListener(async message => {
 
         case "cleanup":
             await runSessionFunction("clearHighlight");
+            await shipFunction(serializableStopHistory);
             break;
 
         case "object-update":

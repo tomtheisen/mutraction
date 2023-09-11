@@ -29,6 +29,12 @@ function serializableStartHistory() {
     session.historyDependency = dl;
 }
 
+function serializableStopHistory() {
+    const { session } = window[Symbol.for("mutraction-dom")];
+    session.historyDependency?.untrackAll();
+    session.historyDependency = undefined;
+}
+
 const sessionFunctions = {
     getDependentAncestor: function(el) {
         let selected = el;
@@ -188,9 +194,20 @@ const sessionFunctions = {
         });
 
         return result;
-    }
+    },
+
+    undo: function() {
+        const { defaultTracker } = window[Symbol.for("mutraction-dom")];
+        defaultTracker.undo();
+    },
+
+    redo: function() {
+        const { defaultTracker } = window[Symbol.for("mutraction-dom")];
+        defaultTracker.redo();
+    },
 };
 
+console.log("[panel] defining init()");
 async function init() {
     console.log("[panel] init");
     const versionEl = document.getElementById("version");

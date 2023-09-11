@@ -11,7 +11,7 @@ async function shipFunction(fn, ...args) {
 
 let displayedSection = "";
 function displaySection(name) {
-    displaySection = name;
+    displayedSection = name;
     console.log("[panel] displaying section", name);
     document.querySelectorAll("section[data-section]").forEach(el => {
         el.hidden = el.getAttribute("data-section") !== name;
