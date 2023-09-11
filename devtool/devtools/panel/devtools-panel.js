@@ -14,8 +14,9 @@ document.getElementById("button_use_inspected").addEventListener("click", async 
     await runSessionFunction("selectElement", "$0");
 });
 
-document.getElementById("button_history").addEventListener("click", () => {
+document.getElementById("button_history").addEventListener("click", async () => {
     displaySection("history");
+    await updateHistory();
 });
 
 document.getElementById("button_select_parent").addEventListener("click", async () => {
@@ -78,6 +79,11 @@ port.onMessage.addListener(async message => {
             }
             break;
 
+        case "history-update":
+            if (displaySection === "history");
+            await updateHistory();
+            break;
+
 		default:
 			console.warn("[panel] unknown message type " + message.type, message);
 			break;
@@ -97,6 +103,43 @@ async function getObjectPropListEl(objectId) {
     }).join('');
 
     return ul;
+}
+
+async function updateHistory() {
+    const history = await runSessionFunction("getHistory");
+    history.reverse();
+
+    console.log("[panel] got history", history);
+    const ul = document.getElementById("undo-history");
+    ul.innerHTML = "";
+    for (const record of history) {
+        ul.append(getHistoryLi(record));
+    }
+}
+
+function getHistoryLi(record) {
+    const li = document.createElement("li");
+    switch (record.type) {
+        case "create":
+            li.innerHTML = `Created property <code>${ htmlEncode(record.name) }</code> with value <code>${ htmlEncode(record.newValue) }</code>`;
+            break;
+        case "delete":
+            li.innerHTML = `Removed property <code>${ htmlEncode(record.name) }</code>`;
+            break;
+        case "change":
+            li.innerHTML = `Updated property <code>${ htmlEncode(record.name) }</code> with value <code>${ htmlEncode(record.newValue) }</code>`;
+            break;
+        case "arrayextend":
+            li.innerHTML = `Extended array <code>${ htmlEncode(record.name) }</code> to index <code>${ record.newIndex }</code> with value <code>${ htmlEncode(record.newValue) }</code>`;
+            break;
+        case "arrayshorten":
+            li.innerHTML = `Shortened array <code>${ htmlEncode(record.name) }</code> to length <code>${ record.newLength }</code>`;
+            break;
+        case "transaction":
+            li.innerHTML = record.transactionName ? `Transaction '${ record.transactionName }'` : `Transaction`;
+            break;
+    }
+    return li;
 }
 
 document.getElementById("connected").addEventListener("click", async ev => {

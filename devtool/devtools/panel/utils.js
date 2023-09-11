@@ -9,7 +9,9 @@ async function shipFunction(fn, ...args) {
 	return result;
 }
 
+let displayedSection = "";
 function displaySection(name) {
+    displaySection = name;
     console.log("[panel] displaying section", name);
     document.querySelectorAll("section[data-section]").forEach(el => {
         el.hidden = el.getAttribute("data-section") !== name;
@@ -17,7 +19,7 @@ function displaySection(name) {
 }
 
 function htmlEncode(str) {
-    return str
+    return String(str)
         .replace(/&/g, '&amp;')    
         .replace(/>/g, '&gt;')   
         .replace(/</g, '&lt;');

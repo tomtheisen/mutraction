@@ -13,6 +13,22 @@ function serializableMakeLocalSheet() {
     document.adoptedStyleSheets.push(sheet);
 }
 
+function serializableStartHistory() {
+    const { defaultTracker, session } = window[Symbol.for("mutraction-dom")];
+
+    session.historyDependency?.untrackAll();
+
+    const dl = defaultTracker.startDependencyTrack();
+    defaultTracker.history.length;
+    dl.endDependencyTrack();
+
+    dl.subscribe(() => {
+        const msg = { type: "history-update" };
+        window.postMessage(msg);        
+    });
+    session.historyDependency = dl;
+}
+
 const sessionFunctions = {
     getDependentAncestor: function(el) {
         let selected = el;
@@ -160,6 +176,18 @@ const sessionFunctions = {
         if (!session.activeObjectSubscriptions) return;
         session.activeObjectSubscriptions.forEach(dl => dl.untrackAll());
         session.activeObjectSubscriptions.length = 0;
+    },
+
+    getHistory: function() {
+        const { defaultTracker } = window[Symbol.for("mutraction-dom")];
+
+        const result = defaultTracker.history.slice(-100).map(e => {
+            // remove objects
+            const {parent, operations, dependencies, target, ...rest} = e;
+            return rest;
+        });
+
+        return result;
     }
 };
 
@@ -175,6 +203,7 @@ async function init() {
         versionEl.innerText = version;
 
         await shipFunction(serializableMakeLocalSheet);
+        await shipFunction(serializableStartHistory);
 
         for (const name in sessionFunctions) {
             console.log("[init] setting up session function", name);
