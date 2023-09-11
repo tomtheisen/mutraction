@@ -40,7 +40,9 @@ port.onMessage.addListener(async message => {
 			break;
 
         case "selected-element":
+            console.log("[panel] selected-element");
             await runSessionFunction("clearObjectSubscriptions");
+            console.log("[panel] done with clearObjectSubscriptions");
 
             if (message.tagName == null) {
                 // nothing selected
@@ -53,12 +55,17 @@ port.onMessage.addListener(async message => {
                 `${ attr[0] }="${ attr[1] }"`
             ).join(' ');
             document.getElementById("element-tag").innerText = `<${ tag }${ attributes ? " " : "" }${ attributes }>`;
+            console.log("[panel] set element tag text");
 
             document.getElementById("element-message").innerText = "";
+            console.log("[panel] set element message text");
             document.getElementById("element-dependencies").innerHTML = "";
+            console.log("[panel] set element dependency text");
 
+            console.log("[panel] selected element object ids", message.objectIds);
             if (message.objectIds?.length) {
                 for (const id of message.objectIds) {
+                    console.log("[panel] selected element evaluating object id", id);
                     const li = document.createElement("li");
                     li.append("Object");
                     li.append(await getObjectPropListEl(id));
@@ -78,13 +85,12 @@ port.onMessage.addListener(async message => {
         case "object-update":
             const { objectId } = message;
             const entries = await runSessionFunction("getObject", String(objectId));
+            console.log("[panel] object-update got entries", entries);
             for (const entry of entries) {
                 const selector = `ul[data-object-id="${ objectId }"] li[data-prop="${ entry[0] }"]`;
+
                 for (const el of document.querySelectorAll(selector)) {
-                    // TODO normalize with create
-                    el.innerHTML = typeof entry[1] === "object"
-                        ? `${ htmlEncode(entry[0]) }: <a data-object-id=${ entry[1].id }>obj...</a>`
-                        : `${ htmlEncode(entry[0]) }: ${ htmlEncode(JSON.stringify(entry[1])) }`;
+                    el.innerHTML = objectLiFromEntry(entry);
                 }
             }
             break;
@@ -100,17 +106,30 @@ port.onMessage.addListener(async message => {
 	}
 });
 
+function objectLiFromEntry(entry) {
+    const editButtonSrc = `<button class="button_object_prop_edit">Edit</button>`;
+    console.log("[objectLiFromEntry] entry", entry);
+    if (typeof entry[1] === "object" && entry[1] != null && entry[1].type === "function") {
+        return `<li data-prop="${ htmlEncode(entry[0]) }"><code>${ htmlEncode(entry[0]) }</code>: function()`;
+    }
+    if (typeof entry[1] === "object" && entry[1] != null && entry[1].type === "object") {
+        return `<li data-prop="${ htmlEncode(entry[0]) }"><code>${ htmlEncode(entry[0]) }</code>: <a data-object-id=${ entry[1].id }>obj...</a>`;
+    }
+    return `<li data-prop="${ htmlEncode(entry[0]) }"><code>${ htmlEncode(entry[0]) }</code>: <span class="value">${ htmlEncode(JSON.stringify(entry[1])) }</span> ${ editButtonSrc }`;
+}
+
 async function getObjectPropListEl(objectId) {
+    console.log("[panel] running getObjectPropListEl");
+
     await runSessionFunction("subscribeToObject", String(objectId));
+    console.log("[panel] done subscribing to object");
 
     const entries = await runSessionFunction("getObject", String(objectId));
+    console.log("[panel] got entries from session function", entries);
     const ul = document.createElement("ul");
     ul.setAttribute("data-object-id", objectId);
-    ul.innerHTML = entries.map(e => {
-        return typeof e[1] === "object"
-            ? `<li data-prop="${ htmlEncode(e[0]) }">${ htmlEncode(e[0]) }: <a data-object-id=${ e[1].id }>obj...</a>`
-            : `<li data-prop="${ htmlEncode(e[0]) }">${ htmlEncode(e[0]) }: ${ htmlEncode(JSON.stringify(e[1])) }`
-    }).join('');
+    ul.innerHTML = entries.map(objectLiFromEntry).join('');
+    console.log("[panel] build object prop ul", ul);        
 
     return ul;
 }
@@ -152,12 +171,36 @@ function getHistoryLi(record) {
     return li;
 }
 
+function findNearestAttr(el, attr) {
+    for (let curr = el; curr; curr = curr.parentElement) {
+        const result = curr.getAttribute(attr);
+        if (result) return result;
+    }
+}
+
 document.getElementById("connected").addEventListener("click", async ev => {
     const objectId = ev.target.getAttribute("data-object-id");
     console.log("[panel] connected click", { objectId });
     if (ev.target instanceof HTMLAnchorElement && objectId) {
         const ul = getObjectPropListEl(objectId);
         ev.target.replaceWith(ul);
+    }
+    if (ev.target instanceof HTMLButtonElement && ev.target.classList.contains("button_object_prop_edit")) {
+        console.log("[panel] clicking edit button");
+        const objectId = findNearestAttr(ev.target, "data-object-id");
+        const prop = findNearestAttr(ev.target, "data-prop");
+        console.log("[panel] found edit props from doc", { prop, objectId });
+
+        const input = document.createElement("input");
+        input.value = ev.target.previousElementSibling.innerHTML;
+        ev.target.previousElementSibling.remove();
+        ev.target.replaceWith(input);
+        input.focus();
+
+        input.addEventListener("blur", async () => {
+            console.log("[panel] edit blur", { objectId, prop, value: input.value })
+            await runSessionFunction("setObjectProp", JSON.stringify(objectId), JSON.stringify(prop), JSON.stringify(input.value));
+        });
     }
 });
 

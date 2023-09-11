@@ -10,7 +10,7 @@ browser.runtime.onConnect.addListener((port) => {
 
             port.onMessage.addListener((message) => {
                 console.log("[background] message from content", message);
-                panelPort?.postMessage({ ...message, customs: true });
+                panelPort?.postMessage(message);
             });
 
             port.onDisconnect.addListener(p => {
@@ -25,7 +25,7 @@ browser.runtime.onConnect.addListener((port) => {
 
             port.onMessage.addListener((message) => {
                 console.log("[background] message from panel", message);
-                contentPort?.postMessage({ ...message, customs: true });
+                contentPort?.postMessage(message);
             });
 
             port.onDisconnect.addListener(p => {

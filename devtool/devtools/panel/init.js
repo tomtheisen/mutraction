@@ -37,6 +37,8 @@ function serializableStopHistory() {
 
 const sessionFunctions = {
     getDependentAncestor: function(el) {
+        const { elementDependencyMap } = window[Symbol.for("mutraction-dom")];
+
         let selected = el;
         while (selected && !elementDependencyMap.has(selected)) {
             selected = selected.parentElement;
@@ -146,14 +148,32 @@ const sessionFunctions = {
         console.log("[getObject] called", { id, obj });
         if (!obj) return undefined;
 
-        return Object.entries(obj).map(e => {
-            if (e[1] === null || typeof e[1] !== "object") return e;
-            return [e[0], { id: objectRepository.getId(e[1]) } ];
+        const result = Object.entries(obj).map(e => {
+            // console.log("[getObject] entry map", e, typeof e[1]);
+            if (typeof e[1] === "function") {
+                return [e[0], { type: "function", name: e[1].name }];
+            }
+            if (e[1] === null || typeof e[1] !== "object") {
+                return e;
+            }
+            return [e[0], { type: "object", id: objectRepository.getId(e[1]) } ];
         });
+        console.log("[getObject] result", result);
+
+        return result;
+    },
+
+    setObjectProp: function(id, prop, value) {
+        const { objectRepository } = window[Symbol.for("mutraction-dom")];
+
+        const obj = objectRepository.getObject(Number(id));
+        console.log("[setObjectProp] called", { id, obj, prop, value });
+
+        if (obj) obj[prop] = JSON.parse(value);
     },
 
     subscribeToObject: function(id) {
-        const { session, objectRepository } = window[Symbol.for("mutraction-dom")];
+        const { session, objectRepository, defaultTracker } = window[Symbol.for("mutraction-dom")];
 
         const obj = objectRepository.getObject(Number(id));
         if (!obj) return undefined;
@@ -177,8 +197,10 @@ const sessionFunctions = {
     },
 
     clearObjectSubscriptions: function() {
+        console.log("[clearObjectSubscriptions] starting");
         const { session } = window[Symbol.for("mutraction-dom")];
 
+        console.log("[clearObjectSubscriptions] session", session);
         if (!session.activeObjectSubscriptions) return;
         session.activeObjectSubscriptions.forEach(dl => dl.untrackAll());
         session.activeObjectSubscriptions.length = 0;
