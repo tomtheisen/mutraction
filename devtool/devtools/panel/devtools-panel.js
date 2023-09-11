@@ -200,7 +200,12 @@ document.getElementById("connected").addEventListener("click", async ev => {
         input.addEventListener("blur", async () => {
             console.log("[panel] edit blur", { objectId, prop, value: input.value })
             await runSessionFunction("setObjectProp", JSON.stringify(objectId), JSON.stringify(prop), JSON.stringify(input.value));
-        });
+        }, { once: true });
+        input.addEventListener("keypress", async ev => {
+            if (ev.key === "Enter") {
+                await runSessionFunction("setObjectProp", JSON.stringify(objectId), JSON.stringify(prop), JSON.stringify(input.value));
+            }
+        })
     }
 });
 
