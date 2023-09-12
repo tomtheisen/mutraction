@@ -33,7 +33,9 @@ function linkProxyToObject(obj: any, proxy: any) {
 }
 
 // Some types do not tolerate being proxied
-const unproxyableConstructors: Set<Function> = new Set([RegExp, Promise, window.constructor]);
+const unproxyableConstructors: Set<Function> = new Set([RegExp, Promise]);
+// Detect node; node's constructor chains appear slightly different
+if ("window" in globalThis) unproxyableConstructors.add(globalThis.window.constructor)
 
 export function canBeProxied(val: unknown): val is object {
     if (val == null) return false;
@@ -110,8 +112,8 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
         }
 
         const mutation: SingleMutation = name in target
-            ? { type: "change", target, name, oldValue: model[name], newValue }
-            : { type: "create", target, name,                        newValue };
+            ? { type: "change", target, name, oldValue: model[name], newValue, timestamp: new Date }
+            : { type: "create", target, name,                        newValue, timestamp: new Date };
         
         const initialSets = setsCompleted;
         const wasSet = Reflect.set(target, name, newValue, receiver);
@@ -136,7 +138,7 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
             if (newLength < oldLength) {
                 const removed = Object.freeze(target.slice(newLength, oldLength));
                 const shorten: ArrayShorten = {
-                    type: "arrayshorten", target, name, oldLength, newLength, removed
+                    type: "arrayshorten", target, name, oldLength, newLength, removed, timestamp: new Date
                 };
                 const wasSet = Reflect.set(target, name, newValue, receiver);
                 tracker[RecordMutation](shorten);
@@ -150,7 +152,7 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
             if (index >= target.length) {
                 // assignment to array index will lengthen array    
                 const extension: ArrayExtend = { 
-                    type: "arrayextend", target, name, oldLength: target.length, newIndex: index, newValue
+                    type: "arrayextend", target, name, oldLength: target.length, newIndex: index, newValue, timestamp: new Date
                 };
                 const wasSet = Reflect.set(target, name, newValue, receiver);
                 tracker[RecordMutation](extension);
@@ -163,7 +165,7 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
     }
 
     function deleteProperty(target: TModel, name: TKey) {
-        const mutation: DeleteProperty = { type: "delete", target, name, oldValue: model[name] };
+        const mutation: DeleteProperty = { type: "delete", target, name, oldValue: model[name], timestamp: new Date };
         const wasDeleted = Reflect.deleteProperty(target, name);
         if (wasDeleted) {
             tracker[RecordMutation](mutation);

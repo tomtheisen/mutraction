@@ -30,7 +30,9 @@ function linkProxyToObject(obj, proxy) {
   });
   obj[ProxyOf] = proxy;
 }
-var unproxyableConstructors = /* @__PURE__ */ new Set([RegExp, Promise, window.constructor]);
+var unproxyableConstructors = /* @__PURE__ */ new Set([RegExp, Promise]);
+if ("window" in globalThis)
+  unproxyableConstructors.add(globalThis.window.constructor);
 function canBeProxied(val) {
   if (val == null)
     return false;
@@ -96,7 +98,7 @@ function makeProxyHandler(model, tracker) {
       const handler = makeProxyHandler(newValue, tracker);
       newValue = new Proxy(newValue, handler);
     }
-    const mutation = name in target ? { type: "change", target, name, oldValue: model[name], newValue } : { type: "create", target, name, newValue };
+    const mutation = name in target ? { type: "change", target, name, oldValue: model[name], newValue, timestamp: /* @__PURE__ */ new Date() } : { type: "create", target, name, newValue, timestamp: /* @__PURE__ */ new Date() };
     const initialSets = setsCompleted;
     const wasSet = Reflect.set(target, name, newValue, receiver);
     if (wasSet && initialSets == setsCompleted++) {
@@ -121,7 +123,8 @@ function makeProxyHandler(model, tracker) {
           name,
           oldLength,
           newLength,
-          removed
+          removed,
+          timestamp: /* @__PURE__ */ new Date()
         };
         const wasSet = Reflect.set(target, name, newValue, receiver);
         tracker[RecordMutation](shorten);
@@ -138,7 +141,8 @@ function makeProxyHandler(model, tracker) {
           name,
           oldLength: target.length,
           newIndex: index,
-          newValue
+          newValue,
+          timestamp: /* @__PURE__ */ new Date()
         };
         const wasSet = Reflect.set(target, name, newValue, receiver);
         tracker[RecordMutation](extension);
@@ -149,7 +153,7 @@ function makeProxyHandler(model, tracker) {
     return setOrdinary(target, name, newValue, receiver);
   }
   function deleteProperty(target, name) {
-    const mutation = { type: "delete", target, name, oldValue: model[name] };
+    const mutation = { type: "delete", target, name, oldValue: model[name], timestamp: /* @__PURE__ */ new Date() };
     const wasDeleted = Reflect.deleteProperty(target, name);
     if (wasDeleted) {
       tracker[RecordMutation](mutation);
@@ -312,6 +316,7 @@ var Tracker = class {
   #operationHistory;
   #redos = [];
   #inUse = false;
+  #dependencyTrackers = [];
   options = defaultTrackerOptions;
   // If defined this will be the prop reference for the "history" property of this Tracker instance
   // If so, it should be notified whenever the history is affected
@@ -387,7 +392,7 @@ var Tracker = class {
   /** Add another transaction to the stack  */
   startTransaction(name) {
     this.#ensureHistory();
-    this.#transaction = { type: "transaction", parent: this.#transaction, operations: [], dependencies: /* @__PURE__ */ new Set() };
+    this.#transaction = { type: "transaction", parent: this.#transaction, operations: [], dependencies: /* @__PURE__ */ new Set(), timestamp: /* @__PURE__ */ new Date() };
     if (name)
       this.#transaction.transactionName = name;
     return this.#transaction;
@@ -558,7 +563,6 @@ var Tracker = class {
       this.#historyPropRef?.notifySubscribers();
     }
   }
-  #dependencyTrackers = [];
   /** Create a new `DependencyList` from this tracker  */
   startDependencyTrack() {
     const deps = new DependencyList(this);
@@ -572,9 +576,11 @@ var Tracker = class {
     return dep;
   }
   [RecordDependency](propRef) {
-    this.#dependencyTrackers[0]?.addDependency(propRef);
-    if (this.#gettingPropRef)
+    if (this.#gettingPropRef) {
       this.#lastPropRef = propRef;
+    } else {
+      this.#dependencyTrackers[0]?.addDependency(propRef);
+    }
   }
   #gettingPropRef = false;
   #lastPropRef = void 0;
@@ -639,7 +645,8 @@ function effect(sideEffect, options = {}) {
     subscription.dispose();
   };
   function effectDependencyChanged() {
-    lastResult?.();
+    if (typeof lastResult === "function")
+      lastResult();
     dispose();
     dep = tracker.startDependencyTrack();
     lastResult = sideEffect(dep);
@@ -1065,7 +1072,7 @@ function makeLocalStyle(rules) {
 }
 
 // out/index.js
-var version = "0.20.0";
+var version = "0.20.1";
 var devtoolKey = Symbol.for("mutraction-dom");
 var devtoolExported = {
   version,

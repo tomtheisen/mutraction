@@ -1,21 +1,20 @@
-export function muLogo(size: number){
-    const treads = 32;
-    let stops = "";
+import { makeLocalStyle } from "mutraction-dom";
 
-    for (let i = 0; i < treads; i++) {
-        const color = i % 2 ? "#0000" : "#000";
-        stops += `\n , ${ color } ${ i / treads }turn, ${ color } ${ (i+1) / treads }turn`;
-    }
+const treads = 32;
+let stops = "";
 
-    const logoStyles: Partial<CSSStyleDeclaration> = {
+for (let i = 0; i < treads; i++) {
+    const color = i % 2 ? "#0000" : "#000";
+    stops += `\n , ${ color } ${ i / treads }turn, ${ color } ${ (i+1) / treads }turn`;
+}
+
+const style = makeLocalStyle({
+    ".logo": {
         position: "relative",
-        width: `${ size }px`,
-        height: `${ size }px`,
         display: "inline-block",
         textAlign: "left",
-    };
-
-    const treadStyles: Partial<CSSStyleDeclaration> = {
+    },
+    ".tread": {
         position: "absolute",
         left: "0",
         top: "0",
@@ -28,20 +27,22 @@ export function muLogo(size: number){
             conic-gradient(from 90deg at 50% 50%
             ${ stops }`,
         animation: "rotating 20s linear infinite",
-    };
-
-    const muStyles: Partial<CSSStyleDeclaration> = {
+    },
+    ".mu": {
         position: "relative",
         left: "26%",
         top: "41%",
-        font: `italic bold ${ size * 0.8 }px "Calibri", "Arial", "Helvetica", sans-serif`,
+        color: "var(--primary-color)",
+        font: `italic bold 100% "Calibri", "Arial", "Helvetica", sans-serif`,
         lineHeight: "0",
-    };
+    }
+})
 
+export function muLogo(size: number){
     return (
-        <div style={logoStyles}>
-            <div style={treadStyles}/>
-            <div className="primary" style={muStyles}>μ</div>
+        <div className="logo" mu:apply={ style } style={{ width: `${ size }px`, height: `${ size }px` }}>
+            <div className="tread" />
+            <div className="mu primary" style={{ fontSize: `${ size * 0.8 }px` }}>μ</div>
         </div>
     );
 }

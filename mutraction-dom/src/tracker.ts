@@ -22,6 +22,8 @@ export class Tracker {
     #operationHistory?: Mutation[];
     #redos: Mutation[] = [];
     #inUse = false;
+    #dependencyTrackers: DependencyList[] = [];
+
     options: Readonly<Required<TrackerOptions>> = defaultTrackerOptions;
 
     // If defined this will be the prop reference for the "history" property of this Tracker instance
@@ -115,7 +117,7 @@ export class Tracker {
     /** Add another transaction to the stack  */
     startTransaction(name?: string): Transaction {
         this.#ensureHistory();
-        this.#transaction = { type: "transaction", parent: this.#transaction, operations: [], dependencies: new Set };
+        this.#transaction = { type: "transaction", parent: this.#transaction, operations: [], dependencies: new Set, timestamp: new Date };
         if (name) this.#transaction.transactionName = name;
         return this.#transaction;
     }
@@ -291,8 +293,6 @@ export class Tracker {
         }
     }
 
-    #dependencyTrackers: DependencyList[] = [];
-
     /** Create a new `DependencyList` from this tracker  */
     startDependencyTrack(): DependencyList {
         const deps = new DependencyList(this);
@@ -309,8 +309,14 @@ export class Tracker {
     }
 
     [RecordDependency](propRef: PropReference) {
-        this.#dependencyTrackers[0]?.addDependency(propRef);
-        if (this.#gettingPropRef) this.#lastPropRef = propRef;
+        if (this.#gettingPropRef) {
+            // ensure we don't notify any dependency trackers
+            // merely retrieving a property reference doesn't count as a real access
+            this.#lastPropRef = propRef;
+        }
+        else {
+            this.#dependencyTrackers[0]?.addDependency(propRef);
+        }
     }
 
     #gettingPropRef = false;

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Added timestamps to all change history elements
+
+## [0.20.1] - 2023-09-11
+
+### Fixed
+
+- The callback function to `Tracker.getPropRef` no longer registers any dependencies for active `DependencyTrackers`.  This behavior could cause extraneous subscriber callbacks.
+
+### Changed
+
+- When returning a value from the `effect` callback, it will no longer be invoked unless it is a function.  This means that you can sometimes use expression-based lambdas instead of block definitions.
+
 ## [0.20.0] - 2023-09-08
 
 ### Removed

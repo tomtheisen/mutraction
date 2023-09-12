@@ -1,7 +1,7 @@
 import { PropReference } from "./propref.js";
 
 export type Key = string | symbol;
-export type BaseSingleMutation = { target: object, name: Key };
+export type BaseSingleMutation = { target: object, name: Key, timestamp: Date };
 export type CreateProperty = BaseSingleMutation & { type: "create", newValue: any };
 export type DeleteProperty = BaseSingleMutation & { type: "delete", oldValue: any };
 export type ChangeProperty = BaseSingleMutation & { type: "change", oldValue: any, newValue: any };
@@ -19,7 +19,8 @@ export type Transaction = {
     transactionName?: string, 
     parent?: Transaction, 
     operations: Mutation[],
-    dependencies: Set<PropReference>;
+    dependencies: Set<PropReference>,
+    timestamp: Date,
 };
 export type Mutation = SingleMutation | Transaction;
 
@@ -30,7 +31,7 @@ export type ReadonlyDeep<T extends object> = {
         : T[K] extends Map<infer D, infer E> ? ReadonlyMap<D, E>
         : T[K] extends Function ? T[K]
         : T[K] extends object ? ReadonlyDeep<T[K]>
-        : T[K]
+        : T[K];
 }
 
 export type Subscription = {

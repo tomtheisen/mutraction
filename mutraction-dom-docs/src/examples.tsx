@@ -20,7 +20,12 @@ export function examples() {
                 </li>
                 <li>
                     <a target="_blank" href="sandbox/#rVVLj9MwEL7vr5j1AVIeKRzgUNqyEiwHhBakleCyFzeetNb6EWynqKr63xnbSduURQVELrXH4/k+f/Oo1I11Abag+T1+shVXt2Gj8BkEx6t72EHtrAam27gP0prnwmr25uKissYH0Faggln2LrZwAfSh5lJNgLFnaTsew8a2UNlWCRAWvNUYVtIsoeamkuggWFjxNYJuVZCNQlhzJQWPcB4acvjeoo+7Q/hr54oRbJMhfrKG4pKi+jIdl9JUqhXoC3bFRiNwGFpngF3HQ8Ih6p0HPL56TO+JMXaZb8O9/2GdSC+Agekh1ATaO5QKzTKsYAqvD6BfusOMu0DgARRyWr+GasWjsOj8kATJW0unDyp2ht8y6M7hckbZOKb0AI/ONwmcSdG6Wg0ZcKW+xjQM4LpQxUHpTOjt2yHo0HrMfQRE0LRKdWAXu9G+mnwsPaqmYS0WGZ49YZMjJrU14QPXUm1II8+Nf+7RybpTq3sDU3yB6pd731AuV4HuLawS3Y34CekbxWPAhbLV/Uksj6kBBtE0d0tp6MILeAEvUZ9cKdG5gX9llXXk7vAYt+FCUD/EMOUr1MNASZ+6NQmc+ue2XWgZClxPIC+v12hCnySu0IWC5ZOAYnJn7gyDp/Dx9vNN6YMjHFlvitS4o1FOAq7LxmEM8x5rTk1Y0MGuzwpvGspJcpzWlkpMtxOyqc1s22VsB+SYEMnUM4TdfP/AaafdwZKsKTuwClp9sG7GUj2xeerR6TgdnlyQpmmpc0XvC2HT4H5DU6NFYpDelquTqBFbvzFVUmnGqN/MEhlQnitcUfqRgGk8XdFY49JQqWoG4xNYIdcxjKxPgj96dLzNNX+Zq5uAK0XNcMN1JEhlMN/+6rybjin2kU7jvVB/qV3feGzed/k5Bfc3OhEP+6GOvf23Up5Xax9iL9hwTpzXbOj//2TrJhObv8uLc6L1/mc064fxv0vWR9grNpj/5wUbuP+RXos2BBow+WG5m1mciHyhUBCvyxz46G9hN8+dPh3nuxlgOo5DYk5DS9iq1fTucmHFpqSRgUYU9EPD5Sc=">
-                        Form
+                        Form with validations
+                    </a>
+                </li>
+                <li>
+                    <a target="_blank" href="sandbox/#jVRNj5swEL3nV8z6ZDYEKvWWhUTZ1fbYSr0SVDnYJHTBsLbZNqL8944x+aC7kcoBM+M3zzNvxhRVUysDHXyp1TPLDj6IPBeZ8cEolr1AD7mqKyBVa21T1HLB64o8zGZZLbWBquaihNihaTcDfF5boS1SL8E57EM2ZAmt5CIvpOD+xf94w/90w78B/doyJTjuk27Twz3gm1whciazo9s9YXuYA+0e7dI99d4kpncLk/qXUO9z/jyiZr2HVeetHFSAjJVZWzIjqPjdqCVoowq598ZoJ44STckyUQlpNGqUnImTcNvRYL72tn3oA/3hg2SV8CBeOUGDMZnEutPUvwqki/WWz7ECmtyHqV2dY+Qpfah9UANVDXEcA7knsIYSS1awxDXE9Q98ukU6X/wX6dySzkvUc+5oF6AmlFt6ZoH77YnpjZUDC64jOgWmIfku9s+/G8QEQcDUHrvA5DFJByx+pUmK2lt4XiugTt2kYcYIJf1rnVOo84nu3lU/T13hbSY4NsR2LhjB9CM27PgptsiBniLvYhfrIda06noYRsgY2A/vEWQjHmb91QzhnavodGRexNGOyrfdT7yEgbWom4jzpRqpR9IIBalW5yzP95jaUDdWVsOLBpejbNJ41D/0buQeJnhbu0V748+B0lujinwXLYYQb0p1SpsXb6vJhn2iku1EuYrwLtVyv+osZR+FowlRhgeuuiHv9RoIwb3BFYUu8D1hIZvWgDk2IiayrXZCETt7rdjor4MZdx+W0UPVLvVRZs9vOAYxGXgI8EKzXSl43N3d2TR6CKeHRqEt7FIy/mrcDEShaxS2n9dZa4crOAjGA9Y0QnIalYV8QXXKmGhzLIU+CIEHHpTIY3IwptHLMMy4DHRRNaXItA5qtQ+dFaBJMBXU+ky+q/nxRO7mDHf/Ag==">
+                        Form with calculations
                     </a>
                 </li>
                 <li>
