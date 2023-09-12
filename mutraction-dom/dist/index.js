@@ -30,7 +30,9 @@ function linkProxyToObject(obj, proxy) {
   });
   obj[ProxyOf] = proxy;
 }
-var unproxyableConstructors = /* @__PURE__ */ new Set([RegExp, Promise, window.constructor]);
+var unproxyableConstructors = /* @__PURE__ */ new Set([RegExp, Promise]);
+if ("window" in globalThis)
+  unproxyableConstructors.add(globalThis.window.constructor);
 function canBeProxied(val) {
   if (val == null)
     return false;
@@ -312,6 +314,7 @@ var Tracker = class {
   #operationHistory;
   #redos = [];
   #inUse = false;
+  #dependencyTrackers = [];
   options = defaultTrackerOptions;
   // If defined this will be the prop reference for the "history" property of this Tracker instance
   // If so, it should be notified whenever the history is affected
@@ -558,7 +561,6 @@ var Tracker = class {
       this.#historyPropRef?.notifySubscribers();
     }
   }
-  #dependencyTrackers = [];
   /** Create a new `DependencyList` from this tracker  */
   startDependencyTrack() {
     const deps = new DependencyList(this);
@@ -572,9 +574,11 @@ var Tracker = class {
     return dep;
   }
   [RecordDependency](propRef) {
-    this.#dependencyTrackers[0]?.addDependency(propRef);
-    if (this.#gettingPropRef)
+    if (this.#gettingPropRef) {
       this.#lastPropRef = propRef;
+    } else {
+      this.#dependencyTrackers[0]?.addDependency(propRef);
+    }
   }
   #gettingPropRef = false;
   #lastPropRef = void 0;
@@ -639,7 +643,8 @@ function effect(sideEffect, options = {}) {
     subscription.dispose();
   };
   function effectDependencyChanged() {
-    lastResult?.();
+    if (typeof lastResult === "function")
+      lastResult();
     dispose();
     dep = tracker.startDependencyTrack();
     lastResult = sideEffect(dep);
@@ -1015,7 +1020,7 @@ function makeLocalStyle(rules) {
 }
 
 // out/index.js
-var version = "0.20.0";
+var version = "0.20.1";
 export {
   DependencyList,
   ForEach,
