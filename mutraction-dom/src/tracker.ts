@@ -117,7 +117,7 @@ export class Tracker {
     /** Add another transaction to the stack  */
     startTransaction(name?: string): Transaction {
         this.#ensureHistory();
-        this.#transaction = { type: "transaction", parent: this.#transaction, operations: [], dependencies: new Set };
+        this.#transaction = { type: "transaction", parent: this.#transaction, operations: [], dependencies: new Set, timestamp: new Date };
         if (name) this.#transaction.transactionName = name;
         return this.#transaction;
     }
