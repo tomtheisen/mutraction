@@ -33,7 +33,9 @@ function linkProxyToObject(obj: any, proxy: any) {
 }
 
 // Some types do not tolerate being proxied
-const unproxyableConstructors: Set<Function> = new Set([RegExp, Promise, window.constructor]);
+const unproxyableConstructors: Set<Function> = new Set([RegExp, Promise]);
+// Detect node; node's constructor chains appear slightly different
+if ("window" in globalThis) unproxyableConstructors.add(globalThis.window.constructor)
 
 export function canBeProxied(val: unknown): val is object {
     if (val == null) return false;

@@ -45,7 +45,7 @@ export function effect(sideEffect: (dep: DependencyList) => (void | (() => void)
     };
 
     function effectDependencyChanged() {
-        lastResult?.(); // user cleanup
+        if (typeof lastResult === "function") lastResult(); // user cleanup
 
         dispose();
         

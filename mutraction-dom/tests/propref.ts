@@ -1,4 +1,4 @@
-import { track, defaultTracker as tracker, effect, Tracker } from '../src/index.js';
+import { track, defaultTracker as tracker, defaultTracker } from '../src/index.js';
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
@@ -24,6 +24,17 @@ test('compound prop ref', () => {
 
     assert.is(pr.object, model.foo);
     assert.equal(pr.prop, "bar");
+});
+
+test('get prop ref makes no dependency', () => {
+    const model = track({ x: "y" });
+
+    const dep = defaultTracker.startDependencyTrack();
+    const pr = defaultTracker.getPropRef(() => model.x);
+    dep.endDependencyTrack();
+
+    assert.equal(dep.trackedProperties.length, 0);
+    assert.equal(pr.prop, "x");
 });
 
 test.run();
