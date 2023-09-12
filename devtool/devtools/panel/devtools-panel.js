@@ -148,6 +148,7 @@ async function updateHistory() {
 
 function getHistoryLi(record) {
     const li = document.createElement("li");
+    li.setAttribute("title", record.timestamp);
     switch (record.type) {
         case "create":
             li.innerHTML = `Created property <code>${ htmlEncode(record.name) }</code> with value <code>${ htmlEncode(record.newValue) }</code>`;
