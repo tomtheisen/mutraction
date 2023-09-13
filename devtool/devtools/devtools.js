@@ -1,7 +1,30 @@
-const port = browser.runtime.connect({ name: 'devtools' });
+let port = undefined;
+let connected = false;
+
+function openPort() {
+  const port = browser.runtime.connect({ name: 'devtools' });
+
+  port.onDisconnect.addListener(p => {
+    connected = false;
+    if (p.error) {
+      console.warn(`[devtool] Disconnected due to an error: ${p.error.message}`);
+    }
+    else {
+      console.log(`[devtool] Disconnected normally`, p);
+    }
+  });
+
+  return port;
+}
+
+function postMessage(msg) {
+  if (!connected) port = openPort();
+  port.postMessage(msg);
+}
+
 
 browser.devtools.network.onNavigated.addListener((url) => {
-  port.postMessage({ type: "navigation" });
+  postMessage({ type: "navigation" });
 });
 
 /**
@@ -12,7 +35,7 @@ browser.devtools.panels.create(
   "/icons/mu.png",
   "/devtools/panel/panel.html"
 ).then((newPanel) => {
-  newPanel.onShown.addListener(() => port.postMessage({ type: "panel-shown" }));
-  newPanel.onHidden.addListener(() => port.postMessage({ type: "panel-hidden" }));
+  newPanel.onShown.addListener(() => postMessage({ type: "panel-shown" }));
+  newPanel.onHidden.addListener(() => postMessage({ type: "panel-hidden" }));
 });
 

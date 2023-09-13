@@ -4,9 +4,14 @@ const port = browser.runtime.connect({ name: 'devtools-panel' });
 
 displaySection("");
 
+async function displayHistory() {
+    displaySection("history");
+    await updateHistory();
+}
+
 document.getElementById("button_dom_state").addEventListener("click", async () => {
     displaySection("choose-element");
-	await runSessionFunction("doHighlight");
+    await runSessionFunction("doHighlight");
 });
 
 document.getElementById("button_use_inspected")?.addEventListener("click", async () => {
@@ -14,10 +19,7 @@ document.getElementById("button_use_inspected")?.addEventListener("click", async
     await runSessionFunction("selectElement", "$0");
 });
 
-document.getElementById("button_history").addEventListener("click", async () => {
-    displaySection("history");
-    await updateHistory();
-});
+document.getElementById("button_history").addEventListener("click", displayHistory);
 
 document.getElementById("button_select_parent").addEventListener("click", async () => {
     await runSessionFunction("selectParent");
@@ -33,11 +35,11 @@ document.getElementById("button_redo").addEventListener("click", async () => {
 
 port.onMessage.addListener(async message => {
     console.log("[panel] recieved port message", message);
-	switch (message.type) {
-		case "init":
-            displaySection("");
-			await init();
-			break;
+    switch (message.type) {
+        case "init":
+            await init();
+            await displayHistory();
+            break;
 
         case "selected-element":
             console.log("[panel] selected-element");
@@ -78,8 +80,9 @@ port.onMessage.addListener(async message => {
             break;
 
         case "cleanup":
+            await runSessionFunction("stopHighlight");
             await runSessionFunction("clearHighlight");
-            await shipFunction(serializableStopHistory);
+            await runSessionFunction("stopHistory");
             break;
 
         case "object-update":
@@ -100,10 +103,10 @@ port.onMessage.addListener(async message => {
             await updateHistory();
             break;
 
-		default:
-			console.warn("[panel] unknown message type " + message.type, message);
-			break;
-	}
+        default:
+            console.warn("[panel] unknown message type " + message.type, message);
+            break;
+    }
 });
 
 function objectLiFromEntry(entry) {

@@ -6,11 +6,9 @@ browser.runtime.onConnect.addListener((port) => {
         case 'content-script':
             contentPort = port;
 
-            panelPort?.postMessage({ msg: "Content just connected" });
-
             port.onMessage.addListener((message) => {
                 console.log("[background] message from content", message);
-                panelPort?.postMessage(message);
+                panelPort.postMessage(message);
             });
 
             port.onDisconnect.addListener(p => {
@@ -25,7 +23,7 @@ browser.runtime.onConnect.addListener((port) => {
 
             port.onMessage.addListener((message) => {
                 console.log("[background] message from panel", message);
-                contentPort?.postMessage(message);
+                contentPort.postMessage(message);
             });
 
             port.onDisconnect.addListener(p => {
@@ -41,15 +39,15 @@ browser.runtime.onConnect.addListener((port) => {
             port.onMessage.addListener((message) => {
                 switch (message.type) {
                     case 'navigation':
-                        panelPort?.postMessage({ type: "init"  });
+                        panelPort.postMessage({ type: "init" });
                         break;
 
                     case "panel-shown":
-                        panelPort?.postMessage({ type: "init"  });
+                        panelPort.postMessage({ type: "init" });
                         break;
 
                     case "panel-hidden":
-                        panelPort?.postMessage({ type: "cleanup" });
+                        panelPort.postMessage({ type: "cleanup" });
                         break;
 
                     default:

@@ -22,6 +22,7 @@ header {
     color: var(--content-fore);
     border: solid var(--border-color) 1px;
     padding: 4px;
+    white-space: nowrap;
 }
 
 .logo {
@@ -77,8 +78,14 @@ button:hover {
         color-scheme: light;
     }
     body {
-        --body-back: skyblue;
-        --body-fore: orchid;
+        --body-back: white;
+        --body-fore: black;
+        --button-back: #ccc;
+        --button-fore: #222;
+        --button-hover-back: #bbb;
+        --button-hover-fore: #222;
+        --content-back: #eee;
+        --content-fore: #222;
         --border-color: #777;
     }
 }

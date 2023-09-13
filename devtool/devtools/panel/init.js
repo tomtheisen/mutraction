@@ -29,12 +29,6 @@ function serializableStartHistory() {
     session.historyDependency = dl;
 }
 
-function serializableStopHistory() {
-    const { session } = window[Symbol.for("mutraction-dom")];
-    session.historyDependency?.untrackAll();
-    session.historyDependency = undefined;
-}
-
 const sessionFunctions = {
     getDependentAncestor: function(el) {
         const { elementDependencyMap } = window[Symbol.for("mutraction-dom")];
@@ -139,6 +133,25 @@ const sessionFunctions = {
         document.body.addEventListener("mousemove", moveHandler);
         document.body.addEventListener("click", clickHandler, { once: true, capture: true });
         document.body.addEventListener("mousedown", preventHandler, { capture: true });
+
+        console.log("[session doHighlight] setting stopHighlight");
+        session.stopHighlight = () => {
+            console.log("[session stopHighlight] running");
+            document.body.removeEventListener("mousemove", moveHandler);
+            document.body.removeEventListener("click", clickHandler, { once: true, capture: true });
+            document.body.removeEventListener("mousedown", preventHandler, { capture: true });
+            highlighted?.removeAttribute(highlightKey);
+        };
+        console.log("[session doHighlight] setted stopHighlight", session);
+    },
+
+    // will be replaced by doHighlight
+    stopHighlight: function() {},
+
+    stopHistory: function() {
+        const { session } = window[Symbol.for("mutraction-dom")];
+        session.historyDependency?.untrackAll();
+        session.historyDependency = undefined;
     },
 
     getObject: function(id) {
