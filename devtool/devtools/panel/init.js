@@ -240,6 +240,14 @@ const sessionFunctions = {
         const { defaultTracker } = window[Symbol.for("mutraction-dom")];
         defaultTracker.redo();
     },
+
+    assignToGlobal: function(id) {
+        const { objectRepository } = window[Symbol.for("mutraction-dom")];
+        const obj = objectRepository.getObject(Number(id));
+        for(var i = 1; ("temp" + i) in window; i++);
+        window["temp" + i] = obj;
+        return "temp" + i;
+    }
 };
 
 console.log("[panel] defining init()");

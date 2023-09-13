@@ -39,7 +39,6 @@ button {
     color: var(--button-fore);
     border-style: none;
     padding: 4px 8px;
-    margin: 0;
     border-radius: 4px;
     line-height: 1em;
     cursor: pointer;
@@ -48,6 +47,10 @@ button {
 button:hover {
     background: var(--button-hover-back);
     color: var(--button-hover-fore);
+}
+
+#element-dependencies li {
+    line-height: 1.6em;
 }
 
 .one-line {

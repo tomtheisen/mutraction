@@ -68,8 +68,14 @@ port.onMessage.addListener(async message => {
             if (message.objectIds?.length) {
                 for (const id of message.objectIds) {
                     console.log("[panel] selected element evaluating object id", id);
+
+                    const globalButton = document.createElement("button");
+                    globalButton.innerText = "Assign to global";
+                    globalButton.setAttribute("data-set-global-id", id);
+
                     const li = document.createElement("li");
-                    li.append("Object");
+                    li.append("Object ");
+                    li.append(globalButton);
                     li.append(await getObjectPropListEl(id));
                     document.getElementById("element-dependencies").append(li);
                 }
@@ -210,6 +216,14 @@ document.getElementById("connected").addEventListener("click", async ev => {
                 await runSessionFunction("setObjectProp", JSON.stringify(objectId), JSON.stringify(prop), JSON.stringify(input.value));
             }
         })
+    }
+    if (ev.target instanceof HTMLButtonElement && ev.target.getAttribute("data-set-global-id")) {
+        const objectId = ev.target.getAttribute("data-set-global-id");
+        console.log("[panel] assigning to global", objectId);
+
+        const globalName = await runSessionFunction("assignToGlobal", String(objectId));
+        ev.target.disabled = true;
+        ev.target.innerText = globalName;
     }
 });
 
