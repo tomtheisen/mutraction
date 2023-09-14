@@ -140,6 +140,7 @@ type Key = string | symbol;
 type BaseSingleMutation = {
 	target: object;
 	name: Key;
+	timestamp: Date;
 };
 type CreateProperty = BaseSingleMutation & {
 	type: "create";
@@ -173,6 +174,7 @@ type Transaction = {
 	parent?: Transaction;
 	operations: Mutation[];
 	dependencies: Set<PropReference>;
+	timestamp: Date;
 };
 type Mutation = SingleMutation | Transaction;
 type ReadonlyDeep<T extends object> = {

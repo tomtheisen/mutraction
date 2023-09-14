@@ -56,11 +56,17 @@ effect(() => {
 const frame = <iframe src="output.html" hidden={ appState.outpane !== "app" } /> as HTMLIFrameElement;
 const jsOutput = <output style={{ display: appState.outpane === "js" ? "block" : "none" }} textContent={ appState.compiledCode } /> as HTMLOutputElement;
 
+async function getRunLink(src: string) {
+    const js = await muCompile(src);
+    return "run.html#" + await compress(JSON.stringify({ src, js }));
+}
+
 function hamburger() {
     const hamburgerState = track({ 
         isActive: false, 
         downloadScaffoldLink: Promise.resolve(""), 
         downloadSelfContainedLink: Promise.resolve(""),
+        runLink: Promise.resolve(""),
     });
     const containerStyle = {
         display: "inline-block",
@@ -85,6 +91,7 @@ function hamburger() {
             if (code) {
                 hamburgerState.downloadScaffoldLink = getScaffoldZipUrl(code);
                 hamburgerState.downloadSelfContainedLink = getSelfContainedUrl(code);
+                hamburgerState.runLink = getRunLink(code);
             }
         }
         else {
@@ -103,16 +110,24 @@ function hamburger() {
                         { Swapper(() => PromiseLoader(
                             hamburgerState.downloadScaffoldLink.then(url =>
                                 <a download="mutraction-project.zip" href={ url }>📦 Get .zip of this app</a>),
-                            <a>Compressing …</a>,
-                            err => <a className="err">{ err }</a>
+                                <a>Compressing …</a>,
+                                err => <a className="err">{ err }</a>
                         )) }
                     </li>
                     <li>
                         { Swapper(() => PromiseLoader(
                             hamburgerState.downloadSelfContainedLink.then(url =>
                                 <a download="app.html" href={ url }>📄 Download as self-contained .html</a>),
-                            <a>Compressing …</a>,
-                            err => <a className="err">{ err }</a>
+                                <a>Compressing …</a>,
+                                err => <a className="err">{ err }</a>
+                        )) }
+                    </li>
+                    <li>
+                        { Swapper(() => PromiseLoader(
+                            hamburgerState.runLink.then(url =>
+                                <a target="_blank" href={url}>🛣️ Run standalone</a>),
+                                <a>Compressing …</a>,
+                                err => <a className="err">{ err }</a>
                         )) }
                     </li>
                     <li onclick={ () => editor?.setValue(defaultSource) }><a>✨ New</a></li>

@@ -98,7 +98,7 @@ function makeProxyHandler(model, tracker) {
       const handler = makeProxyHandler(newValue, tracker);
       newValue = new Proxy(newValue, handler);
     }
-    const mutation = name in target ? { type: "change", target, name, oldValue: model[name], newValue } : { type: "create", target, name, newValue };
+    const mutation = name in target ? { type: "change", target, name, oldValue: model[name], newValue, timestamp: /* @__PURE__ */ new Date() } : { type: "create", target, name, newValue, timestamp: /* @__PURE__ */ new Date() };
     const initialSets = setsCompleted;
     const wasSet = Reflect.set(target, name, newValue, receiver);
     if (wasSet && initialSets == setsCompleted++) {
@@ -123,7 +123,8 @@ function makeProxyHandler(model, tracker) {
           name,
           oldLength,
           newLength,
-          removed
+          removed,
+          timestamp: /* @__PURE__ */ new Date()
         };
         const wasSet = Reflect.set(target, name, newValue, receiver);
         tracker[RecordMutation](shorten);
@@ -140,7 +141,8 @@ function makeProxyHandler(model, tracker) {
           name,
           oldLength: target.length,
           newIndex: index,
-          newValue
+          newValue,
+          timestamp: /* @__PURE__ */ new Date()
         };
         const wasSet = Reflect.set(target, name, newValue, receiver);
         tracker[RecordMutation](extension);
@@ -151,7 +153,7 @@ function makeProxyHandler(model, tracker) {
     return setOrdinary(target, name, newValue, receiver);
   }
   function deleteProperty(target, name) {
-    const mutation = { type: "delete", target, name, oldValue: model[name] };
+    const mutation = { type: "delete", target, name, oldValue: model[name], timestamp: /* @__PURE__ */ new Date() };
     const wasDeleted = Reflect.deleteProperty(target, name);
     if (wasDeleted) {
       tracker[RecordMutation](mutation);
@@ -390,7 +392,7 @@ var Tracker = class {
   /** Add another transaction to the stack  */
   startTransaction(name) {
     this.#ensureHistory();
-    this.#transaction = { type: "transaction", parent: this.#transaction, operations: [], dependencies: /* @__PURE__ */ new Set() };
+    this.#transaction = { type: "transaction", parent: this.#transaction, operations: [], dependencies: /* @__PURE__ */ new Set(), timestamp: /* @__PURE__ */ new Date() };
     if (name)
       this.#transaction.transactionName = name;
     return this.#transaction;
