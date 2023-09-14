@@ -8,6 +8,8 @@ const selfContainedTemplate = `
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mutraction Self-Contained App</title>
 
+    <style>__MU_TEMPLATE_SIMPLE_CSS__</style>
+
     <script type="inline-module" name="mutraction-dom">
         __MU_TEMPLATE_LIB__
     </script>
@@ -55,12 +57,18 @@ async function getLibSource(): Promise<string> {
     return libSource ??= await (await fetch("mutraction-dom.js")).text();
 }
 
+let simpleCSS: string | undefined;
+async function getSimpleCss(): Promise<string> {
+    return simpleCSS ??= await (await fetch("assets/simple.css")).text();
+}
+
 let lastUrl: string | undefined;
 export async function getSelfContainedUrl(appSource: string) {
     if (lastUrl) URL.revokeObjectURL(lastUrl);
 
     const commentSafeSource = appSource.replaceAll("-->", "-- >");
     const html = (await selfContainedTemplate)
+        .replace("__MU_TEMPLATE_SIMPLE_CSS__", await getSimpleCss())
         .replace("__MU_TEMPLATE_LIB__", await getLibSource())
         .replace("__MU_TEMPLATE_TRANSFORMED__", muCompile(appSource))
         .replace("__MU_TEMPLATE_SOURCE__", commentSafeSource);
