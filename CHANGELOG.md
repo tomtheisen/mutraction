@@ -7,9 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.20.2] - 2023-09-14
+
 ### Changed
 
 - Added timestamps to all change history elements
+- `ForEach` and `ForEachPersist` can now take functions returning arrays instead of arrays.  In that case, reference changes to the identity of the array itself will be followed.
 
 ## [0.20.1] - 2023-09-11
 

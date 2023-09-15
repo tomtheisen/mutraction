@@ -197,19 +197,19 @@ type NodeModifier = NodeModifierAttribute;
  * Generates DOM nodes for an array of values.  The resulting nodes track the array indices.
  * Re-ordering the array will cause affected nodes to be re-generated.
  * @see ForEachPersist if you want DOM nodes to follow the array elements through order changes
- * @param array is the input array
+ * @param array is the input array.  If it's a function returning an array, identity changes to the array itself will be tracked.
  * @param map is the callback function to produce DOM nodes
  * @returns a DOM node you can include in a document
  */
-export declare function ForEach<TIn>(array: TIn[], map: (item: TIn, index: number, array: TIn[]) => (Node | NodeOptions)): Node;
+export declare function ForEach<TIn>(array: TIn[] | (() => TIn[]), map: (item: TIn, index: number, array: TIn[]) => (Node | NodeOptions)): Node;
 /**
  * Generates DOM nes for an array of objects.  The resulting nodes track the array elements.
  * Re-ordering the array will cause the generated nodes to re-ordered in parallel
- * @param array is the input array of objects.  Primitive values can't be used.
+ * @param array is the input array of objects.  Primitive element values can't be used. If it's a function returning an array, identity changes to the array itself will be tracked.
  * @param map is the callback function to produce DOM nodes
  * @returns a DOM node you can include in a document
  */
-export declare function ForEachPersist<TIn extends object>(array: TIn[], map: (e: TIn) => Node): Node;
+export declare function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]), map: (e: TIn) => Node): Node;
 type ConditionalElement = {
 	nodeGetter: () => CharacterData;
 	conditionGetter?: () => boolean;

@@ -1,5 +1,6 @@
 import { effect } from "./effect.js"
 import { ElementSpan } from './elementSpan.js';
+import { Swapper } from "./swapper.js";
 import { isNodeOptions, type NodeOptions } from "./types.js";
 
 const suppress = { suppressUntrackedWarning: true };
@@ -8,11 +9,13 @@ const suppress = { suppressUntrackedWarning: true };
  * Generates DOM nodes for an array of values.  The resulting nodes track the array indices.
  * Re-ordering the array will cause affected nodes to be re-generated.
  * @see ForEachPersist if you want DOM nodes to follow the array elements through order changes
- * @param array is the input array
+ * @param array is the input array.  If it's a function returning an array, identity changes to the array itself will be tracked.
  * @param map is the callback function to produce DOM nodes
  * @returns a DOM node you can include in a document
  */
-export function ForEach<TIn>(array: TIn[], map: (item: TIn, index: number, array: TIn[]) => (Node | NodeOptions)): Node {
+export function ForEach<TIn>(array: TIn[] | (() => TIn[]), map: (item: TIn, index: number, array: TIn[]) => (Node | NodeOptions)): Node {
+    if (typeof array === "function") return Swapper(() => ForEach(array(), map));
+
     const result = new ElementSpan();
     type Output = { container: ElementSpan, cleanup?: () => void };
     const outputs: Output[] = [];
@@ -53,11 +56,13 @@ export function ForEach<TIn>(array: TIn[], map: (item: TIn, index: number, array
 /**
  * Generates DOM nes for an array of objects.  The resulting nodes track the array elements.
  * Re-ordering the array will cause the generated nodes to re-ordered in parallel
- * @param array is the input array of objects.  Primitive values can't be used.
+ * @param array is the input array of objects.  Primitive element values can't be used. If it's a function returning an array, identity changes to the array itself will be tracked.
  * @param map is the callback function to produce DOM nodes
  * @returns a DOM node you can include in a document
  */
-export function ForEachPersist<TIn extends object>(array: TIn[], map: (e: TIn) => Node): Node {
+export function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]), map: (e: TIn) => Node): Node {
+    if (typeof array === "function") return Swapper(() => ForEachPersist(array(), map));
+
     const result = new ElementSpan();
     const containers: ElementSpan[] = [];
     const outputMap = new WeakMap<TIn, HTMLElement | ElementSpan>;

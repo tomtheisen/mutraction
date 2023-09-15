@@ -34,6 +34,10 @@ export function forEach() {
                     <p>
                         This is the array of items to be mapped into DOM nodes.
                     </p>
+                    <p>
+                        You can also use a function returning an array of items.  If you do this,
+                        replacing the array itself will be tracked also.
+                    </p>
                 </li>
                 <li>
                     <code>mapFunction</code>

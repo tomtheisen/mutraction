@@ -806,9 +806,29 @@ function isNodeOptions(arg) {
   return arg != null && typeof arg === "object" && "node" in arg && arg.node instanceof Node;
 }
 
+// out/swapper.js
+function Swapper(nodeFactory) {
+  const span = new ElementSpan();
+  let cleanup;
+  effect(() => {
+    cleanup?.();
+    cleanup = void 0;
+    const output = nodeFactory();
+    if (isNodeOptions(output)) {
+      span.replaceWith(output.node);
+      cleanup = output.cleanup;
+    } else if (output != null) {
+      span.replaceWith(output);
+    }
+  });
+  return span.removeAsFragment();
+}
+
 // out/foreach.js
 var suppress2 = { suppressUntrackedWarning: true };
 function ForEach(array, map) {
+  if (typeof array === "function")
+    return Swapper(() => ForEach(array(), map));
   const result = new ElementSpan();
   const outputs = [];
   effect((lengthDep) => {
@@ -838,6 +858,8 @@ function ForEach(array, map) {
   return result.removeAsFragment();
 }
 function ForEachPersist(array, map) {
+  if (typeof array === "function")
+    return Swapper(() => ForEachPersist(array(), map));
   const result = new ElementSpan();
   const containers = [];
   const outputMap = /* @__PURE__ */ new WeakMap();
@@ -938,24 +960,6 @@ function PromiseLoader(promise, spinner = document.createTextNode(""), onError =
   return span.removeAsFragment();
 }
 
-// out/swapper.js
-function Swapper(nodeFactory) {
-  const span = new ElementSpan();
-  let cleanup;
-  effect(() => {
-    cleanup?.();
-    cleanup = void 0;
-    const output = nodeFactory();
-    if (isNodeOptions(output)) {
-      span.replaceWith(output.node);
-      cleanup = output.cleanup;
-    } else if (output != null) {
-      span.replaceWith(output);
-    }
-  });
-  return span.removeAsFragment();
-}
-
 // out/router.js
 var fragmentMap = /* @__PURE__ */ new WeakMap();
 function Router(...routes) {
@@ -1022,7 +1026,7 @@ function makeLocalStyle(rules) {
 }
 
 // out/index.js
-var version = "0.20.1";
+var version = "0.20.2";
 export {
   DependencyList,
   ForEach,

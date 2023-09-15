@@ -49,6 +49,10 @@ export function forEachPersist() {
                         This is the array of items to be mapped into DOM nodes.
                         It must be an array of objects, not primitives.
                     </p>
+                    <p>
+                        You can also use a function returning an array of items.  If you do this,
+                        replacing the array itself will be tracked also.
+                    </p>
                 </li>
                 <li>
                     <code>mapFunction</code>
