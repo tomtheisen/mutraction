@@ -32,6 +32,7 @@ export const nav =
                         <li><a href="#ref/Swapper">Swapper()</a></li>
                         <li><a href="#ref/Router">Router()</a></li>
                         <li><a href="#ref/makeLocalStyle">makeLocalStyle()</a></li>
+                        <li><a href="#ref/untrackedClone">untrackedClone()</a></li>
                         <li><a href="#ref/Tracker">Tracker</a></li>
                     </ul>
                 </details>

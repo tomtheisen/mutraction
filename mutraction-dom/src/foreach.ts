@@ -13,23 +13,24 @@ const suppress = { suppressUntrackedWarning: true };
  * @param map is the callback function to produce DOM nodes
  * @returns a DOM node you can include in a document
  */
-export function ForEach<TIn>(array: TIn[] | (() => TIn[]), map: (item: TIn, index: number, array: TIn[]) => (Node | NodeOptions)): Node {
+export function ForEach<TIn>(array: TIn[] | (() => TIn[]) | undefined, map: (item: TIn, index: number, array: TIn[]) => (Node | NodeOptions)): Node {
     if (typeof array === "function") return Swapper(() => ForEach(array(), map));
 
     const result = new ElementSpan();
     type Output = { container: ElementSpan, cleanup?: () => void };
     const outputs: Output[] = [];
 
+    const arrayDefined = array ?? [];
     effect(lengthDep => {
         // i is scoped to each loop body invocation
-        for (let i = outputs.length; i < array.length; i++) {
+        for (let i = outputs.length; i < arrayDefined.length; i++) {
             const output: Output = { container: new ElementSpan() };
             outputs.push(output);
 
             effect(itemDep => {
                 output.cleanup?.();
-                const item = array[i];
-                const projection = item !== undefined ? map(item, i, array) : document.createTextNode("");
+                const item = arrayDefined[i];
+                const projection = item !== undefined ? map(item, i, arrayDefined) : document.createTextNode("");
                 if (isNodeOptions(projection)) {
                     output.container.replaceWith(projection.node);
                     output.cleanup = projection.cleanup;
@@ -43,7 +44,7 @@ export function ForEach<TIn>(array: TIn[] | (() => TIn[]), map: (item: TIn, inde
             result.append(output.container.removeAsFragment());
         }
 
-        while (outputs.length > array.length) {
+        while (outputs.length > arrayDefined.length) {
             const { cleanup, container } = outputs.pop()!;
             cleanup?.();
             container.removeAsFragment();
@@ -60,16 +61,17 @@ export function ForEach<TIn>(array: TIn[] | (() => TIn[]), map: (item: TIn, inde
  * @param map is the callback function to produce DOM nodes
  * @returns a DOM node you can include in a document
  */
-export function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]), map: (e: TIn) => Node): Node {
+export function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]) | undefined, map: (e: TIn) => Node): Node {
     if (typeof array === "function") return Swapper(() => ForEachPersist(array(), map));
 
     const result = new ElementSpan();
     const containers: ElementSpan[] = [];
     const outputMap = new WeakMap<TIn, HTMLElement | ElementSpan>;
 
+    const arrayDefined = array ?? [];
     effect(() => {
         // i is scoped to each loop body invocation
-        for (let i = containers.length; i < array.length; i++) {
+        for (let i = containers.length; i < arrayDefined.length; i++) {
             const container = new ElementSpan();
             containers.push(container);
 
@@ -77,7 +79,7 @@ export function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]),
                 // just keep the contents together with a parent somewhere
                 container.emptyAsFragment();
 
-                const item = array[i];
+                const item = arrayDefined[i];
                 if (item == null) return; // probably an array key deletion
 
                 if (typeof item !== "object") throw Error("Elements must be object in ForEachPersist");
@@ -106,7 +108,7 @@ export function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]),
             result.append(container.removeAsFragment());
         }
 
-        while (containers.length > array.length) {
+        while (containers.length > arrayDefined.length) {
             containers.pop()!.removeAsFragment();
         }
     }, suppress);

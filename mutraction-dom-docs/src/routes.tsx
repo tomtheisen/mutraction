@@ -23,6 +23,7 @@ import { effectDoc } from "./ref/effectDoc.js";
 import { routerDoc } from "./ref/routerDoc.js";
 import { trackerDoc } from "./ref/trackerDoc.js";
 import { makeLocalStyleDoc } from "./ref/makeLocalStyleDoc.js";
+import { untrackedCloneDoc } from "./ref/untrackedCloneDoc.js";
 
 import { mounting } from "./recipes/mounting.js";
 import { radio } from "./recipes/radio.js";
@@ -60,6 +61,7 @@ export const routes = Router(
     { pattern: '#ref/Tracker', element: trackerDoc },
     { pattern: '#ref/apply', element: apply },
     { pattern: '#ref/makeLocalStyle', element: makeLocalStyleDoc },
+    { pattern: '#ref/untrackedClone', element: untrackedCloneDoc },
 
     { pattern: '#recipes/mounting', element: mounting },
     { pattern: '#recipes/radio', element: radio },

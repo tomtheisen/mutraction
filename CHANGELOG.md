@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `ForEach` and `ForEachPersist` can now take a null or undefined array without throwing.
+
+## [0.21.0] - 2023-09-15
+
+### Added
+
+- `untrackedClone()`
+
+### Changed
+
+- Reduced the call stack depth for most of the jsx rendering operations
+- Support truthy/falsy in `classList` values in addition to strict booleans
+
+## [0.20.3] - 2023-09-14
+
+### Fixed
+
+- Fixed a bug that caused `Swapper` to take more dependencies than it should, leading to extraneous element replacements
+
 ## [0.20.2] - 2023-09-14
 
 ### Changed

@@ -5,9 +5,6 @@ import { PropReference } from "./propref.js";
 import { NodeModifier } from "./types.js";
 
 const suppress = { suppressUntrackedWarning: true };
-function effectDefault(sideEffect: (dep: DependencyList) => (void | (() => void))) {
-    effect(sideEffect, suppress);
-}
 
 type ElementStringProps<E extends keyof HTMLElementTagNameMap> = {
     [K in keyof HTMLElementTagNameMap[E]]: HTMLElementTagNameMap[E][K] extends string ? string : never;
@@ -76,18 +73,18 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 
         switch (name) {
             case "style":
-                effectDefault(() => { Object.assign(el.style, getter()); });
+                effect(() => { Object.assign(el.style, getter()); }, suppress);
                 break;
 
             case "classList":
-                effectDefault(() => { 
+                effect(() => { 
                     const classMap = getter() as Record<string, boolean>;
-                    for (const e of Object.entries(classMap)) el.classList.toggle(...e);
-                });
+                    for (const [name, on] of Object.entries(classMap)) el.classList.toggle(name, !!on);
+                }, suppress);
                 break;
 
             default:
-                effectDefault(() => { (el as any)[name] = getter(); });
+                effect(() => { (el as any)[name] = getter(); }, suppress);
                 break;
         }
     }
@@ -104,14 +101,20 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 }
 
 export function child(getter: () => number | string | bigint | null | undefined | HTMLElement | Text): ChildNode {
-    const result = getter();
-    if (result instanceof Node) return result;
-    
-    let node = document.createTextNode("");
-    effectDefault(() => {
-        const newNode = document.createTextNode(String(getter() ?? ""));
-        node.replaceWith(newNode);
-        node = newNode;
-    });
+    let node: Text | HTMLElement = document.createTextNode("");
+    effect(dl => {
+        const val = getter();
+        if (val instanceof Node) {
+            // this effect is now dead
+            // since we don't replace nodes by default
+            dl.untrackAll(); // TODO could still be trackAllProperties
+            node = val;
+        }
+        else {
+            const newNode = document.createTextNode(String(val ?? ""));
+            node.replaceWith(newNode);
+            node = newNode;
+        }
+    }, suppress);
     return node;
 }

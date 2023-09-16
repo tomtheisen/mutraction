@@ -201,7 +201,7 @@ type NodeModifier = NodeModifierAttribute;
  * @param map is the callback function to produce DOM nodes
  * @returns a DOM node you can include in a document
  */
-export declare function ForEach<TIn>(array: TIn[] | (() => TIn[]), map: (item: TIn, index: number, array: TIn[]) => (Node | NodeOptions)): Node;
+export declare function ForEach<TIn>(array: TIn[] | (() => TIn[]) | undefined, map: (item: TIn, index: number, array: TIn[]) => (Node | NodeOptions)): Node;
 /**
  * Generates DOM nes for an array of objects.  The resulting nodes track the array elements.
  * Re-ordering the array will cause the generated nodes to re-ordered in parallel
@@ -209,7 +209,7 @@ export declare function ForEach<TIn>(array: TIn[] | (() => TIn[]), map: (item: T
  * @param map is the callback function to produce DOM nodes
  * @returns a DOM node you can include in a document
  */
-export declare function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]), map: (e: TIn) => Node): Node;
+export declare function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]) | undefined, map: (e: TIn) => Node): Node;
 type ConditionalElement = {
 	nodeGetter: () => CharacterData;
 	conditionGetter?: () => boolean;
@@ -279,6 +279,26 @@ export declare function Router(...routes: Route[]): Node;
  * ```
  */
 export declare function makeLocalStyle(rules: Record<string, Partial<CSSStyleDeclaration>>): NodeModifier;
+type Cloneable = string | number | bigint | symbol | Cloneable[] | {
+	[key: string]: Cloneable;
+};
+/**
+ * `untrackedClone` creates a deep clone of an object which is not tracked or proxied.
+ * The main case where this is useful is doing an intensive computation which involves
+ * making a lot of mutations.  The proxy layer and DOM synchronization of tracked objects
+ * have a cost.  In some cases, it's faster to do the computations in an untracked
+ * version of the object, and then put it back into a tracked model when the
+ * expensive computation is complete.
+ *
+ * @ param obj is the object to clone.  It cannot be an instance of a class.
+ * @ param maxDepth is the maximum depth of recursion.  The default is 10.
+ * Reference cycles are not supported
+ * @ example
+ * const localPiece = untrackedClone(model.piece);
+ * expensiveModifications(localPiece);
+ * model.piece = localPiece;
+ */
+export declare function untrackedClone<T extends Cloneable & object>(obj: T, maxDepth?: number): T;
 export declare const version: string;
 
 export {};

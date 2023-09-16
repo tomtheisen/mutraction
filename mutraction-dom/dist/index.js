@@ -658,9 +658,6 @@ function effect(sideEffect, options = {}) {
 
 // out/runtime.js
 var suppress = { suppressUntrackedWarning: true };
-function effectDefault(sideEffect) {
-  effect(sideEffect, suppress);
-}
 function isNodeModifier(obj) {
   return obj != null && typeof obj === "object" && "$muType" in obj && typeof obj.$muType === "string";
 }
@@ -706,21 +703,21 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
     }
     switch (name2) {
       case "style":
-        effectDefault(() => {
+        effect(() => {
           Object.assign(el.style, getter());
-        });
+        }, suppress);
         break;
       case "classList":
-        effectDefault(() => {
+        effect(() => {
           const classMap = getter();
-          for (const e of Object.entries(classMap))
-            el.classList.toggle(...e);
-        });
+          for (const [name3, on] of Object.entries(classMap))
+            el.classList.toggle(name3, !!on);
+        }, suppress);
         break;
       default:
-        effectDefault(() => {
+        effect(() => {
           el[name2] = getter();
-        });
+        }, suppress);
         break;
     }
   }
@@ -735,15 +732,18 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
   return el;
 }
 function child(getter) {
-  const result = getter();
-  if (result instanceof Node)
-    return result;
   let node = document.createTextNode("");
-  effectDefault(() => {
-    const newNode = document.createTextNode(String(getter() ?? ""));
-    node.replaceWith(newNode);
-    node = newNode;
-  });
+  effect((dl) => {
+    const val = getter();
+    if (val instanceof Node) {
+      dl.untrackAll();
+      node = val;
+    } else {
+      const newNode = document.createTextNode(String(val ?? ""));
+      node.replaceWith(newNode);
+      node = newNode;
+    }
+  }, suppress);
   return node;
 }
 
@@ -831,14 +831,15 @@ function ForEach(array, map) {
     return Swapper(() => ForEach(array(), map));
   const result = new ElementSpan();
   const outputs = [];
+  const arrayDefined = array ?? [];
   effect((lengthDep) => {
-    for (let i = outputs.length; i < array.length; i++) {
+    for (let i = outputs.length; i < arrayDefined.length; i++) {
       const output = { container: new ElementSpan() };
       outputs.push(output);
       effect((itemDep) => {
         output.cleanup?.();
-        const item = array[i];
-        const projection = item !== void 0 ? map(item, i, array) : document.createTextNode("");
+        const item = arrayDefined[i];
+        const projection = item !== void 0 ? map(item, i, arrayDefined) : document.createTextNode("");
         if (isNodeOptions(projection)) {
           output.container.replaceWith(projection.node);
           output.cleanup = projection.cleanup;
@@ -849,7 +850,7 @@ function ForEach(array, map) {
       }, suppress2);
       result.append(output.container.removeAsFragment());
     }
-    while (outputs.length > array.length) {
+    while (outputs.length > arrayDefined.length) {
       const { cleanup, container } = outputs.pop();
       cleanup?.();
       container.removeAsFragment();
@@ -863,13 +864,14 @@ function ForEachPersist(array, map) {
   const result = new ElementSpan();
   const containers = [];
   const outputMap = /* @__PURE__ */ new WeakMap();
+  const arrayDefined = array ?? [];
   effect(() => {
-    for (let i = containers.length; i < array.length; i++) {
+    for (let i = containers.length; i < arrayDefined.length; i++) {
       const container = new ElementSpan();
       containers.push(container);
       effect((dep) => {
         container.emptyAsFragment();
-        const item = array[i];
+        const item = arrayDefined[i];
         if (item == null)
           return;
         if (typeof item !== "object")
@@ -895,7 +897,7 @@ function ForEachPersist(array, map) {
       }, suppress2);
       result.append(container.removeAsFragment());
     }
-    while (containers.length > array.length) {
+    while (containers.length > arrayDefined.length) {
       containers.pop().removeAsFragment();
     }
   }, suppress2);
@@ -1025,8 +1027,26 @@ function makeLocalStyle(rules) {
   return { $muType: "attribute", name: scopeAttrName, value: sheetId };
 }
 
+// out/untrackedClone.js
+function untrackedClone(obj, maxDepth = 10) {
+  return untrackedCloneImpl(obj, maxDepth);
+}
+function untrackedCloneImpl(obj, maxDepth) {
+  if (maxDepth < 0)
+    throw Error("Maximum depth exceeded.  Maybe there's a reference cycle?");
+  if (typeof obj !== "object")
+    return obj;
+  if (Array.isArray(obj)) {
+    const result = obj.map((e) => untrackedCloneImpl(e, maxDepth - 1));
+    return result;
+  }
+  if (obj.constructor && obj.constructor !== Object)
+    throw Error("Can't clone objects with a prototype chain or instances of classes");
+  return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, untrackedCloneImpl(v, maxDepth - 1)]));
+}
+
 // out/index.js
-var version = "0.20.2";
+var version = "0.21.0";
 export {
   DependencyList,
   ForEach,
@@ -1045,5 +1065,6 @@ export {
   isTracked,
   makeLocalStyle,
   track,
+  untrackedClone,
   version
 };
