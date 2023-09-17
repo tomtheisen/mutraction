@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `ForEach` and `ForEachPersist` can now take a null or undefined array without throwing.
+- JSX compilation new retains whitespace following an element, but preceding a newline.
 
 ## [0.21.0] - 2023-09-15
 
