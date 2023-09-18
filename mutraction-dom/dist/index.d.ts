@@ -279,7 +279,7 @@ export declare function Router(...routes: Route[]): Node;
  * ```
  */
 export declare function makeLocalStyle(rules: Record<string, Partial<CSSStyleDeclaration>>): NodeModifier;
-type Cloneable = string | number | bigint | symbol | Cloneable[] | {
+type Cloneable = string | number | bigint | symbol | boolean | Cloneable[] | {
 	[key: string]: Cloneable;
 };
 /**

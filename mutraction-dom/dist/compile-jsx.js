@@ -235,8 +235,6 @@ export default function (_) {
                 let { value } = path.node;
                 // strip leading whitespace starting with the first newline
                 // strip trailing whitespace, but only if it contains a newline
-                // value = value.replace(/^([ \t]*)\n\s*/, "$1");
-                // value = value.replace(/[ \t]*\n\s*$/, "");
                 value = value.replace(/^(?:([ \t]*)\n\s*)?(.*?)(?:\n\s*)?$/, "$1$2");
                 // replace runs of whitespace with a single space
                 value = value.replace(/\s+/g, ' ');

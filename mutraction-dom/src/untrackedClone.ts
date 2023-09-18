@@ -1,4 +1,4 @@
-type Cloneable = string | number | bigint | symbol | Cloneable[] | { [key: string]: Cloneable };
+type Cloneable = string | number | bigint | symbol | boolean | Cloneable[] | { [key: string]: Cloneable };
 
 /** 
  * `untrackedClone` creates a deep clone of an object which is not tracked or proxied.
