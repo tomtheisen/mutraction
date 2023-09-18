@@ -1046,7 +1046,7 @@ function untrackedCloneImpl(obj, maxDepth) {
 }
 
 // out/index.js
-var version = "0.21.0";
+var version = "0.21.1";
 export {
   DependencyList,
   ForEach,

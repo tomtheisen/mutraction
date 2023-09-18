@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.1] - 2023-09-17
+
 ### Changed
 
 - `ForEach` and `ForEachPersist` can now take a null or undefined array without throwing.
