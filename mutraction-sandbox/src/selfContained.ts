@@ -1,4 +1,5 @@
 import { muCompile } from "./compile.js";
+import { compress } from "./compress.js";
 
 const selfContainedTemplate = `
 <!DOCTYPE html>
@@ -17,10 +18,13 @@ const selfContainedTemplate = `
     <script type="inline-module" name="app">
         __MU_TEMPLATE_TRANSFORMED__
     </script>
+
+    <template id="mu-sandbox-link-template">
+        <span style="position: absolute;right: 1em;top: 0.4em;color: #8888;">made with 
+            <a target="_blank" href="https://mutraction.dev/sandbox/#__MU_TEMPLATE_SANDBOX_DATA__" style="font-weight: bold;font-style: italic;text-decoration: none;color: #006aff;" title="Edit the code">μ</a>
+        </span>    
+    </template>
 </head>
-<!-- Original source
-__MU_TEMPLATE_SOURCE__
--->
 <body>
     <script>
         function makeModule(moduleSource) {
@@ -47,6 +51,8 @@ __MU_TEMPLATE_SOURCE__
         }
 
         runModule("app");
+
+        document.body.append(document.getElementById("mu-sandbox-link-template").content);
     </script>
 </body>
 </html>
@@ -66,12 +72,11 @@ let lastUrl: string | undefined;
 export async function getSelfContainedUrl(appSource: string) {
     if (lastUrl) URL.revokeObjectURL(lastUrl);
 
-    const commentSafeSource = appSource.replaceAll("-->", "-- >");
     const html = (await selfContainedTemplate)
         .replace("__MU_TEMPLATE_SIMPLE_CSS__", await getSimpleCss())
         .replace("__MU_TEMPLATE_LIB__", await getLibSource())
         .replace("__MU_TEMPLATE_TRANSFORMED__", muCompile(appSource))
-        .replace("__MU_TEMPLATE_SOURCE__", commentSafeSource);
+        .replace("__MU_TEMPLATE_SANDBOX_DATA__", await compress(appSource));
     const blob = new Blob([html]);
     lastUrl = URL.createObjectURL(blob);
     return lastUrl;
