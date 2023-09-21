@@ -16,6 +16,7 @@ export function Swapper(nodeFactory: () => Node | NodeOptions) {
         cleanup?.();
         cleanup = undefined;
 
+        span.cleanup();
         const output = nodeFactory();
 
         if (isNodeOptions(output)) {

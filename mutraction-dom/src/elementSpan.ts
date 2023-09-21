@@ -1,3 +1,5 @@
+import { cleanup } from "./cleanup.js";
+
 /**
  * Represents a collection of sibling DOM nodes that can be moved together.
  * It can move in and out of the document using document fragments.
@@ -61,5 +63,12 @@ export class ElementSpan {
             throw Error("End marker of ElementSpan has no parent");
 
         this.endMarker.parentNode.insertBefore(frag, this.endMarker);
+    }
+
+    /** empties the contents of the span, and invokes cleanup on each child node */
+    cleanup() {
+        for (const node of this.emptyAsFragment().childNodes) {
+            cleanup(node);
+        }
     }
 }

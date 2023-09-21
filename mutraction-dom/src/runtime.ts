@@ -2,7 +2,8 @@ import { effect } from "./effect.js"
 import { defaultTracker } from "./tracker.js";
 import { DependencyList } from "./dependency.js";
 import { PropReference } from "./propref.js";
-import { NodeModifier } from "./types.js";
+import { NodeModifier, Subscription } from "./types.js";
+import { registerCleanup } from "./cleanup.js";
 
 const suppress = { suppressUntrackedWarning: true };
 
@@ -72,20 +73,26 @@ export function element<E extends keyof HTMLElementTagNameMap>(
         }
 
         switch (name) {
-            case "style":
-                effect(() => { Object.assign(el.style, getter()); }, suppress);
+            case "style": {
+                const sub = effect(() => { Object.assign(el.style, getter()); }, suppress);
+                registerCleanup(el, sub);
                 break;
+            }
 
-            case "classList":
-                effect(() => { 
+            case "classList": {
+                const sub = effect(() => { 
                     const classMap = getter() as Record<string, boolean>;
                     for (const [name, on] of Object.entries(classMap)) el.classList.toggle(name, !!on);
                 }, suppress);
+                registerCleanup(el, sub);
                 break;
+            }
 
-            default:
-                effect(() => { (el as any)[name] = getter(); }, suppress);
+            default: {
+                const sub = effect(() => { (el as any)[name] = getter(); }, suppress);
+                registerCleanup(el, sub);
                 break;
+            }
         }
     }
 
@@ -102,7 +109,8 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 
 export function child(getter: () => number | string | bigint | null | undefined | HTMLElement | Text): ChildNode {
     let node: Text | HTMLElement = document.createTextNode("");
-    effect(dl => {
+    let sub: Subscription | undefined = undefined;
+    sub = effect(dl => {
         const val = getter();
         if (val instanceof Node) {
             // this effect is now dead
@@ -112,9 +120,11 @@ export function child(getter: () => number | string | bigint | null | undefined 
         }
         else {
             const newNode = document.createTextNode(String(val ?? ""));
+            if (sub) registerCleanup(newNode, sub);
             node.replaceWith(newNode);
             node = newNode;
         }
     }, suppress);
+    registerCleanup(node, sub);
     return node;
 }
