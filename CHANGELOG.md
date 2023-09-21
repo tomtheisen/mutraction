@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.2] - 2023-09-20
+
+### Changed
+
+- Some removed document nodes no longer stay synchronized to tracked model changes.  In particular, nodes that automatically become inactive based on `ForEach`, `Swapper`, `Router`, and `mu:if` no longer receive updates.
+
 ## [0.21.1] - 2023-09-17
 
 ### Changed

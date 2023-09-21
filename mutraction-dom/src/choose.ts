@@ -1,6 +1,5 @@
 import { cleanup } from "./cleanup.js";
 import { effect } from "./effect.js";
-import { memoize } from "./memoize.js";
 
 type ConditionalElement = {
     nodeGetter: () => ChildNode;

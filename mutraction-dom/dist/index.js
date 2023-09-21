@@ -656,6 +656,24 @@ function effect(sideEffect, options = {}) {
   return { dispose };
 }
 
+// out/cleanup.js
+var nodeCleanups = /* @__PURE__ */ new WeakMap();
+function registerCleanup(node, subscription) {
+  const cleanups = nodeCleanups.get(node);
+  if (cleanups) {
+    cleanups.push(subscription);
+  } else {
+    nodeCleanups.set(node, [subscription]);
+  }
+}
+function cleanup(node) {
+  const cleanups = nodeCleanups.get(node);
+  cleanups?.forEach((s) => s.dispose());
+  if (node instanceof Element) {
+    node.childNodes.forEach((child2) => cleanup(child2));
+  }
+}
+
 // out/runtime.js
 var suppress = { suppressUntrackedWarning: true };
 function isNodeModifier(obj) {
@@ -702,23 +720,29 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
       }
     }
     switch (name2) {
-      case "style":
-        effect(() => {
+      case "style": {
+        const sub = effect(() => {
           Object.assign(el.style, getter());
         }, suppress);
+        registerCleanup(el, sub);
         break;
-      case "classList":
-        effect(() => {
+      }
+      case "classList": {
+        const sub = effect(() => {
           const classMap = getter();
           for (const [name3, on] of Object.entries(classMap))
             el.classList.toggle(name3, !!on);
         }, suppress);
+        registerCleanup(el, sub);
         break;
-      default:
-        effect(() => {
+      }
+      default: {
+        const sub = effect(() => {
           el[name2] = getter();
         }, suppress);
+        registerCleanup(el, sub);
         break;
+      }
     }
   }
   if (syncEvents && syncedProps?.length) {
@@ -733,17 +757,21 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
 }
 function child(getter) {
   let node = document.createTextNode("");
-  effect((dl) => {
+  let sub = void 0;
+  sub = effect((dl) => {
     const val = getter();
     if (val instanceof Node) {
       dl.untrackAll();
       node = val;
     } else {
       const newNode = document.createTextNode(String(val ?? ""));
+      if (sub)
+        registerCleanup(newNode, sub);
       node.replaceWith(newNode);
       node = newNode;
     }
   }, suppress);
+  registerCleanup(node, sub);
   return node;
 }
 
@@ -799,6 +827,12 @@ var ElementSpan = class {
       throw Error("End marker of ElementSpan has no parent");
     this.endMarker.parentNode.insertBefore(frag, this.endMarker);
   }
+  /** empties the contents of the span, and invokes cleanup on each child node */
+  cleanup() {
+    for (const node of this.emptyAsFragment().childNodes) {
+      cleanup(node);
+    }
+  }
 };
 
 // out/types.js
@@ -809,14 +843,15 @@ function isNodeOptions(arg) {
 // out/swapper.js
 function Swapper(nodeFactory) {
   const span = new ElementSpan();
-  let cleanup;
+  let cleanup2;
   effect(() => {
-    cleanup?.();
-    cleanup = void 0;
+    cleanup2?.();
+    cleanup2 = void 0;
+    span.cleanup();
     const output = nodeFactory();
     if (isNodeOptions(output)) {
       span.replaceWith(output.node);
-      cleanup = output.cleanup;
+      cleanup2 = output.cleanup;
     } else if (output != null) {
       span.replaceWith(output);
     }
@@ -851,9 +886,9 @@ function ForEach(array, map) {
       result.append(output.container.removeAsFragment());
     }
     while (outputs.length > arrayDefined.length) {
-      const { cleanup, container } = outputs.pop();
-      cleanup?.();
-      container.removeAsFragment();
+      const { cleanup: cleanup2, container } = outputs.pop();
+      cleanup2?.();
+      container.cleanup;
     }
   }, suppress2);
   return result.removeAsFragment();
@@ -898,54 +933,33 @@ function ForEachPersist(array, map) {
       result.append(container.removeAsFragment());
     }
     while (containers.length > arrayDefined.length) {
-      containers.pop().removeAsFragment();
+      containers.pop().cleanup();
     }
   }, suppress2);
   return result.removeAsFragment();
 }
 
-// out/memoize.js
-function memoize(getter) {
-  let isResolved = false;
-  let value = void 0;
-  function resolveLazy() {
-    return isResolved ? value : (isResolved = true, value = getter());
-  }
-  return resolveLazy;
-}
-
 // out/choose.js
 var suppress3 = { suppressUntrackedWarning: true };
 function choose(...choices) {
-  const lazyChoices = [];
-  let foundUnconditional = false;
-  for (const choice of choices) {
-    if ("conditionGetter" in choice) {
-      lazyChoices.push({
-        nodeGetter: memoize(choice.nodeGetter),
-        conditionGetter: choice.conditionGetter
-      });
-    } else {
-      lazyChoices.push({
-        nodeGetter: memoize(choice.nodeGetter)
-      });
-      foundUnconditional = true;
-      break;
-    }
-  }
-  if (!foundUnconditional) {
-    const empty = document.createTextNode("");
-    lazyChoices.push({ nodeGetter: () => empty });
-  }
   let current = document.createTextNode("");
   effect(() => {
-    for (const { nodeGetter, conditionGetter } of lazyChoices) {
+    let match = false;
+    for (const { nodeGetter, conditionGetter } of choices) {
       if (!conditionGetter || conditionGetter()) {
+        match = true;
+        cleanup(current);
         const newNode = nodeGetter();
         current.replaceWith(newNode);
         current = newNode;
         break;
       }
+    }
+    if (!match) {
+      cleanup(current);
+      const newNode = document.createTextNode("");
+      current.replaceWith(newNode);
+      current = newNode;
     }
   }, suppress3);
   return current;
@@ -969,6 +983,7 @@ function Router(...routes) {
     throw Error("Global-flagged route patterns not supported");
   const container = new ElementSpan();
   let lastResolvedSpan;
+  let needsCleanup = false;
   function hashChangeHandler(url) {
     const { hash } = new URL(url);
     for (const route of routes) {
@@ -983,9 +998,14 @@ function Router(...routes) {
         match = true;
       }
       if (match) {
-        lastResolvedSpan?.removeAsFragment();
+        if (needsCleanup) {
+          lastResolvedSpan?.cleanup();
+        } else {
+          lastResolvedSpan?.removeAsFragment();
+        }
         lastResolvedSpan = void 0;
         const { element: element2 } = route;
+        needsCleanup = typeof element2 === "function";
         const newNode = typeof element2 === "function" ? element2(execResult) : element2;
         if (newNode instanceof DocumentFragment) {
           let span = fragmentMap.get(newNode);
@@ -1046,7 +1066,7 @@ function untrackedCloneImpl(obj, maxDepth) {
 }
 
 // out/index.js
-var version = "0.21.1";
+var version = "0.21.2";
 export {
   DependencyList,
   ForEach,

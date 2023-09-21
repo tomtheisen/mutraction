@@ -28,7 +28,6 @@ import { untrackedCloneDoc } from "./ref/untrackedCloneDoc.js";
 import { mounting } from "./recipes/mounting.js";
 import { radio } from "./recipes/radio.js";
 import { spinner } from "./recipes/spinner.js";
-import { lazy } from "./recipes/lazy.js";
 import { array } from "./recipes/array.js";
 import { html } from "./recipes/html.js";
 
@@ -66,7 +65,6 @@ export const routes = Router(
     { pattern: '#recipes/mounting', element: mounting },
     { pattern: '#recipes/radio', element: radio },
     { pattern: '#recipes/spinner', element: spinner },
-    { pattern: '#recipes/lazy', element: lazy },
     { pattern: '#recipes/array', element: array },
     { pattern: '#recipes/html', element: html },
 

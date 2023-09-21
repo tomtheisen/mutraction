@@ -24,6 +24,7 @@ export function Router(...routes: Route[]): Node {
     const container = new ElementSpan();
 
     let lastResolvedSpan: ElementSpan | undefined;
+    let needsCleanup = false;
     function hashChangeHandler(url: string) {
         const { hash } = new URL(url);
 
@@ -39,11 +40,19 @@ export function Router(...routes: Route[]): Node {
             }
 
             if (match) {
-                // preserve the imminently replaced fragment for future use
-                lastResolvedSpan?.removeAsFragment();
+                if (needsCleanup) {
+                    lastResolvedSpan?.cleanup();
+                }
+                else {
+                    lastResolvedSpan?.removeAsFragment();
+                }
                 lastResolvedSpan = undefined;
 
                 const { element } = route;
+
+                // we only clean up nodes produced by factory functions
+                // if it didn't come from a function, we may need it later
+                needsCleanup = typeof element === "function";
                 const newNode = typeof element === "function" ? element(execResult!) : element;
 
                 if (newNode instanceof DocumentFragment) {

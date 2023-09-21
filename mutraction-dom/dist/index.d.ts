@@ -211,7 +211,7 @@ export declare function ForEach<TIn>(array: TIn[] | (() => TIn[]) | undefined, m
  */
 export declare function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]) | undefined, map: (e: TIn) => Node): Node;
 type ConditionalElement = {
-	nodeGetter: () => CharacterData;
+	nodeGetter: () => ChildNode;
 	conditionGetter?: () => boolean;
 };
 export declare function choose(...choices: ConditionalElement[]): Node;
