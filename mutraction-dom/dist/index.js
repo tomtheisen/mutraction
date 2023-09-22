@@ -423,7 +423,9 @@ var Tracker = class {
           allDependencyLists.add(dependencyList);
         }
       }
-      allDependencyLists.forEach((depList) => depList.notifySubscribers());
+      for (const depList of allDependencyLists) {
+        depList.notifySubscribers();
+      }
       this.#transaction = void 0;
     }
     if (this.#transaction == null) {
@@ -643,20 +645,20 @@ function effect(sideEffect, options = {}) {
     return emptyEffect;
   }
   let subscription = dep.subscribe(effectDependencyChanged);
-  const dispose = () => {
+  const effectDispose = () => {
     dep.untrackAll();
     subscription.dispose();
   };
   function effectDependencyChanged() {
     if (typeof lastResult === "function")
       lastResult();
-    dispose();
+    effectDispose();
     dep = tracker.startDependencyTrack();
     lastResult = sideEffect(dep);
     dep.endDependencyTrack();
     subscription = dep.subscribe(effectDependencyChanged);
   }
-  return { dispose };
+  return { dispose: effectDispose };
 }
 
 // out/cleanup.js
@@ -875,11 +877,11 @@ function ForEach(array, map) {
   const result = new ElementSpan();
   const outputs = [];
   const arrayDefined = array ?? [];
-  effect((lengthDep) => {
+  effect(function forEachLengthEffect(lengthDep) {
     for (let i = outputs.length; i < arrayDefined.length; i++) {
       const output = { container: new ElementSpan() };
       outputs.push(output);
-      effect((itemDep) => {
+      effect(function forEachItemEffect(dep) {
         output.cleanup?.();
         const item = arrayDefined[i];
         const projection = item !== void 0 ? map(item, i, arrayDefined) : document.createTextNode("");
@@ -908,11 +910,11 @@ function ForEachPersist(array, map) {
   const containers = [];
   const outputMap = /* @__PURE__ */ new WeakMap();
   const arrayDefined = array ?? [];
-  effect(() => {
+  effect(function forEachPersistLengthEffect(lengthDep) {
     for (let i = containers.length; i < arrayDefined.length; i++) {
       const container = new ElementSpan();
       containers.push(container);
-      effect((dep) => {
+      effect(function forEachPersistItemEffect(dep) {
         container.emptyAsFragment();
         const item = arrayDefined[i];
         if (item == null)
@@ -951,7 +953,7 @@ function ForEachPersist(array, map) {
 var suppress3 = { suppressUntrackedWarning: true };
 function choose(...choices) {
   let current = document.createTextNode("");
-  effect(() => {
+  effect(function chooseEffect() {
     let match = false;
     for (const { nodeGetter, conditionGetter } of choices) {
       if (!conditionGetter || conditionGetter()) {
@@ -1074,7 +1076,7 @@ function untrackedCloneImpl(obj, maxDepth) {
 }
 
 // out/index.js
-var version = "0.21.2";
+var version = "0.21.3";
 export {
   DependencyList,
   ForEach,

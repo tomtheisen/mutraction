@@ -21,13 +21,13 @@ export function ForEach<TIn>(array: TIn[] | (() => TIn[]) | undefined, map: (ite
     const outputs: Output[] = [];
 
     const arrayDefined = array ?? [];
-    effect(lengthDep => {
+    effect(function forEachLengthEffect(lengthDep) {
         // i is scoped to each loop body invocation
         for (let i = outputs.length; i < arrayDefined.length; i++) {
             const output: Output = { container: new ElementSpan() };
             outputs.push(output);
 
-            effect(itemDep => {
+            effect(function forEachItemEffect(dep) {
                 output.cleanup?.();
                 const item = arrayDefined[i];
                 const projection = item !== undefined ? map(item, i, arrayDefined) : document.createTextNode("");
@@ -69,13 +69,13 @@ export function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]) 
     const outputMap = new WeakMap<TIn, HTMLElement | ElementSpan>;
 
     const arrayDefined = array ?? [];
-    effect(() => {
+    effect(function forEachPersistLengthEffect(lengthDep) {
         // i is scoped to each loop body invocation
         for (let i = containers.length; i < arrayDefined.length; i++) {
             const container = new ElementSpan();
             containers.push(container);
 
-            effect((dep) => {
+            effect(function forEachPersistItemEffect(dep) {
                 // just keep the contents together with a parent somewhere
                 container.emptyAsFragment();
 

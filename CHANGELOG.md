@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.3] - 2023-09-21
+
 ### Fixed
 
 - When a tracking proxy would attempt to wrap another object in a tracking proxy, first check if there's an existing proxy that could be used instead.  This will allow reference equality testing to work between the resulting proxies.

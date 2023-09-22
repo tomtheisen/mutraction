@@ -39,7 +39,7 @@ export function effect(sideEffect: (dep: DependencyList) => (void | (() => void)
     let subscription = dep.subscribe(effectDependencyChanged);
 
     // tear down old subscriptions
-    const dispose = () => {
+    const effectDispose = () => {
         dep.untrackAll();
         subscription.dispose();
     };
@@ -47,7 +47,7 @@ export function effect(sideEffect: (dep: DependencyList) => (void | (() => void)
     function effectDependencyChanged() {
         if (typeof lastResult === "function") lastResult(); // user cleanup
 
-        dispose();
+        effectDispose();
         
         dep = tracker.startDependencyTrack();
         lastResult = sideEffect(dep);
@@ -55,5 +55,5 @@ export function effect(sideEffect: (dep: DependencyList) => (void | (() => void)
         subscription = dep.subscribe(effectDependencyChanged);
     }
 
-    return { dispose };
+    return { dispose: effectDispose };
 }

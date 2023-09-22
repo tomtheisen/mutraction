@@ -10,7 +10,8 @@ const suppress = { suppressUntrackedWarning: true } as const;
 
 export function choose(...choices: ConditionalElement[]): Node {
     let current: ChildNode = document.createTextNode("");
-    effect(() => {
+    
+    effect(function chooseEffect() {
         let match = false;
         for (const { nodeGetter, conditionGetter } of choices) {
             if (!conditionGetter || conditionGetter()) {

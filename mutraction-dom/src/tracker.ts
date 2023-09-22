@@ -144,7 +144,9 @@ export class Tracker {
                     allDependencyLists.add(dependencyList);
                 }
             }
-            allDependencyLists.forEach(depList => depList.notifySubscribers());
+            for (const depList of allDependencyLists) {
+                depList.notifySubscribers();
+            }
 
             this.#transaction = undefined;
         }
