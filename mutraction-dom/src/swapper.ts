@@ -12,7 +12,7 @@ export function Swapper(nodeFactory: () => Node | NodeOptions) {
     const span = new ElementSpan();
     let cleanup: (() => void) | undefined;
 
-    effect(() => {
+    const swapperSubscription = effect(function swapperEffect(dep) {
         cleanup?.();
         cleanup = undefined;
 
@@ -27,5 +27,7 @@ export function Swapper(nodeFactory: () => Node | NodeOptions) {
             span.replaceWith(output);
         }
     });
+    span.registerCleanup(swapperSubscription);
+
     return span.removeAsFragment();
 }

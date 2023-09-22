@@ -1,8 +1,8 @@
 import { Subscription } from "./types.js";
 
-const nodeCleanups = new WeakMap<Node, Subscription[]>;
+const nodeCleanups = new WeakMap<ChildNode, Subscription[]>;
 
-export function registerCleanup(node: Node, subscription: Subscription) {
+export function registerCleanup(node: ChildNode, subscription: Subscription) {
     const cleanups = nodeCleanups.get(node);
     if (cleanups) {
         cleanups.push(subscription);
@@ -12,7 +12,7 @@ export function registerCleanup(node: Node, subscription: Subscription) {
     }
 }
 
-export function cleanup(node: Node) {
+export function cleanup(node: ChildNode) {
     const cleanups = nodeCleanups.get(node);
     cleanups?.forEach(s => s.dispose());
 

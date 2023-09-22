@@ -53,10 +53,18 @@ function makeProxyHandler(model, tracker) {
     tracker[RecordDependency](createOrRetrievePropRef(target, name));
     let result = Reflect.get(target, name, receiver);
     if (canBeProxied(result)) {
-      const original = result;
-      const handler = makeProxyHandler(original, tracker);
-      result = target[name] = new Proxy(original, handler);
-      linkProxyToObject(original, result);
+      const existingProxy = result[ProxyOf];
+      if (existingProxy) {
+        if (existingProxy[TrackerOf] !== tracker) {
+          throw Error("Object cannot be tracked by multiple tracker isntances");
+        }
+        result = existingProxy;
+      } else {
+        const original = result;
+        const handler = makeProxyHandler(original, tracker);
+        result = target[name] = new Proxy(original, handler);
+        linkProxyToObject(original, result);
+      }
     }
     if (typeof result === "function" && tracker.options.autoTransactionalize && name !== "constructor") {
       let proxyWrapped2 = function() {
@@ -356,12 +364,7 @@ var Tracker = class {
     if (!canBeProxied)
       throw Error("This object type cannot be proxied");
     const proxied = new Proxy(model, makeProxyHandler(model, this));
-    Object.defineProperty(model, ProxyOf, {
-      enumerable: false,
-      writable: true,
-      configurable: false
-    });
-    model[ProxyOf] = proxied;
+    linkProxyToObject(model, proxied);
     return proxied;
   }
   /**
@@ -827,8 +830,12 @@ var ElementSpan = class {
       throw Error("End marker of ElementSpan has no parent");
     this.endMarker.parentNode.insertBefore(frag, this.endMarker);
   }
+  registerCleanup(subscription) {
+    registerCleanup(this.startMarker, subscription);
+  }
   /** empties the contents of the span, and invokes cleanup on each child node */
   cleanup() {
+    cleanup(this.startMarker);
     for (const node of this.emptyAsFragment().childNodes) {
       cleanup(node);
     }
@@ -844,7 +851,7 @@ function isNodeOptions(arg) {
 function Swapper(nodeFactory) {
   const span = new ElementSpan();
   let cleanup2;
-  effect(() => {
+  const swapperSubscription = effect(function swapperEffect(dep) {
     cleanup2?.();
     cleanup2 = void 0;
     span.cleanup();
@@ -856,6 +863,7 @@ function Swapper(nodeFactory) {
       span.replaceWith(output);
     }
   });
+  span.registerCleanup(swapperSubscription);
   return span.removeAsFragment();
 }
 

@@ -55,9 +55,29 @@ test('action log recipe', () => {
     });
 
     model.add(5);
+
     assert.snapshot(
         JSON.stringify(tr.history),
-        `[{"type":"transaction","operations":[{"type":"arrayextend","target":[1,2,3,5],"name":"3","oldLength":3,"newIndex":3,"newValue":5}],"dependencies":{},"transactionName":"add"}]`
+        JSON.stringify([
+            {
+                "type":"transaction",
+                "parent": undefined,
+                "operations":[
+                    {
+                        "type":"arrayextend",
+                        "target":[1,2,3,5],
+                        "name":"3",
+                        "oldLength":3,
+                        "newIndex":3,
+                        "newValue":5,
+                        timestamp: (tr as any).history[0].operations[0].timestamp
+                    }
+                ],
+                "dependencies":{},
+                timestamp: tr.history[0].timestamp,
+                "transactionName":"add",
+            }
+        ])
     );
 });
 

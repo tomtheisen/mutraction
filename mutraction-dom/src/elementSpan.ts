@@ -1,4 +1,5 @@
-import { cleanup } from "./cleanup.js";
+import { cleanup, registerCleanup } from "./cleanup.js";
+import { Subscription } from "./types.js";
 
 /**
  * Represents a collection of sibling DOM nodes that can be moved together.
@@ -65,8 +66,13 @@ export class ElementSpan {
         this.endMarker.parentNode.insertBefore(frag, this.endMarker);
     }
 
+    registerCleanup(subscription: Subscription) {
+        registerCleanup(this.startMarker, subscription);
+    }
+
     /** empties the contents of the span, and invokes cleanup on each child node */
     cleanup() {
+        cleanup(this.startMarker);
         for (const node of this.emptyAsFragment().childNodes) {
             cleanup(node);
         }

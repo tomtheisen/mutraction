@@ -23,7 +23,7 @@ function isArguments(item: any): item is IArguments {
     return Object.prototype.toString.call(item) === '[object Arguments]';
 }
 
-function linkProxyToObject(obj: any, proxy: any) {
+export function linkProxyToObject(obj: any, proxy: any) {
     Object.defineProperty(obj, ProxyOf, {
         enumerable: false,
         writable: true,
@@ -58,10 +58,19 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
 
         let result = Reflect.get(target, name, receiver) as TModel[TKey];
         if (canBeProxied(result)) {
-            const original = result;
-            const handler = makeProxyHandler(original, tracker);
-            result = target[name] = new Proxy(original, handler) as typeof target[TKey];
-            linkProxyToObject(original, result);
+            const existingProxy = (result as any)[ProxyOf];
+            if (existingProxy) {
+                if (existingProxy[TrackerOf] !== tracker) {
+                    throw Error("Object cannot be tracked by multiple tracker isntances");
+                }
+                result = existingProxy;
+            }
+            else {
+                const original = result;
+                const handler = makeProxyHandler(original, tracker);
+                result = target[name] = new Proxy(original, handler) as typeof target[TKey];
+                linkProxyToObject(original, result);
+            }
         }
         if (typeof result === 'function' && tracker.options.autoTransactionalize && name !== "constructor") {
             const original = result as Function;

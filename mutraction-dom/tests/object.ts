@@ -83,5 +83,13 @@ test('no promises', () => {
     assert.not.ok(isTracked(model.o2));
 });
 
+test('check for existing proxy', () => {
+    const o = { x : 5 };
+
+    const model = track({ a: o, b: o });
+
+    assert.is(model.a, model.b);
+});
+
 test.run();
 

@@ -118,7 +118,8 @@ test('compact into nothing', () => {
         type:'transaction', 
         parent: undefined, 
         operations: [], 
-        dependencies: new Set([createOrRetrievePropRef(model, "x")])
+        dependencies: new Set([createOrRetrievePropRef(model, "x")]),
+        timestamp: tr.history[0].timestamp,
     }]);
 });
 
@@ -134,7 +135,14 @@ test('compound noop', () => {
     model.foo = 45;
     tr.commit();
 
-    assert.equal(tr.history, [{ transactionName: "noop2", type:'transaction', parent: undefined, operations: [], dependencies: new Set}]);
+    assert.equal(tr.history, [{ 
+        transactionName: "noop2", 
+        type:'transaction', 
+        parent: undefined, 
+        operations: [], 
+        dependencies: new Set, 
+        timestamp: tr.history[0].timestamp,
+    }]);
 });
 
 test.run();
