@@ -65,6 +65,8 @@ export declare class Tracker {
 	clearHistory(): void;
 	/** record a mutation, if you have the secret key  */
 	[RecordMutation](mutation: SingleMutation): void;
+	/** Run the callback without calling any subscribers */
+	ignoreUpdates(callback: () => void): void;
 	/** Create a new `DependencyList` from this tracker  */
 	startDependencyTrack(): DependencyList;
 	endDependencyTrack(dep: DependencyList): DependencyList;

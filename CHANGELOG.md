@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.4] - 2023-09-23
+
+### Changed
+
+- Starting a transaction no longer requires history tracking to be turned on.
+
+### Added
+
+- Trackers have a new `ignoreUpdates` method that runs a callback without notifying subscribers
+
 ## [0.21.3] - 2023-09-21
 
 ### Fixed

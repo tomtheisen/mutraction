@@ -125,7 +125,7 @@ test('compact into nothing', () => {
 
 test('compound noop', () => {
     const tr = new Tracker;
-    const model = track({foo: 45} as any);
+    const model = tr.track({foo: 45} as any);
 
     tr.startTransaction("noop2");
     model.foo = 99;
@@ -135,14 +135,28 @@ test('compound noop', () => {
     model.foo = 45;
     tr.commit();
 
-    assert.equal(tr.history, [{ 
-        transactionName: "noop2", 
-        type:'transaction', 
-        parent: undefined, 
-        operations: [], 
-        dependencies: new Set, 
-        timestamp: tr.history[0].timestamp,
-    }]);
+    assert.snapshot(
+        JSON.stringify(tr.history), 
+        JSON.stringify([{ 
+            type:'transaction', 
+            operations: [], 
+            dependencies: new Set, 
+            timestamp: tr.history[0].timestamp,
+            transactionName: "noop2", 
+        }])
+    );
+});
+
+test('transaction without history', () => {
+    const tr = new Tracker({ trackHistory: false });
+    const model = tr.track({ x: 1 });
+
+    tr.startTransaction();
+    model.x = 2;
+    model.x = 3;
+    tr.commit();
+
+    assert.equal(model.x, 3);
 });
 
 test.run();

@@ -47,8 +47,6 @@ export class Tracker {
         }
 
         const appliedOptions = { ...defaultTrackerOptions, ...options };
-        if (appliedOptions.autoTransactionalize && !appliedOptions.trackHistory)
-            throw Error("Option autoTransactionalize requires option trackHistory");
         if (appliedOptions.compactOnCommit && !appliedOptions.trackHistory) {
             throw Error("Option compactOnCommit requires option trackHistory");
         }
@@ -109,7 +107,6 @@ export class Tracker {
 
     /** Add another transaction to the stack  */
     startTransaction(name?: string): Transaction {
-        this.#ensureHistory();
         this.#transaction = { type: "transaction", parent: this.#transaction, operations: [], dependencies: new Set, timestamp: new Date };
         if (name) this.#transaction.transactionName = name;
         return this.#transaction;
@@ -119,8 +116,6 @@ export class Tracker {
       * throws if no transactions are active 
       */
     commit(transaction?: Transaction) {
-        this.#ensureHistory();
-
         if (!this.#transaction) 
             throw Error('Attempted to commit transaction when none were open.');
 
@@ -135,7 +130,7 @@ export class Tracker {
             this.#transaction = this.#transaction.parent;
         }
         else {
-            this.#operationHistory!.push(this.#transaction);
+            this.#operationHistory?.push(this.#transaction);
 
             // dedupe
             const allDependencyLists = new Set<DependencyList>;
@@ -162,8 +157,6 @@ export class Tracker {
      * if no transactions are active, undo all mutations
      */
     rollback(transaction?: Transaction) {
-        this.#ensureHistory();
-
         if (transaction && transaction !== this.#transaction)
             throw Error('Attempted to commit wrong transaction. Transactions must be resolved in stack order.');
 
@@ -172,7 +165,7 @@ export class Tracker {
             this.#transaction = this.#transaction.parent;
         }
         else {
-            while (this.#operationHistory!.length) this.undo();
+            while (this.#operationHistory?.length) this.undo();
         }
     }
 
@@ -286,6 +279,14 @@ export class Tracker {
             }
             this.#historyPropRef?.notifySubscribers();
         }
+    }
+
+    /** Run the callback without calling any subscribers */
+    ignoreUpdates(callback: () => void) {
+        const dep = this.startDependencyTrack();
+        dep.active = false;
+        callback();
+        dep.endDependencyTrack();
     }
 
     /** Create a new `DependencyList` from this tracker  */

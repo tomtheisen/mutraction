@@ -342,8 +342,6 @@ var Tracker = class {
       options.autoTransactionalize ??= false;
     }
     const appliedOptions = { ...defaultTrackerOptions, ...options };
-    if (appliedOptions.autoTransactionalize && !appliedOptions.trackHistory)
-      throw Error("Option autoTransactionalize requires option trackHistory");
     if (appliedOptions.compactOnCommit && !appliedOptions.trackHistory) {
       throw Error("Option compactOnCommit requires option trackHistory");
     }
@@ -394,7 +392,6 @@ var Tracker = class {
   }
   /** Add another transaction to the stack  */
   startTransaction(name) {
-    this.#ensureHistory();
     this.#transaction = { type: "transaction", parent: this.#transaction, operations: [], dependencies: /* @__PURE__ */ new Set(), timestamp: /* @__PURE__ */ new Date() };
     if (name)
       this.#transaction.transactionName = name;
@@ -404,7 +401,6 @@ var Tracker = class {
     * throws if no transactions are active
     */
   commit(transaction) {
-    this.#ensureHistory();
     if (!this.#transaction)
       throw Error("Attempted to commit transaction when none were open.");
     if (transaction && transaction !== this.#transaction)
@@ -416,7 +412,7 @@ var Tracker = class {
       this.#transaction.dependencies.forEach((d) => this.#transaction.parent.dependencies.add(d));
       this.#transaction = this.#transaction.parent;
     } else {
-      this.#operationHistory.push(this.#transaction);
+      this.#operationHistory?.push(this.#transaction);
       const allDependencyLists = /* @__PURE__ */ new Set();
       for (const propRef of this.#transaction.dependencies) {
         for (const dependencyList of propRef.subscribers) {
@@ -437,7 +433,6 @@ var Tracker = class {
    * if no transactions are active, undo all mutations
    */
   rollback(transaction) {
-    this.#ensureHistory();
     if (transaction && transaction !== this.#transaction)
       throw Error("Attempted to commit wrong transaction. Transactions must be resolved in stack order.");
     if (this.#transaction) {
@@ -445,7 +440,7 @@ var Tracker = class {
         this.undo();
       this.#transaction = this.#transaction.parent;
     } else {
-      while (this.#operationHistory.length)
+      while (this.#operationHistory?.length)
         this.undo();
     }
   }
@@ -567,6 +562,13 @@ var Tracker = class {
       }
       this.#historyPropRef?.notifySubscribers();
     }
+  }
+  /** Run the callback without calling any subscribers */
+  ignoreUpdates(callback) {
+    const dep = this.startDependencyTrack();
+    dep.active = false;
+    callback();
+    dep.endDependencyTrack();
   }
   /** Create a new `DependencyList` from this tracker  */
   startDependencyTrack() {
@@ -1076,7 +1078,7 @@ function untrackedCloneImpl(obj, maxDepth) {
 }
 
 // out/index.js
-var version = "0.21.3";
+var version = "0.21.4";
 export {
   DependencyList,
   ForEach,

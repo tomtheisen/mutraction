@@ -82,6 +82,14 @@ export function trackerDoc() {
                     </p>
                 </li>
                 <li>
+                    <code>ignoreUpdates(callback)</code>
+                    <p>
+                        This method invokes a callback without notifying any dependency trackers.
+                        Normally, assigning to a tracked variable will update any effects or DOM elements
+                        that depend on it.  If you use this method, nothing will be updated or notified.
+                    </p>
+                </li>
+                <li>
                     <code>setOptions(options)</code>
                     <p>
                         This configures the tracker.

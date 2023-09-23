@@ -88,12 +88,9 @@ test('no history', () => {
     assert.throws(() => tr.undo(), "undo should throw");
     assert.throws(() => tr.redo(), "redo should throw");
     assert.throws(() => tr.commit(), "commit should throw");
-    assert.throws(() => tr.rollback(), "rollback should throw");
     assert.equal(model.foo, 7);
-});
 
-test('no history but auto', () => {
-    assert.throws(() => new Tracker({ trackHistory: false, autoTransactionalize: true }));
+    tr.rollback();
 });
 
 test('callback immediate', () => {
