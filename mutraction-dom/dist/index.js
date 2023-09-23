@@ -953,23 +953,25 @@ function ForEachPersist(array, map) {
 
 // out/choose.js
 var suppress3 = { suppressUntrackedWarning: true };
+function getEmptyText() {
+  return document.createTextNode("");
+}
 function choose(...choices) {
-  let current = document.createTextNode("");
+  let current = getEmptyText();
+  let currentNodeGetter = getEmptyText;
   effect(function chooseEffect() {
-    let match = false;
+    let newNodeGetter;
     for (const { nodeGetter, conditionGetter } of choices) {
       if (!conditionGetter || conditionGetter()) {
-        match = true;
-        cleanup(current);
-        const newNode = nodeGetter();
-        current.replaceWith(newNode);
-        current = newNode;
+        newNodeGetter = nodeGetter;
         break;
       }
     }
-    if (!match) {
+    newNodeGetter ??= getEmptyText;
+    if (newNodeGetter !== currentNodeGetter) {
       cleanup(current);
-      const newNode = document.createTextNode("");
+      currentNodeGetter = newNodeGetter;
+      const newNode = currentNodeGetter();
       current.replaceWith(newNode);
       current = newNode;
     }

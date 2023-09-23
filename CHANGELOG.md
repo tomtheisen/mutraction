@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- When a dependency of a `mu:if` condition changes without changing the result of the condition itself, the attached node is no longer re-built.
+
 ## [0.21.4] - 2023-09-23
 
 ### Changed
