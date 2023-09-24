@@ -30,6 +30,25 @@
             document.body.append(el);
         }
         window.addEventListener("message", ev => runCode(ev.data));
+
+        window.addEventListener("keydown", ev => {
+            if (ev.key === "Enter" && ev.ctrlKey) {
+                window.parent?.postMessage({ type: "run" });
+            }
+            else if ((ev.key === "s" || ev.key ==="S") && ev.ctrlKey && !ev.shiftKey) {
+                ev.preventDefault();
+                window.parent?.postMessage({ type: "save" });
+            }
+            else if (ev.key === "1" && ev.altKey) {
+                window.parent?.postMessage({ type: "display", displayType: "code" });
+            }
+            else if (ev.key === "2" && ev.altKey) {
+                window.parent?.postMessage({ type: "display", displayType: "preview" });
+            }
+            else if (ev.key === "3" && ev.altKey) {
+                window.parent?.postMessage({ type: "display", displayType: "normal" });
+            }
+        });        
     </script>
 </head>
 </html>

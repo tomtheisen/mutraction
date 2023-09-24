@@ -338,7 +338,7 @@ var Tracker = class {
     if (this.#inUse)
       throw Error("Cannot change options for a tracker that has already started tracking");
     if (options.trackHistory === false) {
-      options.compactOnCommit ??= false;
+      options.compactOnCommit = false;
       options.autoTransactionalize ??= false;
     }
     const appliedOptions = { ...defaultTrackerOptions, ...options };
