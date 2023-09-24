@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - When a dependency of a `mu:if` condition changes without changing the result of the condition itself, the attached node is no longer re-built.
+- When a tracker is configured with `trackHistory` false, automatically turn off `compactOnCommit`, which would have no effect except burning CPU cycles
 
 ## [0.21.4] - 2023-09-23
 

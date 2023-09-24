@@ -41,8 +41,8 @@ export class Tracker {
             throw Error("Cannot change options for a tracker that has already started tracking");
 
         if (options.trackHistory === false) {
-            // user specified no history tracking, so turn off compactOnCommit which requires it
-            options.compactOnCommit ??= false;
+            // user specified no history tracking, so turn off compactOnCommit which would do nothing
+            options.compactOnCommit = false;
             options.autoTransactionalize ??= false;
         }
 
