@@ -31,7 +31,7 @@
 body {
     margin: 0;
     min-width: 480px;
-    overflow: visible;
+    overflow: hidden;
     background: #111;
     color: #eee;
     font-family: Segoe UI, Roboto, Ubuntu, Cantarell, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -42,7 +42,6 @@ body {
     grid-template-rows: var(--header-height) 1fr;
     height: 100vh;
     width: 100vw;
-
 }
 
 header {
