@@ -31,6 +31,7 @@
 body {
     margin: 0;
     min-width: 480px;
+    overflow: visible;
     background: #111;
     color: #eee;
     font-family: Segoe UI, Roboto, Ubuntu, Cantarell, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
