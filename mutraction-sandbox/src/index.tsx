@@ -207,6 +207,23 @@ export function run(code: string | undefined = editor?.getValue()) {
     }
 }
 
+window.addEventListener("message", ev => {
+    console.log("received message", ev.data);
+    switch (ev.data.type) {
+        case "run": 
+            run();
+            break;
+
+        case "save":
+            save();
+            break;
+
+        case "display":
+            appState.view = ev.data.displayType;
+            break;
+    }
+});
+
 window.addEventListener("keydown", ev => {
     if (ev.key === "Enter" && ev.ctrlKey) {
         run();
