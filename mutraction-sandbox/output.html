@@ -48,6 +48,9 @@
             else if (ev.key === "3" && ev.altKey) {
                 window.parent?.postMessage({ type: "display", displayType: "normal" });
             }
+            else if (ev.key === "0" && ev.altKey) {
+                window.parent?.postMessage({ type: "zen" });
+            }            
         });        
     </script>
 </head>

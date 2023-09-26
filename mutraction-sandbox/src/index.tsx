@@ -217,6 +217,11 @@ window.addEventListener("message", ev => {
             save();
             break;
 
+        case "zen":
+            document.firstElementChild?.classList.toggle("zen");
+            editor?.layout();
+            break;
+
         case "display":
             appState.view = ev.data.displayType;
             break;
@@ -241,8 +246,7 @@ window.addEventListener("keydown", ev => {
         appState.view = "normal";
     }
     else if (ev.key === "0" && ev.altKey) {
-        document.firstElementChild?.classList.toggle("zen");
-        editor?.layout();
+        window.postMessage({ type: "zen" });
     }
 });
 
