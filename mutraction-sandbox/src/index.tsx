@@ -240,6 +240,10 @@ window.addEventListener("keydown", ev => {
     else if (ev.key === "3" && ev.altKey) {
         appState.view = "normal";
     }
+    else if (ev.key === "0" && ev.altKey) {
+        document.firstElementChild?.classList.toggle("zen");
+        editor?.layout();
+    }
 });
 
 function startSizing() {
