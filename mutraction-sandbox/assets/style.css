@@ -15,6 +15,10 @@
     color-scheme: dark;
 }
 
+:root.zen {
+    --header-height: 0em;
+}
+
 @keyframes rotating {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
@@ -54,6 +58,10 @@ header {
     box-shadow: #000 0 0 6px;
     position: relative;
     z-index: 1;    
+}
+
+.zen header {
+    visibility: hidden;
 }
 
 h1 {

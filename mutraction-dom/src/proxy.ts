@@ -41,6 +41,7 @@ export function canBeProxied(val: unknown): val is object {
     if (val == null) return false;
     if (typeof val !== "object") return false;
     if (isTracked(val)) return false;
+    if (!Object.isExtensible(val)) return false;
 
     if (unproxyableConstructors.has(val.constructor)) return false;
 

@@ -217,6 +217,11 @@ window.addEventListener("message", ev => {
             save();
             break;
 
+        case "zen":
+            document.firstElementChild?.classList.toggle("zen");
+            editor?.layout();
+            break;
+
         case "display":
             appState.view = ev.data.displayType;
             break;
@@ -239,6 +244,9 @@ window.addEventListener("keydown", ev => {
     }
     else if (ev.key === "3" && ev.altKey) {
         appState.view = "normal";
+    }
+    else if (ev.key === "0" && ev.altKey) {
+        window.postMessage({ type: "zen" });
     }
 });
 
