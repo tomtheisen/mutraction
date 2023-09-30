@@ -40,6 +40,8 @@ function canBeProxied(val) {
     return false;
   if (isTracked(val))
     return false;
+  if (!Object.isExtensible(val))
+    return false;
   if (unproxyableConstructors.has(val.constructor))
     return false;
   return true;
@@ -1080,7 +1082,7 @@ function untrackedCloneImpl(obj, maxDepth) {
 }
 
 // out/index.js
-var version = "0.21.4";
+var version = "0.21.5";
 export {
   DependencyList,
   ForEach,
