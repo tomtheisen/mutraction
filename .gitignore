@@ -6,3 +6,9 @@ out
 out2
 publish
 dist
+
+.vs
+bin
+obj
+*.db
+*.user
