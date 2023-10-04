@@ -72,7 +72,7 @@ app.MapGet("/link/{id}", (string id) =>
 
     string? href = null;
     while (reader.Read()) href = reader.GetString(0);
-    if (href is null) return Results.StatusCode(404);
+    if (href is null) return Results.NotFound($"No link for '{ id }'");
 
     return Results.Redirect(href, permanent: true);
 });
