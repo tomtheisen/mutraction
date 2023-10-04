@@ -8,7 +8,7 @@ builder.Services.AddCors();
 
 var app = builder.Build();
 app.UseCors();
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 
 SqliteConnection GetConnection()
 {
@@ -75,6 +75,11 @@ app.MapGet("/link/{id}", (string id) =>
     if (href is null) return Results.StatusCode(404);
 
     return Results.Redirect(href, permanent: true);
+});
+
+app.MapGet("/", () =>
+{
+    return "mutraction sandbox link shortener";
 });
 
 app.Run();
