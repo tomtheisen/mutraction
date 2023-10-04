@@ -58,8 +58,22 @@ app.MapPost("/link", ([FromBody] Link link) =>
     command.CommandText = "INSERT OR IGNORE INTO link (id, href) VALUES($id, $href)";
     command.Parameters.AddWithValue("$id", id);
     command.Parameters.AddWithValue("$href", href);
+    command.ExecuteNonQuery();
 
     return Results.Ok(new { id });
+});
+
+app.MapGet("/links", () =>
+{
+    using var connection = GetConnection();
+    using var command = connection.CreateCommand();
+    command.CommandText = "SELECT id FROM link";
+    using var reader = command.ExecuteReader();
+
+    List<string> ids = new();
+    while (reader.Read()) ids.Add(reader.GetString(0));
+
+    return Results.Ok(ids);
 });
 
 app.MapGet("/link/{id}", (string id) =>
