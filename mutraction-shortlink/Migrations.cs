@@ -31,8 +31,8 @@ public static class Migrations {
         command.CommandText = "SELECT MAX(version) FROM schema";
         int version = command.ExecuteScalar() switch
         {
+            DBNull or null => 0,
             object o => Convert.ToInt32(o),
-            null => 0,
         };
 
         foreach (var cmd in Commands.Skip(version))
