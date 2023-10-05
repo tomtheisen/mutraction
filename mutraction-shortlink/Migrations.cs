@@ -18,6 +18,9 @@ public static class Migrations {
         """
         ALTER TABLE link ADD COLUMN hits INTEGER
         """,
+        """
+        UPDATE link SET hits = 0 WHERE hits IS NULL
+        """
     };
 
     public static void EnsureDb() {
