@@ -7,6 +7,7 @@ import { getJsxDts, getMutractionDom as getMutractionDomDts } from "./mutraction
 import { getScaffoldZipUrl } from "./makeZip.js";
 import { getSelfContainedUrl } from "./selfContained.js";
 import { muCompile } from "./compile.js";
+import { getShortLink } from "./shortLInks.js";
 
 declare const require: Function & { config: Function };
 declare const monaco: typeof monacoType;
@@ -161,6 +162,14 @@ async function save() {
         message = "Failed to set clipboard";
     }
     notify(message);
+
+    try {
+        const shortLink = await getShortLink(location.href);
+        console.log("[save] shortlink", { shortLink });
+    }
+    catch (err) {
+        console.error("[save] shortlink", err);
+    }
 }
 
 export function run(code: string | undefined = editor?.getValue()) {

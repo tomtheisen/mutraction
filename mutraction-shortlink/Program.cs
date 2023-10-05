@@ -51,7 +51,7 @@ app.MapPost("/link", ([FromBody] Link link) =>
 {
     var href = link.href;
     string? id = null;
-    if (href is null || !href.StartsWith("https://mutraction.dev/")) return Results.StatusCode(400);
+    if (href is null || !href.StartsWith("https://mutraction.dev/")) return Results.BadRequest("This is for mutraction sandbox stuff, not whatever that is.");
 
     var hash = HashLink(href);
     var prefixes = Prefixes(hash);
