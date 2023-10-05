@@ -14,7 +14,6 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 app.UseCors();
-// app.UseHttpsRedirection();
 
 SqliteConnection GetConnection()
 {
@@ -107,7 +106,7 @@ app.MapGet("/links", () =>
     while (reader.Read()) {
         var link = new { 
             id = reader.GetString(0), 
-            created = reader.GetDateTime(1), 
+            created = reader.IsDBNull(1) ? default(DateTime?) : reader.GetDateTime(1), 
             hits = reader.GetInt32(2),
             accessed = reader.IsDBNull(3) ? default(DateTime?) : reader.GetDateTime(3),
         };
