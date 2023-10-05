@@ -1,0 +1,13 @@
+# sudo cp mutraction-shortlink.service /etc/systemd/system/mutraction-shortlink.service
+# sudo chmod 644 /etc/systemd/system/mutraction-shortlink.service
+
+[Unit]
+Description=Mutraction Link Shortener
+
+[Service]
+Type=simple
+ExecStart=/bin/bash /usr/bin/link_service.sh
+Environment=DOTNET_CLI_HOME=/tmp
+
+[Install]
+WantedBy=multi-user.target
