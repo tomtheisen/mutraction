@@ -152,8 +152,19 @@ function hamburger() {
 
 async function save() {
     const compressed = await compress(editor?.getValue() ?? "");
-    location.hash = compressed;
+    const longLink = new URL(location.href);
+    longLink.hash = compressed;
+
     let message: string;
+    let shortLink: string | undefined;
+    try {
+        shortLink = await getShortLink(longLink.href);
+    }
+    catch (err) {
+        console.error("[save] shortlink service failure", err);
+    }
+
+    history.replaceState({}, "", shortLink ?? longLink.href);
     try {
         await navigator.clipboard.writeText(location.href);
         message = "URL copied to clipboard";
@@ -161,15 +172,8 @@ async function save() {
     catch {
         message = "Failed to set clipboard";
     }
-    notify(message);
 
-    try {
-        const shortLink = await getShortLink(location.href);
-        console.log("[save] shortlink", { shortLink });
-    }
-    catch (err) {
-        console.error("[save] shortlink", err);
-    }
+    notify(message);
 }
 
 export function run(code: string | undefined = editor?.getValue()) {

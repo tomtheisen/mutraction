@@ -80,7 +80,7 @@ app.MapPost("/link", ([FromBody] Link link) =>
     if (id is null)
     {
         id = hash[..(maxLenUsed + 1)];
-        command.CommandText = "INSERT INTO link (id, href, created, hits) VALUES($id, $href, date(), 0)";
+        command.CommandText = "INSERT INTO link (id, href, created, hits) VALUES($id, $href, datetime(), 0)";
         command.Parameters.AddWithValue("$id", id);
         command.Parameters.AddWithValue("$href", href);
         command.ExecuteNonQuery();

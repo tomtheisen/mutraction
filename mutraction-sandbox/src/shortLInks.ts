@@ -9,5 +9,6 @@ export async function getShortLink(href: string) {
     });
     const { id } = await response.json();
 
-    return `https://link.mutraction.dev/link/${ id }`;
+    return `https://mutraction.dev/link/${ id }`;
 }
+
