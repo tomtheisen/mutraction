@@ -85,6 +85,19 @@ main {
     display: flex;
 }
 
+dialog {
+    min-width: 25em;
+}
+
+dialog .close {
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    margin: 0;
+    border-radius: 0;
+    background: #E81123;
+}
+
 dialog::backdrop {
     background: #0008;
 }

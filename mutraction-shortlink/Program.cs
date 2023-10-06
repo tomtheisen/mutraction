@@ -142,17 +142,24 @@ app.MapGet("/", () =>
     return "mutraction sandbox link shortener";
 });
 
+DateTime startup = DateTime.Now;
 app.MapGet("/stats", () =>
 {
     using var connection = GetConnection();
     using var command = connection.CreateCommand();
-    command.CommandText = "SELECT COUNT(*), MAX(created) FROM link WHERE id = $id";
+    command.CommandText = "SELECT COUNT(*), MAX(created) FROM link";
     using var reader = command.ExecuteReader();
+    
+    int? links = null;
+    DateTime? lastCreated = null;
 
-    int links = reader.GetInt32(0);
-    var lastCreated = reader.GetDateTime(1);
+    while (reader.Read())
+    {
+        links = reader.GetInt32(0);
+        lastCreated = reader.GetDateTime(1);
+    }
 
-    return $"{ links } links stored. Last write at { lastCreated }.";
+    return $"Started { startup }. { links } links stored. Last write at { lastCreated }.";
 });
 
 app.Run();

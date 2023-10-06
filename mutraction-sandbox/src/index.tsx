@@ -9,6 +9,7 @@ import { getSelfContainedUrl } from "./selfContained.js";
 import { muCompile } from "./compile.js";
 import { getShortLink } from "./shortLinks.js";
 
+// monaco ambience
 declare const require: Function & { config: Function };
 declare const monaco: typeof monacoType;
 
@@ -19,7 +20,10 @@ const appState = track({
     view: query.get("view") ?? "normal" as "normal" | "code" | "preview",
     outpane: "app" as "app" | "js",
     compiledCode: "",
+    shortLinkLoading: false,
     shortLink: "",
+    shortRunLinkLoading: false,
+    shortRunLink: "",
     shortLinkDialogOpen: false,
 });
 
@@ -35,7 +39,7 @@ const runButton =
     </button>;
 
 const saveButton = 
-    <button onclick={ save }>
+    <button onclick={ share }>
         Share <small className="narrow-hide">(<kbd>ctrl + S</kbd>)</small>
     </button>;
 
@@ -152,7 +156,7 @@ function hamburger() {
     return hamburger;
 }
 
-export function run(code: string | undefined = editor?.getValue()) {
+function run(code: string | undefined = editor?.getValue()) {
     if (!code) return;
 
     sessionStorage.setItem(storageKey, code);
@@ -203,7 +207,7 @@ window.addEventListener("message", ev => {
             break;
 
         case "save":
-            save();
+            share();
             break;
 
         case "zen":
@@ -223,7 +227,7 @@ window.addEventListener("keydown", ev => {
     }
     else if ((ev.key === "s" || ev.key ==="S") && ev.ctrlKey && !ev.shiftKey) {
         ev.preventDefault();
-        save();
+        share();
     }
     else if (ev.key === "1" && ev.altKey) {
         appState.view = "code";
@@ -261,7 +265,9 @@ function updateSize(ev: MouseEvent) {
 
 window.addEventListener("resize", ev => editor?.layout());
 
-async function save() {
+async function share() {
+    appState.shortLinkLoading = appState.shortLinkDialogOpen = true;
+    appState.shortRunLink = appState.shortLink = "";
     const compressed = await compress(editor?.getValue() ?? "");
     const longLink = new URL(location.href);
     longLink.hash = compressed;
@@ -269,53 +275,60 @@ async function save() {
 
     try {
         appState.shortLink = await getShortLink(longLink.href);
-        appState.shortLinkDialogOpen = true;
+        appState.shortLinkLoading = false;
     }
     catch (err) {
+        console.error(err);
         notify("Failed to create short link: " + String(err));
     }
 }
 
-async function copyShortLink() {
+async function shareRun() {
+    appState.shortRunLinkLoading = true;
+    const runLink = await getRunLink(editor?.getValue() ?? "");
+    const longLink = new URL(runLink, location.href);
+
     try {
-        await navigator.clipboard.writeText(appState.shortLink);
-        notify("URL copied to clipboard");
-        appState.shortLinkDialogOpen = false;
+        appState.shortRunLink = await getShortLink(longLink.href);
+        appState.shortRunLinkLoading = false;
     }
-    catch (e) {
-        notify("Failed to copy: " + String(e));
+    catch (err) {
+        console.error(err);
+        notify("Failed to create short link: " + String(err));
     }
 }
 
-const dialogStyle = makeLocalStyle({
-    "dialog": {
-        minWidth: "25em",
-    },
-    ".close": {
-        position: "absolute",
-        top: "0px",
-        right: "0px",
-        margin: "0",
-        borderRadius: "0",
-        background: "#E81123",
+async function doCopy(val: string) {
+    try {
+        await navigator.clipboard.writeText(val);
+        notify("URL copied to clipboard");
     }
-})
+    catch (err) {
+        console.error(err);
+        notify("Failed to copy: " + String(err));
+    }
+}
 
 const dialog = 
-    <dialog mu:apply={ dialogStyle }>
+    <dialog>
         <h4>Share Sandbox Link</h4>
         <button className="close" onclick={ () => appState.shortLinkDialogOpen = false }>
             &times;
         </button>
-        <p><a target="_blank" href={ appState.shortLink }>{ appState.shortLink }</a></p>
-        <button onclick={ copyShortLink }>Copy</button>
-    </dialog> as HTMLDialogElement;
 
-document.body.addEventListener("click", ev => {
-    if (appState.shortLinkDialogOpen && ev.currentTarget instanceof Node && !dialog.contains(ev.currentTarget)) {
-        appState.shortLinkDialogOpen = false;
-    }
-});
+        <p mu:if={ !!appState.shortLink }>
+            <button onclick={ () => doCopy(appState.shortLink) }>Copy</button>
+            Sandbox: <a target="_blank" href={ appState.shortLink }>{ appState.shortLink }</a>
+        </p>
+        <p mu:else mu:if={ appState.shortLinkLoading }>Loading …</p>
+
+        <p mu:if={ !!appState.shortRunLink }>
+            <button onclick={ () => doCopy(appState.shortRunLink) }>Copy</button>
+            Standalone: <a target="_blank" href={ appState.shortRunLink }>{ appState.shortRunLink }</a>
+        </p>
+        <p mu:else mu:if={ appState.shortRunLinkLoading }>Loading …</p>
+        <p mu:else><button onclick={ shareRun }>Get standalone link</button></p>
+    </dialog> as HTMLDialogElement;
 
 effect(() => {
     if (appState.shortLinkDialogOpen) dialog.showModal();
@@ -386,10 +399,7 @@ async function init() {
             language: 'typescript',
             minimap: { enabled: false },
             theme: "vs-dark",
-
-        }, {
-            
-        });
+        }, { });
 
         // add the source code (model)
         const codeModel = monaco.editor.createModel(source, "typescript", monaco.Uri.file("mutraction_app.tsx"));
