@@ -1,17 +1,10 @@
-import { track } from "mutraction-dom";
+import { increment, model } from "./model.js";
 
-const model = track({ clicks: 0 });
-
-function increment() {
-    ++model.clicks;
-}
-
-const app = (
+const app =
     <>
         <h1>Mutraction</h1>
         <p>Clicks: { model.clicks }</p>
         <button onclick={ increment }>+1</button>
-    </>
-)
-
+    </>;
+    
 document.body.append(app);
