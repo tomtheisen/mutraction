@@ -13,7 +13,10 @@ builder.Services.AddCors(options =>
         .AllowAnyMethod());
 });
 
-builder.Configuration.AddJsonFile("appsettings.prod.json", optional: true);
+if (args.Contains("prod")) 
+{
+    builder.Configuration.AddJsonFile("appsettings.prod.json", optional: true);
+}
 
 var app = builder.Build();
 app.UseCors();

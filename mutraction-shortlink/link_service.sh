@@ -2,4 +2,4 @@
 # sudo chmod +x /usr/bin/link_service.sh
 
 cd /repos/mutraction/mutraction-shortlink
-dotnet run --launch-profile "https"
+dotnet run prod
