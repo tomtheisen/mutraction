@@ -4,6 +4,7 @@ using System.Text;
 using System.Security.Cryptography;
 
 var builder = WebApplication.CreateBuilder(args);
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(builder => builder
@@ -11,6 +12,8 @@ builder.Services.AddCors(options =>
         .AllowAnyOrigin()
         .AllowAnyMethod());
 });
+
+builder.Configuration.AddJsonFile("appsettings.prod.json", optional: true);
 
 var app = builder.Build();
 app.UseCors();
@@ -134,6 +137,19 @@ app.MapGet("/link/{id}", (string id) =>
 app.MapGet("/", () =>
 {
     return "mutraction sandbox link shortener";
+});
+
+app.MapGet("/stats", () =>
+{
+    using var connection = GetConnection();
+    using var command = connection.CreateCommand();
+    command.CommandText = "SELECT COUNT(*), MAX(created) FROM link WHERE id = $id";
+    using var reader = command.ExecuteReader();
+
+    int links = reader.GetInt32(0);
+    var lastCreated = reader.GetDateTime(1);
+
+    return $"{ links } links stored. Last write at { lastCreated }.";
 });
 
 app.Run();
