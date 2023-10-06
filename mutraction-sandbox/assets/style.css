@@ -85,6 +85,10 @@ main {
     display: flex;
 }
 
+dialog::backdrop {
+    background: #0008;
+}
+
 .editBox {
     z-index: 0; 
     height: calc(100vh - var(--header-height));

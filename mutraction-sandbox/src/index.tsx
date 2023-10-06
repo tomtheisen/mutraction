@@ -291,9 +291,6 @@ const dialogStyle = makeLocalStyle({
     "dialog": {
         minWidth: "25em",
     },
-    "dialog::backdrop": {
-        background: "#0008",
-    },
     ".close": {
         position: "absolute",
         top: "0px",
