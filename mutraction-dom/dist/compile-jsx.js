@@ -104,7 +104,7 @@ export default function (_) {
                                     break;
                                 case "else":
                                     if (value)
-                                        throw path.buildCodeFrameError("mu:else not take a value.  Maybe you want <foo mu:else mu:if={...} />?");
+                                        throw path.buildCodeFrameError("mu:else does not take a value.  Maybe you want <foo mu:else mu:if={...} />?");
                                     hasElse = true;
                                     break;
                                 case "syncEvent":
@@ -116,6 +116,11 @@ export default function (_) {
                                     if (value?.type !== "JSXExpressionContainer" || value.expression.type === "JSXEmptyExpression")
                                         throw path.buildCodeFrameError(`Expression value expected for '${name.name.name}'`);
                                     staticPropsForRuntime.push(t.objectProperty(t.stringLiteral("mu:apply"), value.expression, true /* computed */));
+                                    break;
+                                case "diagnostic":
+                                    if (value)
+                                        throw path.buildCodeFrameError("mu:diagnostic does not take a value.");
+                                    staticPropsForRuntime.push(t.objectProperty(t.stringLiteral("mu:diagnostic"), t.booleanLiteral(true), true /* computed */));
                                     break;
                                 default:
                                     throw path.buildCodeFrameError(`Unsupported mutraction JSX attribute ${name.name.name}`);

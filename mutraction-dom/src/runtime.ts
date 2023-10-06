@@ -47,6 +47,7 @@ export function element<E extends keyof HTMLElementTagNameMap>(
     el.append(...children);
 
     let syncEvents: string | undefined;
+    let diagnosticApplied = false;
     for (let [name, value] of Object.entries(staticAttrs) as [string, string][]) {
         switch (name) {
             case "mu:syncEvent":
@@ -57,10 +58,18 @@ export function element<E extends keyof HTMLElementTagNameMap>(
                 doApply(el, value);
                 break;
 
+            case "mu:diagnostic":
+                diagnosticApplied = true;
+                break;
+
             default:
                 (el as any)[name] = value;                
                 break;
         }
+    }
+
+    if (diagnosticApplied) {
+        console.trace(`[mu:diagnostic] Creating ${ name }`);
     }
 
     const syncedProps = syncEvents ? [] as [prop: keyof typeof el, ref: PropReference][] : undefined;
@@ -74,22 +83,41 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 
         switch (name) {
             case "style": {
-                const sub = effect(() => { Object.assign(el.style, getter()); }, suppress);
+                const callback = !diagnosticApplied
+                    ? function updateStyle() { Object.assign(el.style, getter()); }
+                    : function updateStyleDiagnostic() {
+                        console.trace("[mu:diagnostic] Updating style");
+                        Object.assign(el.style, getter());
+                    };
+                const sub = effect(callback, suppress);
                 registerCleanup(el, sub);
                 break;
             }
 
             case "classList": {
-                const sub = effect(() => { 
-                    const classMap = getter() as Record<string, boolean>;
-                    for (const [name, on] of Object.entries(classMap)) el.classList.toggle(name, !!on);
-                }, suppress);
+                const callback = !diagnosticApplied
+                    ? function updateClassList() { 
+                        const classMap = getter() as Record<string, boolean>;
+                        for (const [name, on] of Object.entries(classMap)) el.classList.toggle(name, !!on);
+                    }
+                    : function updateClassListDiagnostic() { 
+                        console.trace("[mu:diagnostic] Updating classList");
+                        const classMap = getter() as Record<string, boolean>;
+                        for (const [name, on] of Object.entries(classMap)) el.classList.toggle(name, !!on);
+                    };
+                const sub = effect(callback, suppress);
                 registerCleanup(el, sub);
                 break;
             }
 
             default: {
-                const sub = effect(() => { (el as any)[name] = getter(); }, suppress);
+                const callback = !diagnosticApplied
+                    ? function updateAttribute() { (el as any)[name] = getter(); }
+                    : function updateAttributeDiagnostic() {
+                        console.trace(`[mu:diagnostic] Updating ${ name }`);
+                        (el as any)[name] = getter();
+                    };
+                const sub = effect(callback, suppress);
                 registerCleanup(el, sub);
                 break;
             }

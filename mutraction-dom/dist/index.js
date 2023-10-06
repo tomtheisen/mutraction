@@ -707,6 +707,7 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
   const el = document.createElement(name);
   el.append(...children);
   let syncEvents;
+  let diagnosticApplied = false;
   for (let [name2, value] of Object.entries(staticAttrs)) {
     switch (name2) {
       case "mu:syncEvent":
@@ -715,10 +716,16 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
       case "mu:apply":
         doApply(el, value);
         break;
+      case "mu:diagnostic":
+        diagnosticApplied = true;
+        break;
       default:
         el[name2] = value;
         break;
     }
+  }
+  if (diagnosticApplied) {
+    console.trace(`[mu:diagnostic] Creating ${name}`);
   }
   const syncedProps = syncEvents ? [] : void 0;
   for (let [name2, getter] of Object.entries(dynamicAttrs)) {
@@ -730,25 +737,39 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
     }
     switch (name2) {
       case "style": {
-        const sub = effect(() => {
+        const callback = !diagnosticApplied ? function updateStyle() {
           Object.assign(el.style, getter());
-        }, suppress);
+        } : function updateStyleDiagnostic() {
+          console.trace("[mu:diagnostic] Updating style");
+          Object.assign(el.style, getter());
+        };
+        const sub = effect(callback, suppress);
         registerCleanup(el, sub);
         break;
       }
       case "classList": {
-        const sub = effect(() => {
+        const callback = !diagnosticApplied ? function updateClassList() {
           const classMap = getter();
           for (const [name3, on] of Object.entries(classMap))
             el.classList.toggle(name3, !!on);
-        }, suppress);
+        } : function updateClassListDiagnostic() {
+          console.trace("[mu:diagnostic] Updating classList");
+          const classMap = getter();
+          for (const [name3, on] of Object.entries(classMap))
+            el.classList.toggle(name3, !!on);
+        };
+        const sub = effect(callback, suppress);
         registerCleanup(el, sub);
         break;
       }
       default: {
-        const sub = effect(() => {
+        const callback = !diagnosticApplied ? function updateAttribute() {
           el[name2] = getter();
-        }, suppress);
+        } : function updateAttributeDiagnostic() {
+          console.trace(`[mu:diagnostic] Updating ${name2}`);
+          el[name2] = getter();
+        };
+        const sub = effect(callback, suppress);
         registerCleanup(el, sub);
         break;
       }
