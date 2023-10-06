@@ -310,7 +310,7 @@ const dialog =
         <button className="close" onclick={ () => appState.shortLinkDialogOpen = false }>
             &times;
         </button>
-        <p><a href={ appState.shortLink }>{ appState.shortLink }</a></p>
+        <p><a target="_blank" href={ appState.shortLink }>{ appState.shortLink }</a></p>
         <button onclick={ copyShortLink }>Copy</button>
     </dialog> as HTMLDialogElement;
 
