@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.22.0] - 2023-10-06
+
+### Added
+
+- `mu:diagnostic` attribute for debugging/instrumentation.  It's not documented yet, as it's still somewhat experimental and subject to change.
+
 ## [0.21.5] - 2023-09-30
 
 ### Changed
