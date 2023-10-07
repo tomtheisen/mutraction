@@ -709,6 +709,7 @@ function element(tagName, staticAttrs, dynamicAttrs, ...children) {
   let syncEvents;
   let diagnosticApplied = false;
   let diagnosticUpdates = 0;
+  let doneConstructing = false;
   for (let [name, value] of Object.entries(staticAttrs)) {
     switch (name) {
       case "mu:syncEvent":
@@ -741,7 +742,8 @@ function element(tagName, staticAttrs, dynamicAttrs, ...children) {
         const callback = !diagnosticApplied ? function updateStyle() {
           Object.assign(el.style, getter());
         } : function updateStyleDiagnostic(dl, trigger) {
-          console.trace(`[mu:diagnostic] Updating ${tagName}`, { attribute: name, trigger, updates: ++diagnosticUpdates });
+          if (doneConstructing)
+            console.trace(`[mu:diagnostic] Updating ${tagName}`, { attribute: name, trigger, updates: ++diagnosticUpdates });
           Object.assign(el.style, getter());
         };
         const sub = effect(callback, suppress);
@@ -754,7 +756,8 @@ function element(tagName, staticAttrs, dynamicAttrs, ...children) {
           for (const [name2, on] of Object.entries(classMap))
             el.classList.toggle(name2, !!on);
         } : function updateClassListDiagnostic(dl, trigger) {
-          console.trace(`[mu:diagnostic] Updating ${tagName}`, { attribute: name, trigger, updates: ++diagnosticUpdates });
+          if (doneConstructing)
+            console.trace(`[mu:diagnostic] Updating ${tagName}`, { attribute: name, trigger, updates: ++diagnosticUpdates });
           const classMap = getter();
           for (const [name2, on] of Object.entries(classMap))
             el.classList.toggle(name2, !!on);
@@ -767,7 +770,8 @@ function element(tagName, staticAttrs, dynamicAttrs, ...children) {
         const callback = !diagnosticApplied ? function updateAttribute() {
           el[name] = getter();
         } : function updateAttributeDiagnostic(dl, trigger) {
-          console.trace(`[mu:diagnostic] Updating ${tagName}`, { attribute: name, trigger, updates: ++diagnosticUpdates });
+          if (doneConstructing)
+            console.trace(`[mu:diagnostic] Updating ${tagName}`, { attribute: name, trigger, updates: ++diagnosticUpdates });
           el[name] = getter();
         };
         const sub = effect(callback, suppress);
@@ -784,6 +788,7 @@ function element(tagName, staticAttrs, dynamicAttrs, ...children) {
       });
     }
   }
+  doneConstructing = true;
   return el;
 }
 function child(getter) {
