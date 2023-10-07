@@ -94,6 +94,7 @@ export declare const defaultTracker: Tracker;
  * @returns a proxy-wrapped representation of the model object
  */
 export declare function track<TModel extends object>(model: TModel): TModel;
+type Subscriber = (trigger?: PropReference) => void;
 /**
  * Accumulates a list of properties that are read from.
  * Normally you wouldn't use this directly from application.
@@ -107,8 +108,8 @@ export declare class DependencyList {
 	constructor(tracker: Tracker);
 	get trackedProperties(): ReadonlyArray<PropReference>;
 	addDependency(propRef: PropReference): void;
-	subscribe(callback: () => void): Subscription;
-	notifySubscribers(): void;
+	subscribe(callback: Subscriber): Subscription;
+	notifySubscribers(trigger?: PropReference): void;
 	endDependencyTrack(): void;
 	/** Indicates that this dependency list is dependent on *all* tracked changes */
 	trackAllChanges(): void;
@@ -250,7 +251,7 @@ type EffectOptions = {
  * @param options
  * @returns a subscription that can be disposed to turn the effect off.
  */
-export declare function effect(sideEffect: (dep: DependencyList) => (void | (() => void)), options?: EffectOptions): Subscription;
+export declare function effect(sideEffect: (dep: DependencyList, trigger?: PropReference) => (void | (() => void)), options?: EffectOptions): Subscription;
 type Route = {
 	pattern: RegExp | string;
 	element: Node | ((match: RegExpExecArray) => Node);

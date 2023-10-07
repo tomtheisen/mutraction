@@ -1,4 +1,5 @@
 import { DependencyList } from "./dependency.js";
+import { PropReference } from "./propref.js";
 import { Tracker, defaultTracker } from "./tracker.js";
 import { Subscription } from "./types.js";
 
@@ -17,7 +18,7 @@ type EffectOptions = {
  * @param options 
  * @returns a subscription that can be disposed to turn the effect off.
  */
-export function effect(sideEffect: (dep: DependencyList) => (void | (() => void)), options: EffectOptions = {}): Subscription {
+export function effect(sideEffect: (dep: DependencyList, trigger?: PropReference) => (void | (() => void)), options: EffectOptions = {}): Subscription {
     const { tracker = defaultTracker, suppressUntrackedWarning = false } = options;
     let dep = tracker.startDependencyTrack();
 
@@ -44,13 +45,13 @@ export function effect(sideEffect: (dep: DependencyList) => (void | (() => void)
         subscription.dispose();
     };
 
-    function effectDependencyChanged() {
+    function effectDependencyChanged(trigger?: PropReference) {
         if (typeof lastResult === "function") lastResult(); // user cleanup
 
         effectDispose();
         
         dep = tracker.startDependencyTrack();
-        lastResult = sideEffect(dep);
+        lastResult = sideEffect(dep, trigger);
         dep.endDependencyTrack();
         subscription = dep.subscribe(effectDependencyChanged);
     }

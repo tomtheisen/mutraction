@@ -2,6 +2,8 @@ import { PropReference, createOrRetrievePropRef } from "./propref.js";
 import { Tracker } from "./tracker.js";
 import { Subscription } from "./types.js";
 
+type Subscriber = (trigger?: PropReference) => void;
+
 /**
  * Accumulates a list of properties that are read from.  
  * Normally you wouldn't use this directly from application.
@@ -13,7 +15,7 @@ export class DependencyList {
     #trackedProperties = new Map<PropReference, Subscription>;
     #tracker: Tracker;
     #tracksAllChanges = false;
-    #subscribers: Set<() => void> = new Set;
+    #subscribers: Set<Subscriber> = new Set;
     active = true;
 
     constructor(tracker: Tracker) {
@@ -32,16 +34,16 @@ export class DependencyList {
         }
     }
 
-    subscribe(callback: () => void): Subscription {
+    subscribe(callback: Subscriber): Subscription {
         this.#subscribers.add(callback);
         return { dispose: () => this.#subscribers.delete(callback) };
     }
 
-    notifySubscribers() {
+    notifySubscribers(trigger?: PropReference) {
         // we only want to notify subscribers that existed at the 
         // beginning of the notification cycle
         const subscriberSnapshot = Array.from(this.#subscribers);
-        for (const callback of subscriberSnapshot) callback();
+        for (const callback of subscriberSnapshot) callback(trigger);
     }
 
     endDependencyTrack() {

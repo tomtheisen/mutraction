@@ -43,7 +43,7 @@ export class PropReference<T = any> {
         const subscriberSnapshot = Array.from(this.#subscribers);
 
         this.#notifying = true;
-        for (const dep of subscriberSnapshot) dep.notifySubscribers();
+        for (const dep of subscriberSnapshot) dep.notifySubscribers(this);
         this.#notifying = false;
     }
 

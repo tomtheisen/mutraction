@@ -214,7 +214,7 @@ var PropReference = class {
     const subscriberSnapshot = Array.from(this.#subscribers);
     this.#notifying = true;
     for (const dep of subscriberSnapshot)
-      dep.notifySubscribers();
+      dep.notifySubscribers(this);
     this.#notifying = false;
   }
   get current() {
@@ -260,10 +260,10 @@ var DependencyList = class {
     this.#subscribers.add(callback);
     return { dispose: () => this.#subscribers.delete(callback) };
   }
-  notifySubscribers() {
+  notifySubscribers(trigger) {
     const subscriberSnapshot = Array.from(this.#subscribers);
     for (const callback of subscriberSnapshot)
-      callback();
+      callback(trigger);
   }
   endDependencyTrack() {
     this.#tracker.endDependencyTrack(this);
@@ -653,12 +653,12 @@ function effect(sideEffect, options = {}) {
     dep.untrackAll();
     subscription.dispose();
   };
-  function effectDependencyChanged() {
+  function effectDependencyChanged(trigger) {
     if (typeof lastResult === "function")
       lastResult();
     effectDispose();
     dep = tracker.startDependencyTrack();
-    lastResult = sideEffect(dep);
+    lastResult = sideEffect(dep, trigger);
     dep.endDependencyTrack();
     subscription = dep.subscribe(effectDependencyChanged);
   }
@@ -740,8 +740,8 @@ function element(tagName, staticAttrs, dynamicAttrs, ...children) {
       case "style": {
         const callback = !diagnosticApplied ? function updateStyle() {
           Object.assign(el.style, getter());
-        } : function updateStyleDiagnostic(dl) {
-          console.trace(`[mu:diagnostic] Updating ${tagName} style (${++diagnosticUpdates} element updates)`);
+        } : function updateStyleDiagnostic(dl, trigger) {
+          console.trace(`[mu:diagnostic] Updating ${tagName}`, { attribute: name, trigger, updates: ++diagnosticUpdates });
           Object.assign(el.style, getter());
         };
         const sub = effect(callback, suppress);
@@ -753,8 +753,8 @@ function element(tagName, staticAttrs, dynamicAttrs, ...children) {
           const classMap = getter();
           for (const [name2, on] of Object.entries(classMap))
             el.classList.toggle(name2, !!on);
-        } : function updateClassListDiagnostic(dl) {
-          console.trace(`[mu:diagnostic] Updating ${tagName} classList (${++diagnosticUpdates} element updates)`);
+        } : function updateClassListDiagnostic(dl, trigger) {
+          console.trace(`[mu:diagnostic] Updating ${tagName}`, { attribute: name, trigger, updates: ++diagnosticUpdates });
           const classMap = getter();
           for (const [name2, on] of Object.entries(classMap))
             el.classList.toggle(name2, !!on);
@@ -766,8 +766,8 @@ function element(tagName, staticAttrs, dynamicAttrs, ...children) {
       default: {
         const callback = !diagnosticApplied ? function updateAttribute() {
           el[name] = getter();
-        } : function updateAttributeDiagnostic(dl) {
-          console.trace(`[mu:diagnostic] Updating ${tagName} ${name} (${++diagnosticUpdates} element updates)`);
+        } : function updateAttributeDiagnostic(dl, trigger) {
+          console.trace(`[mu:diagnostic] Updating ${tagName}`, { attribute: name, trigger, updates: ++diagnosticUpdates });
           el[name] = getter();
         };
         const sub = effect(callback, suppress);
