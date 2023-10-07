@@ -20,6 +20,9 @@ const app = (
                 <div style={{ maxWidth: "960px",  margin: "0 auto" }}>
                     { routes }
                 </div>
+                <div style={{ textAlign: "center", marginTop: "3em", opacity: "80%" }}>
+                    <a href="https://www.netlify.com"> <img src="assets/netlify-logo.svg" alt="Deploys by Netlify" /> </a>
+                </div>
             </main>
         </div>
     </>
