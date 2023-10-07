@@ -6,7 +6,7 @@ type ElementStringProps<E extends keyof HTMLElementTagNameMap> = {
 type ElementPropGetters<E extends keyof HTMLElementTagNameMap> = {
 	[K in keyof HTMLElementTagNameMap[E]]: () => HTMLElementTagNameMap[E][K];
 };
-export declare function element<E extends keyof HTMLElementTagNameMap>(name: E, staticAttrs: ElementStringProps<E>, dynamicAttrs: ElementPropGetters<E>, ...children: (Node | string)[]): HTMLElementTagNameMap[E] | Text;
+export declare function element<E extends keyof HTMLElementTagNameMap>(tagName: E, staticAttrs: ElementStringProps<E>, dynamicAttrs: ElementPropGetters<E>, ...children: (Node | string)[]): HTMLElementTagNameMap[E] | Text;
 export declare function child(getter: () => number | string | bigint | null | undefined | HTMLElement | Text): ChildNode;
 declare const RecordMutation: unique symbol;
 declare const RecordDependency: unique symbol;

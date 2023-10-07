@@ -38,16 +38,17 @@ function doApply(el: HTMLElement, mod: unknown) {
 }
 
 export function element<E extends keyof HTMLElementTagNameMap>(
-    name: E, 
+    tagName: E, 
     staticAttrs: ElementStringProps<E>,
     dynamicAttrs: ElementPropGetters<E>,
     ...children: (Node | string)[]
 ): HTMLElementTagNameMap[E] | Text {
-    const el: HTMLElementTagNameMap[E] = document.createElement(name);
+    const el: HTMLElementTagNameMap[E] = document.createElement(tagName);
     el.append(...children);
 
     let syncEvents: string | undefined;
     let diagnosticApplied = false;
+    let diagnosticUpdates = 0;
     for (let [name, value] of Object.entries(staticAttrs) as [string, string][]) {
         switch (name) {
             case "mu:syncEvent":
@@ -69,7 +70,7 @@ export function element<E extends keyof HTMLElementTagNameMap>(
     }
 
     if (diagnosticApplied) {
-        console.trace(`[mu:diagnostic] Creating ${ name }`);
+        console.trace(`[mu:diagnostic] Creating ${ tagName }`);
     }
 
     const syncedProps = syncEvents ? [] as [prop: keyof typeof el, ref: PropReference][] : undefined;
@@ -85,8 +86,8 @@ export function element<E extends keyof HTMLElementTagNameMap>(
             case "style": {
                 const callback = !diagnosticApplied
                     ? function updateStyle() { Object.assign(el.style, getter()); }
-                    : function updateStyleDiagnostic() {
-                        console.trace("[mu:diagnostic] Updating style");
+                    : function updateStyleDiagnostic(dl: DependencyList) {
+                        console.trace(`[mu:diagnostic] Updating ${ tagName } style (${ ++diagnosticUpdates } element updates)`);
                         Object.assign(el.style, getter());
                     };
                 const sub = effect(callback, suppress);
@@ -100,8 +101,8 @@ export function element<E extends keyof HTMLElementTagNameMap>(
                         const classMap = getter() as Record<string, boolean>;
                         for (const [name, on] of Object.entries(classMap)) el.classList.toggle(name, !!on);
                     }
-                    : function updateClassListDiagnostic() { 
-                        console.trace("[mu:diagnostic] Updating classList");
+                    : function updateClassListDiagnostic(dl: DependencyList) { 
+                        console.trace(`[mu:diagnostic] Updating ${ tagName } classList (${ ++diagnosticUpdates } element updates)`);
                         const classMap = getter() as Record<string, boolean>;
                         for (const [name, on] of Object.entries(classMap)) el.classList.toggle(name, !!on);
                     };
@@ -113,8 +114,8 @@ export function element<E extends keyof HTMLElementTagNameMap>(
             default: {
                 const callback = !diagnosticApplied
                     ? function updateAttribute() { (el as any)[name] = getter(); }
-                    : function updateAttributeDiagnostic() {
-                        console.trace(`[mu:diagnostic] Updating ${ name }`);
+                    : function updateAttributeDiagnostic(dl: DependencyList) {
+                        console.trace(`[mu:diagnostic] Updating ${ tagName } ${ name } (${ ++diagnosticUpdates } element updates)`);
                         (el as any)[name] = getter();
                     };
                 const sub = effect(callback, suppress);
@@ -143,7 +144,7 @@ export function child(getter: () => number | string | bigint | null | undefined 
         if (val instanceof Node) {
             // this effect is now dead
             // since we don't replace nodes by default
-            dl.untrackAll(); // TODO could still be trackAllProperties
+            dl.untrackAll(); // TODO could still be trackAllProperties in the case of a .history dependency
             node = val;
         }
         else {

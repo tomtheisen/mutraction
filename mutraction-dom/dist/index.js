@@ -703,13 +703,14 @@ function doApply(el, mod) {
       throw Error("Unknown node modifier type: " + mod.$muType);
   }
 }
-function element(name, staticAttrs, dynamicAttrs, ...children) {
-  const el = document.createElement(name);
+function element(tagName, staticAttrs, dynamicAttrs, ...children) {
+  const el = document.createElement(tagName);
   el.append(...children);
   let syncEvents;
   let diagnosticApplied = false;
-  for (let [name2, value] of Object.entries(staticAttrs)) {
-    switch (name2) {
+  let diagnosticUpdates = 0;
+  for (let [name, value] of Object.entries(staticAttrs)) {
+    switch (name) {
       case "mu:syncEvent":
         syncEvents = value;
         break;
@@ -720,27 +721,27 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
         diagnosticApplied = true;
         break;
       default:
-        el[name2] = value;
+        el[name] = value;
         break;
     }
   }
   if (diagnosticApplied) {
-    console.trace(`[mu:diagnostic] Creating ${name}`);
+    console.trace(`[mu:diagnostic] Creating ${tagName}`);
   }
   const syncedProps = syncEvents ? [] : void 0;
-  for (let [name2, getter] of Object.entries(dynamicAttrs)) {
-    if (syncedProps && name2 in el) {
+  for (let [name, getter] of Object.entries(dynamicAttrs)) {
+    if (syncedProps && name in el) {
       const propRef = defaultTracker.getPropRefTolerant(getter);
       if (propRef) {
-        syncedProps.push([name2, propRef]);
+        syncedProps.push([name, propRef]);
       }
     }
-    switch (name2) {
+    switch (name) {
       case "style": {
         const callback = !diagnosticApplied ? function updateStyle() {
           Object.assign(el.style, getter());
-        } : function updateStyleDiagnostic() {
-          console.trace("[mu:diagnostic] Updating style");
+        } : function updateStyleDiagnostic(dl) {
+          console.trace(`[mu:diagnostic] Updating ${tagName} style (${++diagnosticUpdates} element updates)`);
           Object.assign(el.style, getter());
         };
         const sub = effect(callback, suppress);
@@ -750,13 +751,13 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
       case "classList": {
         const callback = !diagnosticApplied ? function updateClassList() {
           const classMap = getter();
-          for (const [name3, on] of Object.entries(classMap))
-            el.classList.toggle(name3, !!on);
-        } : function updateClassListDiagnostic() {
-          console.trace("[mu:diagnostic] Updating classList");
+          for (const [name2, on] of Object.entries(classMap))
+            el.classList.toggle(name2, !!on);
+        } : function updateClassListDiagnostic(dl) {
+          console.trace(`[mu:diagnostic] Updating ${tagName} classList (${++diagnosticUpdates} element updates)`);
           const classMap = getter();
-          for (const [name3, on] of Object.entries(classMap))
-            el.classList.toggle(name3, !!on);
+          for (const [name2, on] of Object.entries(classMap))
+            el.classList.toggle(name2, !!on);
         };
         const sub = effect(callback, suppress);
         registerCleanup(el, sub);
@@ -764,10 +765,10 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
       }
       default: {
         const callback = !diagnosticApplied ? function updateAttribute() {
-          el[name2] = getter();
-        } : function updateAttributeDiagnostic() {
-          console.trace(`[mu:diagnostic] Updating ${name2}`);
-          el[name2] = getter();
+          el[name] = getter();
+        } : function updateAttributeDiagnostic(dl) {
+          console.trace(`[mu:diagnostic] Updating ${tagName} ${name} (${++diagnosticUpdates} element updates)`);
+          el[name] = getter();
         };
         const sub = effect(callback, suppress);
         registerCleanup(el, sub);
@@ -778,8 +779,8 @@ function element(name, staticAttrs, dynamicAttrs, ...children) {
   if (syncEvents && syncedProps?.length) {
     for (const e of syncEvents.matchAll(/\S+/g)) {
       el.addEventListener(e[0], () => {
-        for (const [name2, propRef] of syncedProps)
-          propRef.current = el[name2];
+        for (const [name, propRef] of syncedProps)
+          propRef.current = el[name];
       });
     }
   }
