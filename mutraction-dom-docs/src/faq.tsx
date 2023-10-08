@@ -13,7 +13,9 @@ export function faq() {
             <h2>How big is mutraction?</h2>
             <p>
                 Small.  If this 3rd-party link is working, <a href="https://unpkg.com/mutraction-dom/dist/index.js">here's
-                the whole thing</a>, unminified.  As of this writing, it's about 8kb after transport compression.
+                the whole thing</a>, unminified.  As of this writing, 
+                the <a href="https://unpkg.com/mutraction-dom/dist/index.min.js">minified version</a> is 
+                about 6.5kb after transport compression.
             </p>
 
             <h2>How fast is mutraction?</h2>

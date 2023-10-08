@@ -17,7 +17,7 @@ const storageKey = "mu_playground_source";
 
 const query = new URL(location.href).searchParams;
 const appState = track({
-    view: query.get("view") ?? "normal" as "normal" | "code" | "preview",
+    view: (query.get("view") ?? "normal") as "normal" | "code" | "preview",
     outpane: "app" as "app" | "js",
     compiledCode: "",
     shortLinkLoading: false,
@@ -258,6 +258,7 @@ function stopSizing() {
 }
 
 function updateSize(ev: MouseEvent) {
+    appState.view = "normal";
     sourceBox.style.width = ev.pageX + "px";
     editor?.layout();
     ev.stopPropagation();
@@ -341,7 +342,7 @@ const app =
             <div style={{ position: "relative", top: "4px", zIndex: "1" }}>
                 <a href="/">{ muLogo(50) }</a>
             </div>
-            <h1>sandbox</h1>
+            <h1 className="narrow-hide">sandbox</h1>
             { hamburger() }{ runButton }{ saveButton }
             <div style={{ flexGrow: "1" }}></div>
             <span className="narrow-hide" style={{ padding: "1em", color: "#fff6" }}>
