@@ -22,8 +22,10 @@ const appState = track({
     compiledCode: "",
     shortLinkLoading: false,
     shortLink: "",
+    shortLinkError: "",    
     shortRunLinkLoading: false,
     shortRunLink: "",
+    shortRunLinkError: "",    
     shortLinkDialogOpen: false,
 });
 
@@ -268,6 +270,7 @@ window.addEventListener("resize", ev => editor?.layout());
 
 async function share() {
     appState.shortLinkLoading = appState.shortLinkDialogOpen = true;
+    appState.shortRunLinkError = appState.shortLinkError = "";
     appState.shortRunLink = appState.shortLink = "";
     const compressed = await compress(editor?.getValue() ?? "");
     const longLink = new URL(location.href);
@@ -276,11 +279,12 @@ async function share() {
 
     try {
         appState.shortLink = await getShortLink(longLink.href);
-        appState.shortLinkLoading = false;
     }
     catch (err) {
-        console.error(err);
-        notify("Failed to create short link: " + String(err));
+        appState.shortLinkError = String(err);
+    }
+    finally {
+        appState.shortLinkLoading = false;
     }
 }
 
@@ -291,11 +295,12 @@ async function shareRun() {
 
     try {
         appState.shortRunLink = await getShortLink(longLink.href);
-        appState.shortRunLinkLoading = false;
     }
     catch (err) {
-        console.error(err);
-        notify("Failed to create short link: " + String(err));
+        appState.shortRunLinkError = String(err);
+    }
+    finally {
+        appState.shortRunLinkLoading = false;
     }
 }
 
@@ -322,12 +327,20 @@ const dialog =
             Sandbox: <a target="_blank" href={ appState.shortLink }>{ appState.shortLink }</a>
         </p>
         <p mu:else mu:if={ appState.shortLinkLoading }>Loading …</p>
+        <p mu:else mu:if={ !!appState.shortLinkError }>
+            { appState.shortLinkError }<br/>
+            You can still use the long link in the URL bar.
+        </p>
 
         <p mu:if={ !!appState.shortRunLink }>
             <button onclick={ () => doCopy(appState.shortRunLink) }>Copy</button>
             Standalone: <a target="_blank" href={ appState.shortRunLink }>{ appState.shortRunLink }</a>
         </p>
         <p mu:else mu:if={ appState.shortRunLinkLoading }>Loading …</p>
+        <p mu:else mu:if={ !!appState.shortRunLinkError }>
+            { appState.shortRunLinkError }<br/>
+            You can still use the long link in the URL bar.
+        </p>
         <p mu:else><button onclick={ shareRun }>Get standalone link</button></p>
     </dialog> as HTMLDialogElement;
 
