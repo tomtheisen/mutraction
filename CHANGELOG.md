@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Elements were not being correctly removed from `ForEach()` when directly reducing `length` on the passed array.
+
 ## [0.22.0] - 2023-10-06
 
 ### Added

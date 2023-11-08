@@ -47,7 +47,8 @@ export function ForEach<TIn>(array: TIn[] | (() => TIn[]) | undefined, map: (ite
         while (outputs.length > arrayDefined.length) {
             const { cleanup, container } = outputs.pop()!;
             cleanup?.();
-            container.cleanup;
+            container.cleanup();
+            container.removeAsFragment();
         }
     }, suppress);
 
@@ -109,7 +110,9 @@ export function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]) 
         }
 
         while (containers.length > arrayDefined.length) {
-            containers.pop()!.cleanup();
+            const container = containers.pop()!;
+            container.removeAsFragment();
+            container.cleanup();
         }
     }, suppress);
 

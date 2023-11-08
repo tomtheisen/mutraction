@@ -62,7 +62,7 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
             const existingProxy = (result as any)[ProxyOf];
             if (existingProxy) {
                 if (existingProxy[TrackerOf] !== tracker) {
-                    throw Error("Object cannot be tracked by multiple tracker isntances");
+                    throw Error("Object cannot be tracked by multiple tracker instances");
                 }
                 result = existingProxy;
             }

@@ -58,7 +58,7 @@ function makeProxyHandler(model, tracker) {
       const existingProxy = result[ProxyOf];
       if (existingProxy) {
         if (existingProxy[TrackerOf] !== tracker) {
-          throw Error("Object cannot be tracked by multiple tracker isntances");
+          throw Error("Object cannot be tracked by multiple tracker instances");
         }
         result = existingProxy;
       } else {
@@ -929,7 +929,8 @@ function ForEach(array, map) {
     while (outputs.length > arrayDefined.length) {
       const { cleanup: cleanup2, container } = outputs.pop();
       cleanup2?.();
-      container.cleanup;
+      container.cleanup();
+      container.removeAsFragment();
     }
   }, suppress2);
   return result.removeAsFragment();
@@ -974,7 +975,9 @@ function ForEachPersist(array, map) {
       result.append(container.removeAsFragment());
     }
     while (containers.length > arrayDefined.length) {
-      containers.pop().cleanup();
+      const container = containers.pop();
+      container.removeAsFragment();
+      container.cleanup();
     }
   }, suppress2);
   return result.removeAsFragment();
