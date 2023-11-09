@@ -912,7 +912,7 @@ function ForEach(array, map) {
     for (let i = outputs.length; i < arrayDefined.length; i++) {
       const output = { container: new ElementSpan() };
       outputs.push(output);
-      effect(function forEachItemEffect(dep) {
+      output.subscription = effect(function forEachItemEffect(dep) {
         output.cleanup?.();
         const item = arrayDefined[i];
         const projection = item !== void 0 ? map(item, i, arrayDefined) : document.createTextNode("");
@@ -927,8 +927,9 @@ function ForEach(array, map) {
       result.append(output.container.removeAsFragment());
     }
     while (outputs.length > arrayDefined.length) {
-      const { cleanup: cleanup2, container } = outputs.pop();
+      const { cleanup: cleanup2, container, subscription } = outputs.pop();
       cleanup2?.();
+      subscription?.dispose();
       container.cleanup();
       container.removeAsFragment();
     }
@@ -1112,7 +1113,7 @@ function untrackedCloneImpl(obj, maxDepth) {
 }
 
 // out/index.js
-var version = "0.22.0";
+var version = "0.22.1";
 export {
   DependencyList,
   ForEach,

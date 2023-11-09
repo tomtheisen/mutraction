@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Elements removed from `ForEach` output due to reducing the `length` property on the array now have their respective subscriptions disposed.
+
+## [0.22.1] - 2023-11-08
+
+### Fixed
+
 - Elements were not being correctly removed from `ForEach()` when directly reducing `length` on the passed array.
 
 ## [0.22.0] - 2023-10-06

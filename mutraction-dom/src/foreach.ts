@@ -1,7 +1,7 @@
 import { effect } from "./effect.js"
 import { ElementSpan } from './elementSpan.js';
 import { Swapper } from "./swapper.js";
-import { isNodeOptions, type NodeOptions } from "./types.js";
+import { isNodeOptions, type Subscription, type NodeOptions } from "./types.js";
 
 const suppress = { suppressUntrackedWarning: true };
 
@@ -17,7 +17,7 @@ export function ForEach<TIn>(array: TIn[] | (() => TIn[]) | undefined, map: (ite
     if (typeof array === "function") return Swapper(() => ForEach(array(), map));
 
     const result = new ElementSpan();
-    type Output = { container: ElementSpan, cleanup?: () => void };
+    type Output = { container: ElementSpan, subscription?: Subscription, cleanup?: () => void };
     const outputs: Output[] = [];
 
     const arrayDefined = array ?? [];
@@ -27,7 +27,7 @@ export function ForEach<TIn>(array: TIn[] | (() => TIn[]) | undefined, map: (ite
             const output: Output = { container: new ElementSpan() };
             outputs.push(output);
 
-            effect(function forEachItemEffect(dep) {
+            output.subscription = effect(function forEachItemEffect(dep) {
                 output.cleanup?.();
                 const item = arrayDefined[i];
                 const projection = item !== undefined ? map(item, i, arrayDefined) : document.createTextNode("");
@@ -45,8 +45,9 @@ export function ForEach<TIn>(array: TIn[] | (() => TIn[]) | undefined, map: (ite
         }
 
         while (outputs.length > arrayDefined.length) {
-            const { cleanup, container } = outputs.pop()!;
+            const { cleanup, container, subscription } = outputs.pop()!;
             cleanup?.();
+            subscription?.dispose();
             container.cleanup();
             container.removeAsFragment();
         }
