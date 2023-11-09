@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.22.2] - 2023-11-09
+
 ### Fixed
 
 - Elements removed from `ForEach` output due to reducing the `length` property on the array now have their respective subscriptions disposed.
