@@ -145,7 +145,7 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 export function child(getter: () => number | string | bigint | null | undefined | HTMLElement | Text): ChildNode {
     let node: Text | HTMLElement = document.createTextNode("");
     let sub: Subscription | undefined = undefined;
-    sub = effect(dl => {
+    sub = effect(function childEffect(dl) {
         const val = getter();
         if (val instanceof Node) {
             // this effect is now dead

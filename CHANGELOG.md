@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- When history tracking is turned off in a `Tracker` instance via `setOptions()`, the internal operation history array is removed to conserve memory.  Previously this behavior was ony available via the `Tracker` constructor.
+
 ## [0.22.2] - 2023-11-09
 
 ### Fixed

@@ -55,6 +55,9 @@ export class Tracker {
             // create root transaction to enable history tracking
             this.#operationHistory = [];
         }
+        else {
+            this.#operationHistory = undefined;
+        }
         this.options = Object.freeze(appliedOptions);
     }
 
@@ -124,7 +127,7 @@ export class Tracker {
 
         if (this.options.compactOnCommit) compactTransaction(this.#transaction);
 
-        if (this.#transaction.parent) {
+                if (this.#transaction.parent) {
             this.#transaction.parent.operations.push(this.#transaction);
             this.#transaction.dependencies.forEach(d => this.#transaction!.parent!.dependencies.add(d));
             this.#transaction = this.#transaction.parent;
@@ -134,7 +137,7 @@ export class Tracker {
 
             // dedupe
             const allDependencyLists = new Set<DependencyList>;
-            for (const propRef of this.#transaction.dependencies) {
+                        for (const propRef of this.#transaction.dependencies) {
                 for (const dependencyList of propRef.subscribers) {
                     allDependencyLists.add(dependencyList);
                 }
