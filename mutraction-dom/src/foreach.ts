@@ -21,7 +21,7 @@ export function ForEach<TIn>(array: TIn[] | (() => TIn[]) | undefined, map: (ite
     const outputs: Output[] = [];
 
     const arrayDefined = array ?? [];
-    effect(function forEachLengthEffect(lengthDep) {
+    const lengthSubscription = effect(function forEachLengthEffect(lengthDep) {
         // i is scoped to each loop body invocation
         for (let i = outputs.length; i < arrayDefined.length; i++) {
             const output: Output = { container: new ElementSpan() };
@@ -45,15 +45,21 @@ export function ForEach<TIn>(array: TIn[] | (() => TIn[]) | undefined, map: (ite
         }
 
         while (outputs.length > arrayDefined.length) {
-            const { cleanup, container, subscription } = outputs.pop()!;
-            cleanup?.();
-            subscription?.dispose();
-            container.cleanup();
-            container.removeAsFragment();
+            cleanupOutput(outputs.pop()!);
         }
     }, suppress);
 
+    result.registerCleanup({ dispose() { outputs.forEach(cleanupOutput); }});
+    result.registerCleanup(lengthSubscription);
+
     return result.removeAsFragment();
+
+    function cleanupOutput({ cleanup, container, subscription }: Output) {
+        cleanup?.();
+        subscription?.dispose();
+        container.removeAsFragment();
+        container.cleanup();
+    }
 }
 
 /**
@@ -71,7 +77,7 @@ export function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]) 
     const outputMap = new WeakMap<TIn, HTMLElement | ElementSpan>;
 
     const arrayDefined = array ?? [];
-    effect(function forEachPersistLengthEffect(lengthDep) {
+    const lengthSubscription = effect(function forEachPersistLengthEffect(lengthDep) {
         // i is scoped to each loop body invocation
         for (let i = containers.length; i < arrayDefined.length; i++) {
             const container = new ElementSpan();
@@ -111,12 +117,18 @@ export function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]) 
         }
 
         while (containers.length > arrayDefined.length) {
-            const container = containers.pop()!;
-            container.removeAsFragment();
-            container.cleanup();
+            cleanupSpan(containers.pop()!);
         }
     }, suppress);
 
+    result.registerCleanup({ dispose() { containers.forEach(cleanupSpan); } })
+    result.registerCleanup(lengthSubscription);
+
     return result.removeAsFragment();
+
+    function cleanupSpan(container: ElementSpan) {
+        container.removeAsFragment();
+        container.cleanup();
+    }
 }
 

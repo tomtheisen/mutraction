@@ -7,9 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.22.3] - 2023-11-11
+
 ### Fixed
 
 - When history tracking is turned off in a `Tracker` instance via `setOptions()`, the internal operation history array is removed to conserve memory.  Previously this behavior was ony available via the `Tracker` constructor.
+- When a `ForEach()` is a descendant of a cleaned-up document element, (possibly because it was a child of a conditional `mu:if element`) all its subscriptions are invalidated and disposed.  This eliminates some orphaned property trackers.
 
 ## [0.22.2] - 2023-11-09
 

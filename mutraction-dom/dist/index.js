@@ -349,6 +349,8 @@ var Tracker = class {
     }
     if (appliedOptions.trackHistory) {
       this.#operationHistory = [];
+    } else {
+      this.#operationHistory = void 0;
     }
     this.options = Object.freeze(appliedOptions);
   }
@@ -794,7 +796,7 @@ function element(tagName, staticAttrs, dynamicAttrs, ...children) {
 function child(getter) {
   let node = document.createTextNode("");
   let sub = void 0;
-  sub = effect((dl) => {
+  sub = effect(function childEffect(dl) {
     const val = getter();
     if (val instanceof Node) {
       dl.untrackAll();
@@ -908,7 +910,7 @@ function ForEach(array, map) {
   const result = new ElementSpan();
   const outputs = [];
   const arrayDefined = array ?? [];
-  effect(function forEachLengthEffect(lengthDep) {
+  const lengthSubscription = effect(function forEachLengthEffect(lengthDep) {
     for (let i = outputs.length; i < arrayDefined.length; i++) {
       const output = { container: new ElementSpan() };
       outputs.push(output);
@@ -927,14 +929,20 @@ function ForEach(array, map) {
       result.append(output.container.removeAsFragment());
     }
     while (outputs.length > arrayDefined.length) {
-      const { cleanup: cleanup2, container, subscription } = outputs.pop();
-      cleanup2?.();
-      subscription?.dispose();
-      container.cleanup();
-      container.removeAsFragment();
+      cleanupOutput(outputs.pop());
     }
   }, suppress2);
+  result.registerCleanup({ dispose() {
+    outputs.forEach(cleanupOutput);
+  } });
+  result.registerCleanup(lengthSubscription);
   return result.removeAsFragment();
+  function cleanupOutput({ cleanup: cleanup2, container, subscription }) {
+    cleanup2?.();
+    subscription?.dispose();
+    container.removeAsFragment();
+    container.cleanup();
+  }
 }
 function ForEachPersist(array, map) {
   if (typeof array === "function")
@@ -943,7 +951,7 @@ function ForEachPersist(array, map) {
   const containers = [];
   const outputMap = /* @__PURE__ */ new WeakMap();
   const arrayDefined = array ?? [];
-  effect(function forEachPersistLengthEffect(lengthDep) {
+  const lengthSubscription = effect(function forEachPersistLengthEffect(lengthDep) {
     for (let i = containers.length; i < arrayDefined.length; i++) {
       const container = new ElementSpan();
       containers.push(container);
@@ -976,12 +984,18 @@ function ForEachPersist(array, map) {
       result.append(container.removeAsFragment());
     }
     while (containers.length > arrayDefined.length) {
-      const container = containers.pop();
-      container.removeAsFragment();
-      container.cleanup();
+      cleanupSpan(containers.pop());
     }
   }, suppress2);
+  result.registerCleanup({ dispose() {
+    containers.forEach(cleanupSpan);
+  } });
+  result.registerCleanup(lengthSubscription);
   return result.removeAsFragment();
+  function cleanupSpan(container) {
+    container.removeAsFragment();
+    container.cleanup();
+  }
 }
 
 // out/choose.js
@@ -1113,7 +1127,7 @@ function untrackedCloneImpl(obj, maxDepth) {
 }
 
 // out/index.js
-var version = "0.22.2";
+var version = "0.22.3";
 export {
   DependencyList,
   ForEach,
