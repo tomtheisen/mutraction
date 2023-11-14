@@ -916,6 +916,7 @@ function ForEach(array, map) {
       outputs.push(output);
       output.subscription = effect(function forEachItemEffect(dep) {
         output.cleanup?.();
+        output.container.cleanup();
         const item = arrayDefined[i];
         const projection = item !== void 0 ? map(item, i, arrayDefined) : document.createTextNode("");
         if (isNodeOptions(projection)) {

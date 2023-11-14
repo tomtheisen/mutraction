@@ -29,6 +29,8 @@ export function ForEach<TIn>(array: TIn[] | (() => TIn[]) | undefined, map: (ite
 
             output.subscription = effect(function forEachItemEffect(dep) {
                 output.cleanup?.();
+                output.container.cleanup();
+
                 const item = arrayDefined[i];
                 const projection = item !== undefined ? map(item, i, arrayDefined) : document.createTextNode("");
                 if (isNodeOptions(projection)) {
