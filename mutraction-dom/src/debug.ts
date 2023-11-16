@@ -37,7 +37,6 @@ if (isDebugMode) {
         container.style.padding = "1em";
         container.style.border = "solid #345 0.4em";
         container.style.fontSize = "16px";
-        container.style.resize = "both";
         container.style.overflow = "auto";
     }
 
@@ -74,10 +73,11 @@ if (isDebugMode) {
 
     const propRefCount = document.createElement("div");
     const propRefCountNumber = document.createElement("span");
+    propRefCountNumber.append("0");
     propRefCount.append("PropRefs created: ", propRefCountNumber);
 
     setPropRefDebugCallback(info => {
-        propRefCountNumber.replaceChildren(String(info.created));
+        propRefCountNumber.replaceChildren(String(info.propRefs));
     }); 
 
     container.append(head, propRefCount);
@@ -89,7 +89,6 @@ if (isDebugMode) {
         const rect = container.getBoundingClientRect();
         xOffset = ev.x - rect.x;
         yOffset = ev.y - rect.y;
-        console.log({ xOffset, yOffset });
 
         document.body.addEventListener("mousemove", moveHandler);
 

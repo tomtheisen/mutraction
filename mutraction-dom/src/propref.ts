@@ -4,12 +4,10 @@ import { isTracked } from "./proxy.js";
 import { DependencyList } from "./dependency.js";
 import { isDebugMode } from "./debug.js";
 
-let propRefsCreated = 0;
-let propRefTotalSubscribers = 0;
+let propRefs = 0;
 
 type PropRefInfo = {
-    created: number;
-    subscribers: number;
+    propRefs: number;
 };
 let notifyDebug: ((info: PropRefInfo) => void) | undefined;
 export function setPropRefDebugCallback(notify: (info: PropRefInfo) => void) {
@@ -17,10 +15,14 @@ export function setPropRefDebugCallback(notify: (info: PropRefInfo) => void) {
 }
 function doNotify() {
     notifyDebug?.({
-        created: propRefsCreated,
-        subscribers: propRefTotalSubscribers,
+        propRefs: propRefs
     });
 }
+
+const fr = new FinalizationRegistry(() => {
+    --propRefs;
+    doNotify();
+});
 
 /**
  * Represents a particular named property on a particular object.
@@ -42,23 +44,19 @@ export class PropReference<T = any> {
         }
         this.object = object;
         this.prop = prop;
+
+        if (isDebugMode) {
+            ++propRefs;
+            doNotify();
+            fr.register(this, {});
+        }
     }
 
     subscribe(dependencyList: DependencyList): Subscription {
         this.#subscribers.add(dependencyList);
-        if (isDebugMode) {
-            ++propRefTotalSubscribers;
-            doNotify();
-        }
 
         return { 
-            dispose: () => {
-                this.#subscribers.delete(dependencyList);
-                if (isDebugMode) {
-                    --propRefTotalSubscribers;
-                    doNotify();
-                }
-            } 
+            dispose: () => this.#subscribers.delete(dependencyList)
         };
     }
 
@@ -101,13 +99,6 @@ export function createOrRetrievePropRef(object: object, prop: Key) {
     if (!objectPropRefs) propRefRegistry.set(object, objectPropRefs = new Map);
 
     let result = objectPropRefs.get(prop);
-    if (!result) {
-        objectPropRefs.set(prop, result = new PropReference(object, prop));
-        if (isDebugMode) {
-            ++propRefsCreated;
-            doNotify();
-        }
-    }
-
+    if (!result) objectPropRefs.set(prop, result = new PropReference(object, prop));
     return result;
 };
