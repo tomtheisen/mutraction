@@ -170,7 +170,9 @@ type ArrayShorten = BaseSingleMutation & {
 	newLength: number;
 	removed: ReadonlyArray<any>;
 };
-type SingleMutation = CreateProperty | DeleteProperty | ChangeProperty | ArrayExtend | ArrayShorten;
+type SingleMutation = {
+	targetPath?: string;
+} & (CreateProperty | DeleteProperty | ChangeProperty | ArrayExtend | ArrayShorten);
 type Transaction = {
 	type: "transaction";
 	transactionName?: string;

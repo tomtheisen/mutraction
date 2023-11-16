@@ -2,12 +2,18 @@ import { DependencyList } from "./dependency.js";
 import { PropReference } from "./propref.js";
 import { Tracker, defaultTracker } from "./tracker.js";
 import { Subscription } from "./types.js";
+import { isDebugMode } from "./debug.js";
 
 const emptyEffect: Subscription = { dispose: () => {} };
 
 type EffectOptions = {
     suppressUntrackedWarning?: boolean;
     tracker?: Tracker;
+}
+
+let activeEffects = 0;
+export function getActiveEffectCount() {
+    return activeEffects;
 }
 
 /**
@@ -37,12 +43,14 @@ export function effect(sideEffect: (dep: DependencyList, trigger?: PropReference
         return emptyEffect;
     }
 
+    ++activeEffects;
     let subscription = dep.subscribe(effectDependencyChanged);
 
     // tear down old subscriptions
     const effectDispose = () => {
         dep.untrackAll();
         subscription.dispose();
+        --activeEffects;
     };
 
     function effectDependencyChanged(trigger?: PropReference) {
@@ -54,6 +62,7 @@ export function effect(sideEffect: (dep: DependencyList, trigger?: PropReference
         lastResult = sideEffect(dep, trigger);
         dep.endDependencyTrack();
         subscription = dep.subscribe(effectDependencyChanged);
+        ++activeEffects;
     }
 
     return { dispose: effectDispose };

@@ -12,7 +12,7 @@ export type ArrayExtend = BaseSingleMutation & { type: "arrayextend", oldLength:
 // shorten an array using the length setter
 export type ArrayShorten = BaseSingleMutation & { type: "arrayshorten", oldLength: number, newLength: number, removed: ReadonlyArray<any> };
 
-export type SingleMutation = CreateProperty | DeleteProperty | ChangeProperty | ArrayExtend | ArrayShorten;
+export type SingleMutation = { targetPath?: string } & (CreateProperty | DeleteProperty | ChangeProperty | ArrayExtend | ArrayShorten);
 
 export type Transaction = {
     type: "transaction", 

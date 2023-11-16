@@ -2,6 +2,25 @@ import { Key, Subscription } from "./types.js";
 import { ProxyOf } from "./symbols.js";
 import { isTracked } from "./proxy.js";
 import { DependencyList } from "./dependency.js";
+import { isDebugMode } from "./debug.js";
+
+let propRefsCreated = 0;
+let propRefTotalSubscribers = 0;
+
+type PropRefInfo = {
+    created: number;
+    subscribers: number;
+};
+let notifyDebug: ((info: PropRefInfo) => void) | undefined;
+export function setPropRefDebugCallback(notify: (info: PropRefInfo) => void) {
+    notifyDebug = notify;
+}
+function doNotify() {
+    notifyDebug?.({
+        created: propRefsCreated,
+        subscribers: propRefTotalSubscribers,
+    });
+}
 
 /**
  * Represents a particular named property on a particular object.
@@ -27,9 +46,18 @@ export class PropReference<T = any> {
 
     subscribe(dependencyList: DependencyList): Subscription {
         this.#subscribers.add(dependencyList);
+        if (isDebugMode) {
+            ++propRefTotalSubscribers;
+            doNotify();
+        }
+
         return { 
             dispose: () => {
                 this.#subscribers.delete(dependencyList);
+                if (isDebugMode) {
+                    --propRefTotalSubscribers;
+                    doNotify();
+                }
             } 
         };
     }
@@ -73,7 +101,13 @@ export function createOrRetrievePropRef(object: object, prop: Key) {
     if (!objectPropRefs) propRefRegistry.set(object, objectPropRefs = new Map);
 
     let result = objectPropRefs.get(prop);
-    if (!result) objectPropRefs.set(prop, result = new PropReference(object, prop));
+    if (!result) {
+        objectPropRefs.set(prop, result = new PropReference(object, prop));
+        if (isDebugMode) {
+            ++propRefsCreated;
+            doNotify();
+        }
+    }
 
     return result;
 };

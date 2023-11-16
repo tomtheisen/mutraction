@@ -3,7 +3,8 @@ import { DependencyList } from "./dependency.js";
 import { compactTransaction } from "./compactTransaction.js";
 import type { Mutation, ReadonlyDeep, SingleMutation, Transaction } from "./types.js";
 import { PropReference, createOrRetrievePropRef } from "./propref.js";
-import { canBeProxied, isTracked, linkProxyToObject, makeProxyHandler } from "./proxy.js";
+import { canBeProxied, getAccessPath, isTracked, linkProxyToObject, makeProxyHandler } from "./proxy.js";
+import { isDebugMode } from "./debug.js";
 
 const defaultTrackerOptions = {
     trackHistory: true,
@@ -263,6 +264,7 @@ export class Tracker {
     /** record a mutation, if you have the secret key  */
     [RecordMutation](mutation: SingleMutation) {
         if (this.options.trackHistory) {
+            if (isDebugMode) mutation.targetPath = getAccessPath(mutation.target);
             (this.#transaction?.operations ?? this.#operationHistory)!.push(Object.freeze(mutation));
         }
 

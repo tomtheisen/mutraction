@@ -4,6 +4,82 @@ var TrackerOf = Symbol("TrackerOf");
 var ProxyOf = Symbol("ProxyOf");
 var RecordDependency = Symbol("RecordDependency");
 var GetOriginal = Symbol("GetOriginal");
+var AccessPath = Symbol("AccessPath");
+
+// out/debug.js
+var debugModeKey = "mu:debugMode";
+var isDebugMode = !!localStorage.getItem(debugModeKey);
+if (isDebugMode) {
+  const container = document.createElement("div");
+  {
+    container.style.position = "fixed";
+    container.style.top = "50px";
+    container.style.left = "50px";
+    container.style.width = "30em";
+    container.style.height = "20em";
+    container.style.resize = "both";
+    container.style.zIndex = "2147483647";
+    container.style.background = "#eee";
+    container.style.color = "#123";
+    container.style.boxShadow = "#000 0em 0.5em 1em";
+    container.style.padding = "1em";
+    container.style.border = "solid #345 0.4em";
+    container.style.fontSize = "16px";
+    container.style.resize = "both";
+    container.style.overflow = "auto";
+  }
+  const head = document.createElement("div");
+  {
+    head.style.fontWeight = "bold";
+    head.style.background = "#123";
+    head.style.color = "#eee";
+    head.style.padding = "0.3em";
+    head.style.margin = "-1em -1em 1em";
+    head.style.cursor = "grab";
+  }
+  const toggle = document.createElement("button");
+  toggle.style.marginRight = "1em";
+  toggle.append("_");
+  let minimized = false;
+  toggle.addEventListener("click", (ev) => {
+    if (minimized = !minimized) {
+      container.style.maxHeight = "1em";
+      container.style.maxWidth = "15em";
+      container.style.minWidth = "15em";
+      container.style.overflow = "hidden";
+    } else {
+      container.style.maxHeight = "";
+      container.style.maxWidth = "";
+      container.style.minWidth = "";
+      container.style.overflow = "auto";
+    }
+  });
+  head.append(toggle, "\u03BC diagnostics");
+  const propRefCount = document.createElement("div");
+  const propRefCountNumber = document.createElement("span");
+  propRefCount.append("PropRefs created: ", propRefCountNumber);
+  setPropRefDebugCallback((info) => {
+    propRefCountNumber.replaceChildren(String(info.created));
+  });
+  container.append(head, propRefCount);
+  document.body.append(container);
+  let xOffset = 0, yOffset = 0;
+  head.addEventListener("mousedown", (ev) => {
+    const rect = container.getBoundingClientRect();
+    xOffset = ev.x - rect.x;
+    yOffset = ev.y - rect.y;
+    console.log({ xOffset, yOffset });
+    document.body.addEventListener("mousemove", moveHandler);
+    document.body.addEventListener("mouseup", (ev2) => {
+      document.body.removeEventListener("mousemove", moveHandler);
+    }, { once: true });
+    ev.preventDefault();
+    function moveHandler(ev2) {
+      container.style.left = ev2.x - xOffset + "px";
+      container.style.top = ev2.y - yOffset + "px";
+    }
+  });
+}
 
 // out/proxy.js
 var mutatingArrayMethods = ["copyWithin", "fill", "pop", "push", "reverse", "shift", "sort", "splice", "unshift"];
@@ -46,6 +122,12 @@ function canBeProxied(val) {
     return false;
   return true;
 }
+function getAccessPath(obj) {
+  return obj[AccessPath];
+}
+function setAccessPath(obj, path) {
+  Object.assign(obj, { [AccessPath]: path });
+}
 function makeProxyHandler(model, tracker) {
   function getOrdinary(target, name, receiver) {
     if (name === TrackerOf)
@@ -54,6 +136,10 @@ function makeProxyHandler(model, tracker) {
       return target;
     tracker[RecordDependency](createOrRetrievePropRef(target, name));
     let result = Reflect.get(target, name, receiver);
+    if (result && typeof result === "object" && isDebugMode) {
+      const accessPath = (getAccessPath(target) ?? "~") + "." + String(name);
+      setAccessPath(result, accessPath);
+    }
     if (canBeProxied(result)) {
       const existingProxy = result[ProxyOf];
       if (existingProxy) {
@@ -104,9 +190,16 @@ function makeProxyHandler(model, tracker) {
   }
   let setsCompleted = 0;
   function setOrdinary(target, name, newValue, receiver) {
+    if (newValue && typeof newValue === "object" && isDebugMode) {
+      const accessPath = (getAccessPath(target) ?? "~") + "." + String(name);
+      setAccessPath(newValue, accessPath);
+    }
     if (canBeProxied(newValue)) {
       const handler = makeProxyHandler(newValue, tracker);
       newValue = new Proxy(newValue, handler);
+    }
+    if (name === AccessPath) {
+      return Reflect.set(target, AccessPath, newValue);
     }
     const mutation = name in target ? { type: "change", target, name, oldValue: model[name], newValue, timestamp: /* @__PURE__ */ new Date() } : { type: "create", target, name, newValue, timestamp: /* @__PURE__ */ new Date() };
     const initialSets = setsCompleted;
@@ -185,6 +278,18 @@ function isTracked(obj) {
 }
 
 // out/propref.js
+var propRefsCreated = 0;
+var propRefTotalSubscribers = 0;
+var notifyDebug;
+function setPropRefDebugCallback(notify) {
+  notifyDebug = notify;
+}
+function doNotify() {
+  notifyDebug?.({
+    created: propRefsCreated,
+    subscribers: propRefTotalSubscribers
+  });
+}
 var PropReference = class {
   object;
   prop;
@@ -202,9 +307,17 @@ var PropReference = class {
   }
   subscribe(dependencyList) {
     this.#subscribers.add(dependencyList);
+    if (isDebugMode) {
+      ++propRefTotalSubscribers;
+      doNotify();
+    }
     return {
       dispose: () => {
         this.#subscribers.delete(dependencyList);
+        if (isDebugMode) {
+          --propRefTotalSubscribers;
+          doNotify();
+        }
       }
     };
   }
@@ -230,8 +343,13 @@ function createOrRetrievePropRef(object, prop) {
   if (!objectPropRefs)
     propRefRegistry.set(object, objectPropRefs = /* @__PURE__ */ new Map());
   let result = objectPropRefs.get(prop);
-  if (!result)
+  if (!result) {
     objectPropRefs.set(prop, result = new PropReference(object, prop));
+    if (isDebugMode) {
+      ++propRefsCreated;
+      doNotify();
+    }
+  }
   return result;
 }
 
@@ -551,6 +669,8 @@ var Tracker = class {
   /** record a mutation, if you have the secret key  */
   [RecordMutation](mutation) {
     if (this.options.trackHistory) {
+      if (isDebugMode)
+        mutation.targetPath = getAccessPath(mutation.target);
       (this.#transaction?.operations ?? this.#operationHistory).push(Object.freeze(mutation));
     }
     this.clearRedos();
@@ -590,7 +710,10 @@ var Tracker = class {
     if (this.#gettingPropRef) {
       this.#lastPropRef = propRef;
     } else {
-      this.#dependencyTrackers[0]?.addDependency(propRef);
+      const depList = this.#dependencyTrackers[0];
+      if (depList) {
+        depList.addDependency(propRef);
+      }
     }
   }
   #gettingPropRef = false;
@@ -635,6 +758,7 @@ function track(model) {
 // out/effect.js
 var emptyEffect = { dispose: () => {
 } };
+var activeEffects = 0;
 function effect(sideEffect, options = {}) {
   const { tracker = defaultTracker, suppressUntrackedWarning = false } = options;
   let dep = tracker.startDependencyTrack();
@@ -650,10 +774,12 @@ function effect(sideEffect, options = {}) {
     }
     return emptyEffect;
   }
+  ++activeEffects;
   let subscription = dep.subscribe(effectDependencyChanged);
   const effectDispose = () => {
     dep.untrackAll();
     subscription.dispose();
+    --activeEffects;
   };
   function effectDependencyChanged(trigger) {
     if (typeof lastResult === "function")
@@ -663,6 +789,7 @@ function effect(sideEffect, options = {}) {
     lastResult = sideEffect(dep, trigger);
     dep.endDependencyTrack();
     subscription = dep.subscribe(effectDependencyChanged);
+    ++activeEffects;
   }
   return { dispose: effectDispose };
 }
@@ -705,6 +832,13 @@ function doApply(el, mod) {
       throw Error("Unknown node modifier type: " + mod.$muType);
   }
 }
+var nodeDependencyMap = /* @__PURE__ */ new WeakMap();
+function addNodeDependency(node, depList) {
+  let depLists = nodeDependencyMap.get(node) ?? [];
+  if (!depLists)
+    nodeDependencyMap.set(node, depLists = []);
+  depLists.push(depList);
+}
 function element(tagName, staticAttrs, dynamicAttrs, ...children) {
   const el = document.createElement(tagName);
   el.append(...children);
@@ -741,40 +875,52 @@ function element(tagName, staticAttrs, dynamicAttrs, ...children) {
     }
     switch (name) {
       case "style": {
-        const callback = !diagnosticApplied ? function updateStyle() {
+        const callback = !diagnosticApplied ? function updateStyle(dl) {
           Object.assign(el.style, getter());
+          if (isDebugMode)
+            addNodeDependency(el, dl);
         } : function updateStyleDiagnostic(dl, trigger) {
           if (doneConstructing)
             console.trace(`[mu:diagnostic] Updating ${tagName}`, { attribute: name, trigger, updates: ++diagnosticUpdates });
           Object.assign(el.style, getter());
+          if (isDebugMode)
+            addNodeDependency(el, dl);
         };
         const sub = effect(callback, suppress);
         registerCleanup(el, sub);
         break;
       }
       case "classList": {
-        const callback = !diagnosticApplied ? function updateClassList() {
+        const callback = !diagnosticApplied ? function updateClassList(dl) {
           const classMap = getter();
           for (const [name2, on] of Object.entries(classMap))
             el.classList.toggle(name2, !!on);
+          if (isDebugMode)
+            addNodeDependency(el, dl);
         } : function updateClassListDiagnostic(dl, trigger) {
           if (doneConstructing)
             console.trace(`[mu:diagnostic] Updating ${tagName}`, { attribute: name, trigger, updates: ++diagnosticUpdates });
           const classMap = getter();
           for (const [name2, on] of Object.entries(classMap))
             el.classList.toggle(name2, !!on);
+          if (isDebugMode)
+            addNodeDependency(el, dl);
         };
         const sub = effect(callback, suppress);
         registerCleanup(el, sub);
         break;
       }
       default: {
-        const callback = !diagnosticApplied ? function updateAttribute() {
+        const callback = !diagnosticApplied ? function updateAttribute(dl) {
           el[name] = getter();
+          if (isDebugMode)
+            addNodeDependency(el, dl);
         } : function updateAttributeDiagnostic(dl, trigger) {
           if (doneConstructing)
             console.trace(`[mu:diagnostic] Updating ${tagName}`, { attribute: name, trigger, updates: ++diagnosticUpdates });
           el[name] = getter();
+          if (isDebugMode)
+            addNodeDependency(el, dl);
         };
         const sub = effect(callback, suppress);
         registerCleanup(el, sub);
@@ -807,6 +953,9 @@ function child(getter) {
         registerCleanup(newNode, sub);
       node.replaceWith(newNode);
       node = newNode;
+      if (isDebugMode) {
+        addNodeDependency(node, dl);
+      }
     }
   }, suppress);
   registerCleanup(node, sub);
@@ -1128,7 +1277,7 @@ function untrackedCloneImpl(obj, maxDepth) {
 }
 
 // out/index.js
-var version = "0.22.3";
+var version = "0.22.4";
 export {
   DependencyList,
   ForEach,
