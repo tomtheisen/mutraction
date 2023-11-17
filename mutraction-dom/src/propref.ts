@@ -3,26 +3,9 @@ import { ProxyOf } from "./symbols.js";
 import { isTracked } from "./proxy.js";
 import { DependencyList } from "./dependency.js";
 import { isDebugMode } from "./debug.js";
+import { LiveCollection } from "./liveCollection.js";
 
-let propRefs = 0;
-
-type PropRefInfo = {
-    propRefs: number;
-};
-let notifyDebug: ((info: PropRefInfo) => void) | undefined;
-export function setPropRefDebugCallback(notify: (info: PropRefInfo) => void) {
-    notifyDebug = notify;
-}
-function doNotify() {
-    notifyDebug?.({
-        propRefs: propRefs
-    });
-}
-
-const fr = new FinalizationRegistry(() => {
-    --propRefs;
-    doNotify();
-});
+export const allPropRefs = isDebugMode ? new LiveCollection<PropReference> : null;
 
 /**
  * Represents a particular named property on a particular object.
@@ -45,11 +28,7 @@ export class PropReference<T = any> {
         this.object = object;
         this.prop = prop;
 
-        if (isDebugMode) {
-            ++propRefs;
-            doNotify();
-            fr.register(this, {});
-        }
+        allPropRefs?.add(this);
     }
 
     subscribe(dependencyList: DependencyList): Subscription {

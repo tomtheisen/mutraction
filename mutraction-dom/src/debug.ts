@@ -1,6 +1,8 @@
-import { setPropRefDebugCallback } from "./propref.js";
+import { allPropRefs } from "./propref.js";
+import { getAccessPath } from "./proxy.js";
 
 const debugModeKey = "mu:debugMode";
+const debugPullInterval = 250;
 
 /*
  * Debug mode has several effects.  It must be turned on at page load time.
@@ -21,6 +23,12 @@ function disableDebugMode() {
     location.reload();
 }
 
+function valueString(val: unknown): string {
+    if (Array.isArray(val)) return `Array(${ val.length })`;
+    if (typeof val === "object") return "{ ... }";
+    return String(val);
+}
+
 if (isDebugMode) {
     const container = document.createElement("div");
     {
@@ -34,7 +42,7 @@ if (isDebugMode) {
         container.style.background = "#eee";
         container.style.color = "#123";
         container.style.boxShadow = "#000 0em 0.5em 1em";
-        container.style.padding = "1em";
+        container.style.padding = "4em 1em 1em 1em";
         container.style.border = "solid #345 0.4em";
         container.style.fontSize = "16px";
         container.style.overflow = "auto";
@@ -46,8 +54,11 @@ if (isDebugMode) {
         head.style.background = "#123";
         head.style.color = "#eee";
         head.style.padding = "0.3em";
-        head.style.margin = "-1em -1em 1em";
+        head.style.position = "absolute";
         head.style.cursor = "grab";
+        head.style.top = "0";
+        head.style.left = "0";
+        head.style.right = "0";
     }
 
     const toggle = document.createElement("button");
@@ -75,12 +86,31 @@ if (isDebugMode) {
     const propRefCountNumber = document.createElement("span");
     propRefCountNumber.append("0");
     propRefCount.append("PropRefs created: ", propRefCountNumber);
+    const propRefListButton = document.createElement("button");
+    propRefListButton.append("List PropRefs");
+    propRefListButton.addEventListener("click", ev => {
+        const propRefListItems = [];
+        if (allPropRefs) for (const propRef of allPropRefs) {
+            const item = document.createElement("li");
+            propRefListItems.push(item);
 
-    setPropRefDebugCallback(info => {
-        propRefCountNumber.replaceChildren(String(info.propRefs));
-    }); 
+            const objPath = getAccessPath(propRef.object);
+            const fullPath = objPath ? objPath + "." + String(propRef.prop) : String(propRef.prop);
+            const value = valueString(propRef.current);
 
-    container.append(head, propRefCount);
+            const subCount = propRef.subscribers.size;
+            item.append(fullPath, ": ", value, ", ", `${ subCount } ${ subCount === 1 ? "subscriber" : "subscribers" }`);
+        }
+        propRefList.replaceChildren(...propRefListItems);
+    });
+
+    const propRefList = document.createElement("ol");
+
+    setInterval(() => {
+        propRefCountNumber.replaceChildren(String(allPropRefs?.sizeBound));
+    }, debugPullInterval);
+
+    container.append(head, propRefCount, propRefListButton, propRefList);
 
     document.body.append(container);
 
@@ -90,10 +120,10 @@ if (isDebugMode) {
         xOffset = ev.x - rect.x;
         yOffset = ev.y - rect.y;
 
-        document.body.addEventListener("mousemove", moveHandler);
+        window.addEventListener("mousemove", moveHandler);
 
         document.body.addEventListener("mouseup", ev => {
-            document.body.removeEventListener("mousemove", moveHandler);
+            window.removeEventListener("mousemove", moveHandler);
         }, { once: true });
         ev.preventDefault();
 
