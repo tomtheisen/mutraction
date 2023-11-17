@@ -95,14 +95,7 @@ export declare const defaultTracker: Tracker;
  */
 export declare function track<TModel extends object>(model: TModel): TModel;
 type Subscriber = (trigger?: PropReference) => void;
-/**
- * Accumulates a list of properties that are read from.
- * Normally you wouldn't use this directly from application.
- * Mostly, it's an implementation detail of effect(), but there might be a few uses here and there.
- * @see PropReference
- * @see effect
- */
-export declare class DependencyList {
+declare class DependencyList {
 	#private;
 	active: boolean;
 	constructor(tracker: Tracker);

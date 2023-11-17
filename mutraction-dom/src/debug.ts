@@ -42,9 +42,10 @@ if (isDebugMode) {
         container.style.background = "#eee";
         container.style.color = "#123";
         container.style.boxShadow = "#000 0em 0.5em 1em";
-        container.style.padding = "4em 1em 1em 1em";
         container.style.border = "solid #345 0.4em";
         container.style.fontSize = "16px";
+        container.style.display = "flex";
+        container.style.flexDirection = "column";
         container.style.overflow = "auto";
     }
 
@@ -53,22 +54,19 @@ if (isDebugMode) {
         head.style.fontWeight = "bold";
         head.style.background = "#123";
         head.style.color = "#eee";
-        head.style.padding = "0.3em";
-        head.style.position = "absolute";
+        head.style.padding = "0.1em 1em";
         head.style.cursor = "grab";
-        head.style.top = "0";
-        head.style.left = "0";
-        head.style.right = "0";
     }
 
     const toggle = document.createElement("button");
+    toggle.style.all = "revert";
     toggle.style.marginRight = "1em";
     toggle.append("_");
 
     let minimized = false;
     toggle.addEventListener("click", ev => {
         if (minimized = !minimized) {
-            container.style.maxHeight = "1em";
+            container.style.maxHeight = "2.4em";
             container.style.maxWidth = "15em";
             container.style.minWidth = "15em";
             container.style.overflow = "hidden";
@@ -110,7 +108,12 @@ if (isDebugMode) {
         propRefCountNumber.replaceChildren(String(allPropRefs?.sizeBound));
     }, debugPullInterval);
 
-    container.append(head, propRefCount, propRefListButton, propRefList);
+    const content = document.createElement("div");
+    content.style.padding = "1em";
+    content.style.overflow = "auto";
+    content.append(propRefCount, propRefListButton, propRefList);
+
+    container.append(head, content);
 
     document.body.append(container);
 

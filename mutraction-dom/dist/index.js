@@ -8,7 +8,15 @@ var AccessPath = Symbol("AccessPath");
 
 // out/debug.js
 var debugModeKey = "mu:debugMode";
+var debugPullInterval = 250;
 var isDebugMode = !!localStorage.getItem(debugModeKey);
+function valueString(val) {
+  if (Array.isArray(val))
+    return `Array(${val.length})`;
+  if (typeof val === "object")
+    return "{ ... }";
+  return String(val);
+}
 if (isDebugMode) {
   const container = document.createElement("div");
   {
@@ -22,10 +30,10 @@ if (isDebugMode) {
     container.style.background = "#eee";
     container.style.color = "#123";
     container.style.boxShadow = "#000 0em 0.5em 1em";
-    container.style.padding = "1em";
     container.style.border = "solid #345 0.4em";
     container.style.fontSize = "16px";
-    container.style.resize = "both";
+    container.style.display = "flex";
+    container.style.flexDirection = "column";
     container.style.overflow = "auto";
   }
   const head = document.createElement("div");
@@ -33,17 +41,17 @@ if (isDebugMode) {
     head.style.fontWeight = "bold";
     head.style.background = "#123";
     head.style.color = "#eee";
-    head.style.padding = "0.3em";
-    head.style.margin = "-1em -1em 1em";
+    head.style.padding = "0.1em 1em";
     head.style.cursor = "grab";
   }
   const toggle = document.createElement("button");
+  toggle.style.all = "revert";
   toggle.style.marginRight = "1em";
   toggle.append("_");
   let minimized = false;
   toggle.addEventListener("click", (ev) => {
     if (minimized = !minimized) {
-      container.style.maxHeight = "1em";
+      container.style.maxHeight = "2.4em";
       container.style.maxWidth = "15em";
       container.style.minWidth = "15em";
       container.style.overflow = "hidden";
@@ -57,21 +65,42 @@ if (isDebugMode) {
   head.append(toggle, "\u03BC diagnostics");
   const propRefCount = document.createElement("div");
   const propRefCountNumber = document.createElement("span");
+  propRefCountNumber.append("0");
   propRefCount.append("PropRefs created: ", propRefCountNumber);
-  setPropRefDebugCallback((info) => {
-    propRefCountNumber.replaceChildren(String(info.created));
+  const propRefListButton = document.createElement("button");
+  propRefListButton.append("List PropRefs");
+  propRefListButton.addEventListener("click", (ev) => {
+    const propRefListItems = [];
+    if (allPropRefs)
+      for (const propRef of allPropRefs) {
+        const item = document.createElement("li");
+        propRefListItems.push(item);
+        const objPath = getAccessPath(propRef.object);
+        const fullPath = objPath ? objPath + "." + String(propRef.prop) : String(propRef.prop);
+        const value = valueString(propRef.current);
+        const subCount = propRef.subscribers.size;
+        item.append(fullPath, ": ", value, ", ", `${subCount} ${subCount === 1 ? "subscriber" : "subscribers"}`);
+      }
+    propRefList.replaceChildren(...propRefListItems);
   });
-  container.append(head, propRefCount);
+  const propRefList = document.createElement("ol");
+  setInterval(() => {
+    propRefCountNumber.replaceChildren(String(allPropRefs?.sizeBound));
+  }, debugPullInterval);
+  const content = document.createElement("div");
+  content.style.padding = "1em";
+  content.style.overflow = "auto";
+  content.append(propRefCount, propRefListButton, propRefList);
+  container.append(head, content);
   document.body.append(container);
   let xOffset = 0, yOffset = 0;
   head.addEventListener("mousedown", (ev) => {
     const rect = container.getBoundingClientRect();
     xOffset = ev.x - rect.x;
     yOffset = ev.y - rect.y;
-    console.log({ xOffset, yOffset });
-    document.body.addEventListener("mousemove", moveHandler);
+    window.addEventListener("mousemove", moveHandler);
     document.body.addEventListener("mouseup", (ev2) => {
-      document.body.removeEventListener("mousemove", moveHandler);
+      window.removeEventListener("mousemove", moveHandler);
     }, { once: true });
     ev.preventDefault();
     function moveHandler(ev2) {
@@ -134,10 +163,13 @@ function makeProxyHandler(model, tracker) {
       return tracker;
     if (name === GetOriginal)
       return target;
+    if (name === AccessPath)
+      return target[name];
     tracker[RecordDependency](createOrRetrievePropRef(target, name));
     let result = Reflect.get(target, name, receiver);
     if (result && typeof result === "object" && isDebugMode) {
-      const accessPath = (getAccessPath(target) ?? "~") + "." + String(name);
+      const start = getAccessPath(target);
+      const accessPath = start ? start + "." + String(name) : String(name);
       setAccessPath(result, accessPath);
     }
     if (canBeProxied(result)) {
@@ -190,6 +222,9 @@ function makeProxyHandler(model, tracker) {
   }
   let setsCompleted = 0;
   function setOrdinary(target, name, newValue, receiver) {
+    if (name === AccessPath) {
+      return Reflect.set(target, AccessPath, newValue);
+    }
     if (newValue && typeof newValue === "object" && isDebugMode) {
       const accessPath = (getAccessPath(target) ?? "~") + "." + String(name);
       setAccessPath(newValue, accessPath);
@@ -197,9 +232,6 @@ function makeProxyHandler(model, tracker) {
     if (canBeProxied(newValue)) {
       const handler = makeProxyHandler(newValue, tracker);
       newValue = new Proxy(newValue, handler);
-    }
-    if (name === AccessPath) {
-      return Reflect.set(target, AccessPath, newValue);
     }
     const mutation = name in target ? { type: "change", target, name, oldValue: model[name], newValue, timestamp: /* @__PURE__ */ new Date() } : { type: "create", target, name, newValue, timestamp: /* @__PURE__ */ new Date() };
     const initialSets = setsCompleted;
@@ -277,19 +309,33 @@ function isTracked(obj) {
   return typeof obj === "object" && !!obj[TrackerOf];
 }
 
-// out/propref.js
-var propRefsCreated = 0;
-var propRefTotalSubscribers = 0;
-var notifyDebug;
-function setPropRefDebugCallback(notify) {
-  notifyDebug = notify;
-}
-function doNotify() {
-  notifyDebug?.({
-    created: propRefsCreated,
-    subscribers: propRefTotalSubscribers
+// out/liveCollection.js
+var LiveCollection = class {
+  /* upper bound for live object count */
+  get sizeBound() {
+    return this.#sizeBound;
+  }
+  #sizeBound = 0;
+  items = [];
+  registry = new FinalizationRegistry((idx) => {
+    this.#sizeBound--;
+    delete this.items[idx];
   });
-}
+  add(t) {
+    this.registry.register(t, this.#sizeBound);
+    this.items[this.#sizeBound++] = new WeakRef(t);
+  }
+  *[Symbol.iterator]() {
+    for (const ref of this.items) {
+      const t = ref.deref();
+      if (t)
+        yield t;
+    }
+  }
+};
+
+// out/propref.js
+var allPropRefs = isDebugMode ? new LiveCollection() : null;
 var PropReference = class {
   object;
   prop;
@@ -304,21 +350,12 @@ var PropReference = class {
     }
     this.object = object;
     this.prop = prop;
+    allPropRefs?.add(this);
   }
   subscribe(dependencyList) {
     this.#subscribers.add(dependencyList);
-    if (isDebugMode) {
-      ++propRefTotalSubscribers;
-      doNotify();
-    }
     return {
-      dispose: () => {
-        this.#subscribers.delete(dependencyList);
-        if (isDebugMode) {
-          --propRefTotalSubscribers;
-          doNotify();
-        }
-      }
+      dispose: () => this.#subscribers.delete(dependencyList)
     };
   }
   notifySubscribers() {
@@ -343,13 +380,8 @@ function createOrRetrievePropRef(object, prop) {
   if (!objectPropRefs)
     propRefRegistry.set(object, objectPropRefs = /* @__PURE__ */ new Map());
   let result = objectPropRefs.get(prop);
-  if (!result) {
+  if (!result)
     objectPropRefs.set(prop, result = new PropReference(object, prop));
-    if (isDebugMode) {
-      ++propRefsCreated;
-      doNotify();
-    }
-  }
   return result;
 }
 
@@ -710,10 +742,7 @@ var Tracker = class {
     if (this.#gettingPropRef) {
       this.#lastPropRef = propRef;
     } else {
-      const depList = this.#dependencyTrackers[0];
-      if (depList) {
-        depList.addDependency(propRef);
-      }
+      this.#dependencyTrackers[0]?.addDependency(propRef);
     }
   }
   #gettingPropRef = false;
@@ -953,9 +982,8 @@ function child(getter) {
         registerCleanup(newNode, sub);
       node.replaceWith(newNode);
       node = newNode;
-      if (isDebugMode) {
+      if (isDebugMode)
         addNodeDependency(node, dl);
-      }
     }
   }, suppress);
   registerCleanup(node, sub);
@@ -1279,7 +1307,6 @@ function untrackedCloneImpl(obj, maxDepth) {
 // out/index.js
 var version = "0.22.4";
 export {
-  DependencyList,
   ForEach,
   ForEachPersist,
   PromiseLoader,
