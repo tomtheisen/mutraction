@@ -40,9 +40,13 @@ function doApply(el: HTMLElement, mod: unknown) {
 
 const nodeDependencyMap = new WeakMap<ChildNode, DependencyList[]>;
 function addNodeDependency(node: ChildNode, depList: DependencyList) {
-    let depLists = nodeDependencyMap.get(node) ?? [];
+    let depLists = nodeDependencyMap.get(node);
     if (!depLists) nodeDependencyMap.set(node, depLists = []);
     depLists.push(depList);
+}
+
+export function getNodeDependencies(node: ChildNode) : DependencyList[] | undefined {
+    return nodeDependencyMap.get(node);
 }
 
 export function element<E extends keyof HTMLElementTagNameMap>(

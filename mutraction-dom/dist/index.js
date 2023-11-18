@@ -9,88 +9,157 @@ var AccessPath = Symbol("AccessPath");
 // out/debug.js
 var debugModeKey = "mu:debugMode";
 var debugPullInterval = 250;
-var isDebugMode = !!localStorage.getItem(debugModeKey);
+var isDebugMode = !!sessionStorage.getItem(debugModeKey);
+function enableDebugMode() {
+  sessionStorage.setItem(debugModeKey, "true");
+  location.reload();
+}
+Object.assign(window, { [Symbol.for("mutraction.debug")]: enableDebugMode });
+if (["localhost", "127.0.0.1", "[::1]"].includes(location.hostname)) {
+  console.log(`[\xB5] Try the mutraction diagnostic tool.  This message is only shown from localhost`);
+  console.log("\xBB window[Symbol.for('mutraction.debug')]()");
+}
+function disableDebugMode() {
+  sessionStorage.removeItem(debugModeKey);
+  location.reload();
+}
 function valueString(val) {
   if (Array.isArray(val))
     return `Array(${val.length})`;
   if (typeof val === "object")
     return "{ ... }";
-  return String(val);
+  return JSON.stringify(val);
+}
+function getPropRefListItem(propRef) {
+  const objPath = getAccessPath(propRef.object);
+  const fullPath = objPath ? objPath + "." + String(propRef.prop) : String(propRef.prop);
+  const value = valueString(propRef.current);
+  const subCount = propRef.subscribers.size;
+  const subCountMessage = `(${subCount} ${subCount === 1 ? "subscriber" : "subscribers"})`;
+  const li = el("li", {}, el("code", {}, fullPath), ": ", value, " ", subCountMessage);
+  return li;
+}
+function el(tag, styles, ...nodes) {
+  const node = document.createElement(tag);
+  node.style.all = "revert";
+  Object.assign(node.style, styles);
+  node.append(...nodes);
+  return node;
+}
+function getNodeAndTextDependencies(node) {
+  const textDeps = Array.from(node.childNodes).filter((n) => n instanceof Text).flatMap((n) => getNodeDependencies(n)).filter(Boolean).map((n) => n);
+  return (getNodeDependencies(node) ?? []).concat(...textDeps);
 }
 if (isDebugMode) {
-  const container = document.createElement("div");
-  {
-    container.style.position = "fixed";
-    container.style.top = "50px";
-    container.style.left = "50px";
-    container.style.width = "30em";
-    container.style.height = "20em";
-    container.style.resize = "both";
-    container.style.zIndex = "2147483647";
-    container.style.background = "#eee";
-    container.style.color = "#123";
-    container.style.boxShadow = "#000 0em 0.5em 1em";
-    container.style.border = "solid #345 0.4em";
-    container.style.fontSize = "16px";
-    container.style.display = "flex";
-    container.style.flexDirection = "column";
-    container.style.overflow = "auto";
-  }
-  const head = document.createElement("div");
-  {
-    head.style.fontWeight = "bold";
-    head.style.background = "#123";
-    head.style.color = "#eee";
-    head.style.padding = "0.1em 1em";
-    head.style.cursor = "grab";
-  }
-  const toggle = document.createElement("button");
-  toggle.style.all = "revert";
-  toggle.style.marginRight = "1em";
-  toggle.append("_");
+  let refreshPropRefList = function() {
+    const propRefListItems = [];
+    for (const propRef of allPropRefs) {
+      propRefListItems.push(getPropRefListItem(propRef));
+    }
+    propRefList.replaceChildren(...propRefListItems);
+  }, startInspectPick = function() {
+    inspectButton.disabled = true;
+    inspectButton.textContent = "\u2026";
+    let inspectedElement;
+    let originalBoxShadow = "";
+    function moveHandler(ev) {
+      if (ev.target instanceof HTMLElement) {
+        let target = ev.target;
+        while (target && (getNodeAndTextDependencies(target)?.length ?? 0) === 0) {
+          target = target.parentElement;
+        }
+        if (target != inspectedElement) {
+          if (inspectedElement)
+            inspectedElement.style.boxShadow = originalBoxShadow;
+          originalBoxShadow = target?.style.boxShadow ?? "";
+          if (target) {
+            if (target.style.boxShadow)
+              target.style.boxShadow += ", inset #f0f4 0 99vmax";
+            else
+              target.style.boxShadow += "inset #f0f4 0 99vmax";
+          }
+          inspectedElement = target;
+        }
+      }
+      ev.stopPropagation();
+    }
+    document.addEventListener("mousemove", moveHandler, { capture: true });
+    document.addEventListener("click", (ev) => {
+      inspectButton.disabled = false;
+      inspectButton.textContent = "\u{1F50D}";
+      document.removeEventListener("mousemove", moveHandler, { capture: true });
+      if (inspectedElement) {
+        inspectedElement.style.boxShadow = originalBoxShadow;
+        inspectedName.textContent = inspectedElement.tagName.toLowerCase();
+        const deps = getNodeAndTextDependencies(inspectedElement);
+        const trackedProps = new Set(deps.flatMap((d) => d.trackedProperties));
+        const trackedPropItems = [];
+        for (const propRef of trackedProps) {
+          trackedPropItems.push(getPropRefListItem(propRef));
+        }
+        inspectedPropList.replaceChildren(...trackedPropItems);
+      } else {
+        inspectedName.textContent = "(none)";
+        inspectedPropList.replaceChildren();
+      }
+    }, { capture: true, once: true });
+  };
+  refreshPropRefList2 = refreshPropRefList, startInspectPick2 = startInspectPick;
+  const container = el("div", {
+    position: "fixed",
+    top: "50px",
+    left: "50px",
+    width: "30em",
+    height: "20em",
+    resize: "both",
+    minHeight: "1.7em",
+    minWidth: "15em",
+    zIndex: "2147483647",
+    background: "#eee",
+    color: "#123",
+    boxShadow: "#000 0em 0.5em 1em",
+    border: "solid #345 0.4em",
+    fontSize: "16px",
+    display: "flex",
+    flexDirection: "column",
+    overflow: "auto"
+  });
+  const toggle = el("button", { marginRight: "1em" }, "_");
   let minimized = false;
   toggle.addEventListener("click", (ev) => {
     if (minimized = !minimized) {
-      container.style.maxHeight = "2.4em";
+      container.style.maxHeight = "1.7em";
       container.style.maxWidth = "15em";
-      container.style.minWidth = "15em";
-      container.style.overflow = "hidden";
     } else {
       container.style.maxHeight = "";
       container.style.maxWidth = "";
-      container.style.minWidth = "";
-      container.style.overflow = "auto";
     }
   });
-  head.append(toggle, "\u03BC diagnostics");
-  const propRefCount = document.createElement("div");
-  const propRefCountNumber = document.createElement("span");
-  propRefCountNumber.append("0");
-  propRefCount.append("PropRefs created: ", propRefCountNumber);
-  const propRefListButton = document.createElement("button");
-  propRefListButton.append("List PropRefs");
-  propRefListButton.addEventListener("click", (ev) => {
-    const propRefListItems = [];
-    if (allPropRefs)
-      for (const propRef of allPropRefs) {
-        const item = document.createElement("li");
-        propRefListItems.push(item);
-        const objPath = getAccessPath(propRef.object);
-        const fullPath = objPath ? objPath + "." + String(propRef.prop) : String(propRef.prop);
-        const value = valueString(propRef.current);
-        const subCount = propRef.subscribers.size;
-        item.append(fullPath, ": ", value, ", ", `${subCount} ${subCount === 1 ? "subscriber" : "subscribers"}`);
-      }
-    propRefList.replaceChildren(...propRefListItems);
-  });
-  const propRefList = document.createElement("ol");
+  const closeButton = el("button", { float: "right" }, "\xD7");
+  closeButton.addEventListener("click", disableDebugMode);
+  const head = el("div", {
+    fontWeight: "bold",
+    background: "#123",
+    color: "#eee",
+    padding: "0.1em 1em",
+    cursor: "grab"
+  }, closeButton, toggle, "\u03BC diagnostics");
+  const propRefCountNumber = el("span", {}, "0");
+  const propRefCount = el("div", {}, el("strong", {}, "Live PropRefs: "), propRefCountNumber);
+  const propRefList = el("ol", {});
+  let seenGeneration = -1;
   setInterval(() => {
-    propRefCountNumber.replaceChildren(String(allPropRefs?.sizeBound));
+    if (allPropRefs.generation !== seenGeneration) {
+      propRefCountNumber.replaceChildren(String(allPropRefs.sizeBound));
+      refreshPropRefList();
+      seenGeneration = allPropRefs.generation;
+    }
   }, debugPullInterval);
-  const content = document.createElement("div");
-  content.style.padding = "1em";
-  content.style.overflow = "auto";
-  content.append(propRefCount, propRefListButton, propRefList);
+  const inspectButton = el("button", {}, "\u{1F50D}");
+  inspectButton.addEventListener("click", startInspectPick);
+  const inspectedName = el("span", {}, "(none)");
+  const inspectedPropList = el("ol", {});
+  const content = el("div", { padding: "1em", overflow: "auto" }, propRefCount, propRefList, inspectButton, " ", el("strong", {}, "Inspected node:"), " ", inspectedName, inspectedPropList);
   container.append(head, content);
   document.body.append(container);
   let xOffset = 0, yOffset = 0;
@@ -109,6 +178,8 @@ if (isDebugMode) {
     }
   });
 }
+var refreshPropRefList2;
+var startInspectPick2;
 
 // out/proxy.js
 var mutatingArrayMethods = ["copyWithin", "fill", "pop", "push", "reverse", "shift", "sort", "splice", "unshift"];
@@ -316,17 +387,23 @@ var LiveCollection = class {
     return this.#sizeBound;
   }
   #sizeBound = 0;
-  items = [];
+  get generation() {
+    return this.#generation;
+  }
+  #generation = 0;
+  items = /* @__PURE__ */ new Map();
   registry = new FinalizationRegistry((idx) => {
-    this.#sizeBound--;
-    delete this.items[idx];
+    --this.#sizeBound;
+    this.items.delete(idx);
+    ++this.#generation;
   });
   add(t) {
     this.registry.register(t, this.#sizeBound);
-    this.items[this.#sizeBound++] = new WeakRef(t);
+    this.items.set(this.#sizeBound++, new WeakRef(t));
+    ++this.#generation;
   }
   *[Symbol.iterator]() {
-    for (const ref of this.items) {
+    for (const ref of this.items.values()) {
       const t = ref.deref();
       if (t)
         yield t;
@@ -846,16 +923,16 @@ var suppress = { suppressUntrackedWarning: true };
 function isNodeModifier(obj) {
   return obj != null && typeof obj === "object" && "$muType" in obj && typeof obj.$muType === "string";
 }
-function doApply(el, mod) {
+function doApply(el2, mod) {
   if (Array.isArray(mod)) {
-    mod.forEach((mod2) => doApply(el, mod2));
+    mod.forEach((mod2) => doApply(el2, mod2));
     return;
   }
   if (!isNodeModifier(mod))
     throw Error("Expected a node modifier for 'mu:apply', but got " + typeof mod);
   switch (mod.$muType) {
     case "attribute":
-      el.setAttribute(mod.name, mod.value);
+      el2.setAttribute(mod.name, mod.value);
       break;
     default:
       throw Error("Unknown node modifier type: " + mod.$muType);
@@ -863,14 +940,17 @@ function doApply(el, mod) {
 }
 var nodeDependencyMap = /* @__PURE__ */ new WeakMap();
 function addNodeDependency(node, depList) {
-  let depLists = nodeDependencyMap.get(node) ?? [];
+  let depLists = nodeDependencyMap.get(node);
   if (!depLists)
     nodeDependencyMap.set(node, depLists = []);
   depLists.push(depList);
 }
+function getNodeDependencies(node) {
+  return nodeDependencyMap.get(node);
+}
 function element(tagName, staticAttrs, dynamicAttrs, ...children) {
-  const el = document.createElement(tagName);
-  el.append(...children);
+  const el2 = document.createElement(tagName);
+  el2.append(...children);
   let syncEvents;
   let diagnosticApplied = false;
   let diagnosticUpdates = 0;
@@ -881,13 +961,13 @@ function element(tagName, staticAttrs, dynamicAttrs, ...children) {
         syncEvents = value;
         break;
       case "mu:apply":
-        doApply(el, value);
+        doApply(el2, value);
         break;
       case "mu:diagnostic":
         diagnosticApplied = true;
         break;
       default:
-        el[name] = value;
+        el2[name] = value;
         break;
     }
   }
@@ -896,7 +976,7 @@ function element(tagName, staticAttrs, dynamicAttrs, ...children) {
   }
   const syncedProps = syncEvents ? [] : void 0;
   for (let [name, getter] of Object.entries(dynamicAttrs)) {
-    if (syncedProps && name in el) {
+    if (syncedProps && name in el2) {
       const propRef = defaultTracker.getPropRefTolerant(getter);
       if (propRef) {
         syncedProps.push([name, propRef]);
@@ -905,68 +985,68 @@ function element(tagName, staticAttrs, dynamicAttrs, ...children) {
     switch (name) {
       case "style": {
         const callback = !diagnosticApplied ? function updateStyle(dl) {
-          Object.assign(el.style, getter());
+          Object.assign(el2.style, getter());
           if (isDebugMode)
-            addNodeDependency(el, dl);
+            addNodeDependency(el2, dl);
         } : function updateStyleDiagnostic(dl, trigger) {
           if (doneConstructing)
             console.trace(`[mu:diagnostic] Updating ${tagName}`, { attribute: name, trigger, updates: ++diagnosticUpdates });
-          Object.assign(el.style, getter());
+          Object.assign(el2.style, getter());
           if (isDebugMode)
-            addNodeDependency(el, dl);
+            addNodeDependency(el2, dl);
         };
         const sub = effect(callback, suppress);
-        registerCleanup(el, sub);
+        registerCleanup(el2, sub);
         break;
       }
       case "classList": {
         const callback = !diagnosticApplied ? function updateClassList(dl) {
           const classMap = getter();
           for (const [name2, on] of Object.entries(classMap))
-            el.classList.toggle(name2, !!on);
+            el2.classList.toggle(name2, !!on);
           if (isDebugMode)
-            addNodeDependency(el, dl);
+            addNodeDependency(el2, dl);
         } : function updateClassListDiagnostic(dl, trigger) {
           if (doneConstructing)
             console.trace(`[mu:diagnostic] Updating ${tagName}`, { attribute: name, trigger, updates: ++diagnosticUpdates });
           const classMap = getter();
           for (const [name2, on] of Object.entries(classMap))
-            el.classList.toggle(name2, !!on);
+            el2.classList.toggle(name2, !!on);
           if (isDebugMode)
-            addNodeDependency(el, dl);
+            addNodeDependency(el2, dl);
         };
         const sub = effect(callback, suppress);
-        registerCleanup(el, sub);
+        registerCleanup(el2, sub);
         break;
       }
       default: {
         const callback = !diagnosticApplied ? function updateAttribute(dl) {
-          el[name] = getter();
+          el2[name] = getter();
           if (isDebugMode)
-            addNodeDependency(el, dl);
+            addNodeDependency(el2, dl);
         } : function updateAttributeDiagnostic(dl, trigger) {
           if (doneConstructing)
             console.trace(`[mu:diagnostic] Updating ${tagName}`, { attribute: name, trigger, updates: ++diagnosticUpdates });
-          el[name] = getter();
+          el2[name] = getter();
           if (isDebugMode)
-            addNodeDependency(el, dl);
+            addNodeDependency(el2, dl);
         };
         const sub = effect(callback, suppress);
-        registerCleanup(el, sub);
+        registerCleanup(el2, sub);
         break;
       }
     }
   }
   if (syncEvents && syncedProps?.length) {
     for (const e of syncEvents.matchAll(/\S+/g)) {
-      el.addEventListener(e[0], () => {
+      el2.addEventListener(e[0], () => {
         for (const [name, propRef] of syncedProps)
-          propRef.current = el[name];
+          propRef.current = el2[name];
       });
     }
   }
   doneConstructing = true;
-  return el;
+  return el2;
 }
 function child(getter) {
   let node = document.createTextNode("");
