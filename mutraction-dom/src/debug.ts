@@ -1,14 +1,16 @@
+import { getActiveEffectCount } from "./effect.js";
 import { PropReference, allPropRefs } from "./propref.js";
 import { getAccessPath } from "./proxy.js";
 import { getNodeDependencies } from "./runtime.js";
+import { defaultTracker } from "./tracker.js";
 
 const debugModeKey = "mu:debugMode";
 const debugPullInterval = 250;
 
 /*
- * Debug mode has several effects.  It must be turned on at page load time.
+ * Debug mode has several effects.  It must be turned on at page load time using this command.
  *
- *
+ * window[Symbol.for('mutraction.debug')]()
  */
 
 export const isDebugMode = !!sessionStorage.getItem(debugModeKey);
@@ -20,7 +22,7 @@ function enableDebugMode() {
 
 Object.assign(window, { [Symbol.for("mutraction.debug")]: enableDebugMode });
 if (["localhost", "127.0.0.1", "[::1]"].includes(location.hostname)) {
-    console.log(`[µ] Try the mutraction diagnostic tool.  This message is only shown from localhost`);
+    console.log(`[µ] Try the mutraction diagnostic tool.  This message is only shown from localhost, but the tool is always available.`);
     console.log("» window[Symbol.for('mutraction.debug')]()");
 }
 
@@ -72,7 +74,7 @@ if (isDebugMode) {
             width: "30em", 
             height: "20em", 
             resize: "both", 
-            minHeight: "1.7em",
+            minHeight: "1.6em",
             minWidth: "15em",
             zIndex: "2147483647", 
             background: "#eee", 
@@ -91,7 +93,7 @@ if (isDebugMode) {
     let minimized = false;
     toggle.addEventListener("click", ev => {
         if (minimized = !minimized) {
-            container.style.maxHeight = "1.7em";
+            container.style.maxHeight = "1.6em";
             container.style.maxWidth = "15em";
         }
         else {
@@ -110,8 +112,24 @@ if (isDebugMode) {
             padding: "0.1em 1em",
             cursor: "grab",
         },
-        closeButton, toggle, "μ diagnostics");   
+        closeButton, toggle, "μ diagnostics");
 
+    const effectCount = el("span", {}, "0");
+    const effectSummary = el("p", {}, el("p", {}, el("strong", {}, "Active effects: "), effectCount));
+    setInterval(() => {
+        effectCount.innerText = String(getActiveEffectCount());
+    }, debugPullInterval);
+
+    const undoButton = el("button", {}, "Undo");
+    const redoButton = el("button", {}, "Redo");
+    const historySummary = el("p", {}, 
+        el("strong", {}, "History: "), 
+        undoButton,
+        redoButton
+    );
+    undoButton.addEventListener("click", () => defaultTracker.undo());
+    redoButton.addEventListener("click", () => defaultTracker.redo());
+    
     const propRefCountNumber = el("span", {}, "0");
 
     function refreshPropRefList() {
@@ -137,6 +155,7 @@ if (isDebugMode) {
     function startInspectPick() {
         inspectButton.disabled = true;
         inspectButton.textContent = "…";
+        inspectedName.textContent = "(choose)";
 
         let inspectedElement: HTMLElement | undefined | null;
         let originalBoxShadow = "";
@@ -193,6 +212,8 @@ if (isDebugMode) {
     const inspectedPropList = el("ol", {});
 
     const content = el("div", {padding: "1em", overflow: "auto"}, 
+        effectSummary,
+        historySummary,
         propRefCount, propRefList, 
         inspectButton, " ", el("strong", {}, "Inspected node:"), " ", inspectedName, inspectedPropList);
 
