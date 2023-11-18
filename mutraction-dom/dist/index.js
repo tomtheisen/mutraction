@@ -16,7 +16,7 @@ function enableDebugMode() {
 }
 Object.assign(window, { [Symbol.for("mutraction.debug")]: enableDebugMode });
 if (["localhost", "127.0.0.1", "[::1]"].includes(location.hostname)) {
-  console.log(`[\xB5] Try the mutraction diagnostic tool.  This message is only shown from localhost`);
+  console.log(`[\xB5] Try the mutraction diagnostic tool.  This message is only shown from localhost, but the tool is always available.`);
   console.log("\xBB window[Symbol.for('mutraction.debug')]()");
 }
 function disableDebugMode() {
@@ -60,6 +60,7 @@ if (isDebugMode) {
   }, startInspectPick = function() {
     inspectButton.disabled = true;
     inspectButton.textContent = "\u2026";
+    inspectedName.textContent = "(choose)";
     let inspectedElement;
     let originalBoxShadow = "";
     function moveHandler(ev) {
@@ -112,7 +113,7 @@ if (isDebugMode) {
     width: "30em",
     height: "20em",
     resize: "both",
-    minHeight: "1.7em",
+    minHeight: "1.6em",
     minWidth: "15em",
     zIndex: "2147483647",
     background: "#eee",
@@ -128,7 +129,7 @@ if (isDebugMode) {
   let minimized = false;
   toggle.addEventListener("click", (ev) => {
     if (minimized = !minimized) {
-      container.style.maxHeight = "1.7em";
+      container.style.maxHeight = "1.6em";
       container.style.maxWidth = "15em";
     } else {
       container.style.maxHeight = "";
@@ -144,6 +145,16 @@ if (isDebugMode) {
     padding: "0.1em 1em",
     cursor: "grab"
   }, closeButton, toggle, "\u03BC diagnostics");
+  const effectCount = el("span", {}, "0");
+  const effectSummary = el("p", {}, el("p", {}, el("strong", {}, "Active effects: "), effectCount));
+  setInterval(() => {
+    effectCount.innerText = String(getActiveEffectCount());
+  }, debugPullInterval);
+  const undoButton = el("button", {}, "Undo");
+  const redoButton = el("button", {}, "Redo");
+  const historySummary = el("p", {}, el("strong", {}, "History: "), undoButton, redoButton);
+  undoButton.addEventListener("click", () => defaultTracker.undo());
+  redoButton.addEventListener("click", () => defaultTracker.redo());
   const propRefCountNumber = el("span", {}, "0");
   const propRefCount = el("div", {}, el("strong", {}, "Live PropRefs: "), propRefCountNumber);
   const propRefList = el("ol", {});
@@ -159,7 +170,7 @@ if (isDebugMode) {
   inspectButton.addEventListener("click", startInspectPick);
   const inspectedName = el("span", {}, "(none)");
   const inspectedPropList = el("ol", {});
-  const content = el("div", { padding: "1em", overflow: "auto" }, propRefCount, propRefList, inspectButton, " ", el("strong", {}, "Inspected node:"), " ", inspectedName, inspectedPropList);
+  const content = el("div", { padding: "1em", overflow: "auto" }, effectSummary, historySummary, propRefCount, propRefList, inspectButton, " ", el("strong", {}, "Inspected node:"), " ", inspectedName, inspectedPropList);
   container.append(head, content);
   document.body.append(container);
   let xOffset = 0, yOffset = 0;
@@ -865,6 +876,9 @@ function track(model) {
 var emptyEffect = { dispose: () => {
 } };
 var activeEffects = 0;
+function getActiveEffectCount() {
+  return activeEffects;
+}
 function effect(sideEffect, options = {}) {
   const { tracker = defaultTracker, suppressUntrackedWarning = false } = options;
   let dep = tracker.startDependencyTrack();
@@ -940,6 +954,8 @@ function doApply(el2, mod) {
 }
 var nodeDependencyMap = /* @__PURE__ */ new WeakMap();
 function addNodeDependency(node, depList) {
+  if (depList.trackedProperties.length === 0)
+    return;
   let depLists = nodeDependencyMap.get(node);
   if (!depLists)
     nodeDependencyMap.set(node, depLists = []);
