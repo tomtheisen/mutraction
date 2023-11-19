@@ -1282,7 +1282,12 @@ function getEmptyText() {
 function choose(...choices) {
   let current = getEmptyText();
   let currentNodeGetter = getEmptyText;
-  effect(function chooseEffect() {
+  let conditionChanging = false;
+  function dispose() {
+    if (!conditionChanging)
+      sub.dispose();
+  }
+  const sub = effect(function chooseEffect() {
     let newNodeGetter;
     for (const { nodeGetter, conditionGetter } of choices) {
       if (!conditionGetter || conditionGetter()) {
@@ -1292,10 +1297,13 @@ function choose(...choices) {
     }
     newNodeGetter ??= getEmptyText;
     if (newNodeGetter !== currentNodeGetter) {
+      conditionChanging = true;
       cleanup(current);
+      conditionChanging = false;
       currentNodeGetter = newNodeGetter;
       const newNode = currentNodeGetter();
       current.replaceWith(newNode);
+      registerCleanup(newNode, { dispose });
       current = newNode;
     }
   }, suppress3);

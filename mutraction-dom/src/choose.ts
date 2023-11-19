@@ -22,9 +22,7 @@ export function choose(...choices: ConditionalElement[]): Node {
     function dispose() {
         if (!conditionChanging) sub.dispose();
     }
-    // this effect subscription probably doesn't need to be disposed
-    // since mu:if/mu:else can only be applied to HTMLElement, which has its own cleanup
-    // in other words, we expect that nodeGetter() always directly calls element()
+
     const sub = effect(function chooseEffect() {
         let newNodeGetter: (() => ChildNode) | undefined;
         for (const { nodeGetter, conditionGetter } of choices) {
