@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- When a `mu:if` conditional element is a descendant of a cleaned-up document element, all its subscriptions are invalidated and disposed.
+
 ## [0.22.4] - 2023-11-11
 
 ### Fixed
