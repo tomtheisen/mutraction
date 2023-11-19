@@ -140,7 +140,9 @@ if (isDebugMode) {
         propRefList.replaceChildren(...propRefListItems);
     }
 
-    const propRefCount = el("div", {}, el("strong", {}, "Live PropRefs: "), propRefCountNumber);
+    const propRefRefreshButton = el("button", {}, "↻");
+    propRefRefreshButton.addEventListener("click", refreshPropRefList);
+    const propRefCount = el("div", {}, el("strong", {}, "Live PropRefs: "), propRefCountNumber, " ", propRefRefreshButton);
     const propRefList = el("ol", {});
 
     let seenGeneration = -1;

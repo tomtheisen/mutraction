@@ -156,7 +156,9 @@ if (isDebugMode) {
   undoButton.addEventListener("click", () => defaultTracker.undo());
   redoButton.addEventListener("click", () => defaultTracker.redo());
   const propRefCountNumber = el("span", {}, "0");
-  const propRefCount = el("div", {}, el("strong", {}, "Live PropRefs: "), propRefCountNumber);
+  const propRefRefreshButton = el("button", {}, "\u21BB");
+  propRefRefreshButton.addEventListener("click", refreshPropRefList);
+  const propRefCount = el("div", {}, el("strong", {}, "Live PropRefs: "), propRefCountNumber, " ", propRefRefreshButton);
   const propRefList = el("ol", {});
   let seenGeneration = -1;
   setInterval(() => {
