@@ -46,7 +46,11 @@ export function effect(sideEffect: (dep: DependencyList, trigger?: PropReference
     let subscription = dep.subscribe(effectDependencyChanged);
 
     // tear down old subscriptions
-    const effectDispose = () => {
+    let disposed = false;
+    function effectDispose() {
+        if (disposed) console.error("Effect already disposed");
+        disposed = true;
+
         dep.untrackAll();
         subscription.dispose();
         --activeEffects;
@@ -56,6 +60,7 @@ export function effect(sideEffect: (dep: DependencyList, trigger?: PropReference
         if (typeof lastResult === "function") lastResult(); // user cleanup
 
         effectDispose();
+        disposed = false;
         
         dep = tracker.startDependencyTrack();
         lastResult = sideEffect(dep, trigger);

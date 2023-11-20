@@ -92,7 +92,7 @@ function hamburger() {
         }
     }
 
-    effect(() => {
+    effect(function hamburgerEffect() {
         if (hamburgerState.isActive) {
             document.body.addEventListener("mousedown", outClickHandler, { capture: true });
             window.addEventListener("blur", () => hamburgerState.isActive = false, { once: true });
