@@ -15,9 +15,9 @@ function enableDebugMode() {
   location.reload();
 }
 Object.assign(window, { [Symbol.for("mutraction.debug")]: enableDebugMode });
-if (["localhost", "127.0.0.1", "[::1]"].includes(location.hostname)) {
-  console.log(`[\xB5] Try the mutraction diagnostic tool.  This message is only shown from localhost, but the tool is always available.`);
-  console.log("\xBB window[Symbol.for('mutraction.debug')]()");
+if (["localhost", "127.0.0.1", "[::1]"].includes(location.hostname) && !isDebugMode) {
+  console.info(`[\xB5] Try the mutraction diagnostic tool.  This message is only shown from localhost, but the tool is always available.`);
+  console.info("\xBB window[Symbol.for('mutraction.debug')]()");
 }
 function disableDebugMode() {
   sessionStorage.removeItem(debugModeKey);
@@ -898,15 +898,21 @@ function effect(sideEffect, options = {}) {
   }
   ++activeEffects;
   let subscription = dep.subscribe(effectDependencyChanged);
-  const effectDispose = () => {
+  let disposed = false;
+  function effectDispose() {
+    if (disposed)
+      console.error("Effect already disposed");
+    disposed = true;
     dep.untrackAll();
     subscription.dispose();
     --activeEffects;
-  };
+  }
+  ;
   function effectDependencyChanged(trigger) {
     if (typeof lastResult === "function")
       lastResult();
     effectDispose();
+    disposed = false;
     dep = tracker.startDependencyTrack();
     lastResult = sideEffect(dep, trigger);
     dep.endDependencyTrack();
@@ -1160,17 +1166,17 @@ function isNodeOptions(arg) {
 // out/swapper.js
 function Swapper(nodeFactory) {
   const span = new ElementSpan();
-  let cleanup2;
   const swapperSubscription = effect(function swapperEffect(dep) {
-    cleanup2?.();
-    cleanup2 = void 0;
-    span.cleanup();
+    for (const node of span.emptyAsFragment().childNodes) {
+      cleanup(node);
+    }
     const output = nodeFactory();
     if (isNodeOptions(output)) {
       span.replaceWith(output.node);
-      cleanup2 = output.cleanup;
+      return output.cleanup;
     } else if (output != null) {
       span.replaceWith(output);
+      return;
     }
   });
   span.registerCleanup(swapperSubscription);
