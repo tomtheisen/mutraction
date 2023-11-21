@@ -15,7 +15,7 @@ function getEmptyText() {
 export function choose(...choices: ConditionalElement[]): Node {
     let current: ChildNode = getEmptyText(); 
     let currentNodeGetter: () => ChildNode = getEmptyText;   
-    
+
     // Flag is set when condition value caused the resolved node to change.
     // The effect needs to be disposed when the node is cleaned up, but only without the flag.
     let conditionChanging = false;
@@ -49,6 +49,8 @@ export function choose(...choices: ConditionalElement[]): Node {
             current = newNode;
         }
     }, suppress);
+
+    registerCleanup(current, { dispose });
 
     return current;
 }

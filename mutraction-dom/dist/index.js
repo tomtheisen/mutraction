@@ -1313,6 +1313,7 @@ function choose(...choices) {
       current = newNode;
     }
   }, suppress3);
+  registerCleanup(current, { dispose });
   return current;
 }
 
