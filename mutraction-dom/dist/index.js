@@ -30,15 +30,6 @@ function valueString(val) {
     return "{ ... }";
   return JSON.stringify(val);
 }
-function getPropRefListItem(propRef) {
-  const objPath = getAccessPath(propRef.object);
-  const fullPath = objPath ? objPath + "." + String(propRef.prop) : String(propRef.prop);
-  const value = valueString(propRef.current);
-  const subCount = propRef.subscribers.size;
-  const subCountMessage = `(${subCount} ${subCount === 1 ? "subscriber" : "subscribers"})`;
-  const li = el("li", {}, el("code", {}, fullPath), ": ", value, " ", subCountMessage);
-  return li;
-}
 function el(tag, styles, ...nodes) {
   const node = document.createElement(tag);
   node.style.all = "revert";
@@ -51,7 +42,28 @@ function getNodeAndTextDependencies(node) {
   return (getNodeDependencies(node) ?? []).concat(...textDeps);
 }
 if (isDebugMode) {
-  let refreshPropRefList = function() {
+  let getPropRefListItem = function(propRef) {
+    const objPath = getAccessPath(propRef.object);
+    const fullPath = objPath ? objPath + "." + String(propRef.prop) : String(propRef.prop);
+    const value = propRef.current;
+    const serialized = valueString(value);
+    const editable = !value || typeof value !== "object";
+    const valueSpan = el("span", editable ? { cursor: "pointer", textDecoration: "underline" } : {}, serialized);
+    const subCount = propRef.subscribers.size;
+    const subCountMessage = `(${subCount} ${subCount === 1 ? "subscriber" : "subscribers"})`;
+    const li = el("li", {}, el("code", {}, fullPath), ": ", valueSpan, " ", subCountMessage);
+    if (editable)
+      valueSpan.addEventListener("click", () => {
+        const result = prompt(`Update ${String(propRef.prop)}`, serialized);
+        try {
+          if (result)
+            propRef.current = JSON.parse(result);
+          refreshPropRefList();
+        } catch {
+        }
+      });
+    return li;
+  }, refreshPropRefList = function() {
     const propRefListItems = [];
     for (const propRef of allPropRefs) {
       propRefListItems.push(getPropRefListItem(propRef));
@@ -86,6 +98,8 @@ if (isDebugMode) {
     }
     document.addEventListener("mousemove", moveHandler, { capture: true });
     document.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      ev.preventDefault();
       inspectButton.disabled = false;
       inspectButton.textContent = "\u{1F50D}";
       document.removeEventListener("mousemove", moveHandler, { capture: true });
@@ -105,7 +119,7 @@ if (isDebugMode) {
       }
     }, { capture: true, once: true });
   };
-  refreshPropRefList2 = refreshPropRefList, startInspectPick2 = startInspectPick;
+  getPropRefListItem2 = getPropRefListItem, refreshPropRefList2 = refreshPropRefList, startInspectPick2 = startInspectPick;
   const container = el("div", {
     position: "fixed",
     top: "50px",
@@ -172,7 +186,7 @@ if (isDebugMode) {
   inspectButton.addEventListener("click", startInspectPick);
   const inspectedName = el("span", {}, "(none)");
   const inspectedPropList = el("ol", {});
-  const content = el("div", { padding: "1em", overflow: "auto" }, effectSummary, historySummary, propRefCount, propRefList, inspectButton, " ", el("strong", {}, "Inspected node:"), " ", inspectedName, inspectedPropList);
+  const content = el("div", { padding: "1em", overflow: "auto" }, effectSummary, historySummary, inspectButton, " ", el("strong", {}, "Inspected node:"), " ", inspectedName, inspectedPropList, propRefCount, propRefList);
   container.append(head, content);
   document.body.append(container);
   let xOffset = 0, yOffset = 0;
@@ -191,6 +205,7 @@ if (isDebugMode) {
     }
   });
 }
+var getPropRefListItem2;
 var refreshPropRefList2;
 var startInspectPick2;
 

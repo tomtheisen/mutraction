@@ -7,12 +7,6 @@ import { defaultTracker } from "./tracker.js";
 const debugModeKey = "mu:debugMode";
 const debugPullInterval = 250;
 
-/*
- * Debug mode has several effects.  It must be turned on at page load time using this command.
- *
- * window[Symbol.for('mutraction.debug')]()
- */
-
 export const isDebugMode = !!sessionStorage.getItem(debugModeKey);
 
 function enableDebugMode() {
@@ -37,16 +31,6 @@ function valueString(val: unknown): string {
     return JSON.stringify(val);
 }
 
-function getPropRefListItem(propRef: PropReference) {
-    const objPath = getAccessPath(propRef.object);
-    const fullPath = objPath ? objPath + "." + String(propRef.prop) : String(propRef.prop);
-    const value = valueString(propRef.current);
-    const subCount = propRef.subscribers.size;
-    const subCountMessage = `(${ subCount } ${ subCount === 1 ? "subscriber" : "subscribers" })`;
-    const li = el("li", {}, el("code", {}, fullPath), ": ", value, " ", subCountMessage);
-    return li;
-}
-
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, styles: Partial<CSSStyleDeclaration>, ...nodes: (string | Node)[]): HTMLElementTagNameMap[K];
 function el(tag: string, styles: Partial<CSSStyleDeclaration>, ...nodes: (string | Node)[]): HTMLElement {
     const node = document.createElement(tag);
@@ -66,6 +50,29 @@ function getNodeAndTextDependencies(node: HTMLElement) {
 }
 
 if (isDebugMode) {
+    function getPropRefListItem(propRef: PropReference) {
+        const objPath = getAccessPath(propRef.object);
+        const fullPath = objPath ? objPath + "." + String(propRef.prop) : String(propRef.prop);
+        const value = propRef.current;
+        const serialized = valueString(value);
+        const editable = !value || typeof value !== "object";
+        const valueSpan = el("span", editable ? {cursor: "pointer", textDecoration: "underline"} : {}, serialized);
+        const subCount = propRef.subscribers.size;
+        const subCountMessage = `(${ subCount } ${ subCount === 1 ? "subscriber" : "subscribers" })`;
+        const li = el("li", {}, el("code", {}, fullPath), ": ", valueSpan, " ", subCountMessage);
+    
+        if (editable) valueSpan.addEventListener("click", () => {
+            const result = prompt(`Update ${ String(propRef.prop) }`, serialized);
+            try {
+                if (result) propRef.current = JSON.parse(result);
+                refreshPropRefList();
+            }
+            catch {}
+        });
+    
+        return li;
+    }
+
     const container = el("div", 
         {
             position: "fixed", 
@@ -185,6 +192,9 @@ if (isDebugMode) {
 
         document.addEventListener("mousemove", moveHandler, { capture: true });
         document.addEventListener("click", ev => {
+            ev.stopPropagation();
+            ev.preventDefault();
+
             inspectButton.disabled = false;
             inspectButton.textContent = "🔍";
             document.removeEventListener("mousemove", moveHandler, { capture: true });
@@ -216,8 +226,8 @@ if (isDebugMode) {
     const content = el("div", {padding: "1em", overflow: "auto"}, 
         effectSummary,
         historySummary,
-        propRefCount, propRefList, 
-        inspectButton, " ", el("strong", {}, "Inspected node:"), " ", inspectedName, inspectedPropList);
+        inspectButton, " ", el("strong", {}, "Inspected node:"), " ", inspectedName, inspectedPropList,
+        propRefCount, propRefList);
 
     container.append(head, content);
 
