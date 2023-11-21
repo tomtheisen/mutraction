@@ -2,6 +2,10 @@ import { Key, Subscription } from "./types.js";
 import { ProxyOf } from "./symbols.js";
 import { isTracked } from "./proxy.js";
 import { DependencyList } from "./dependency.js";
+import { isDebugMode } from "./debug.js";
+import { LiveCollection } from "./liveCollection.js";
+
+export const allPropRefs = isDebugMode ? new LiveCollection<PropReference> : null;
 
 /**
  * Represents a particular named property on a particular object.
@@ -23,14 +27,15 @@ export class PropReference<T = any> {
         }
         this.object = object;
         this.prop = prop;
+
+        allPropRefs?.add(this);
     }
 
     subscribe(dependencyList: DependencyList): Subscription {
         this.#subscribers.add(dependencyList);
+
         return { 
-            dispose: () => {
-                this.#subscribers.delete(dependencyList);
-            } 
+            dispose: () => this.#subscribers.delete(dependencyList)
         };
     }
 
@@ -74,6 +79,5 @@ export function createOrRetrievePropRef(object: object, prop: Key) {
 
     let result = objectPropRefs.get(prop);
     if (!result) objectPropRefs.set(prop, result = new PropReference(object, prop));
-
     return result;
 };

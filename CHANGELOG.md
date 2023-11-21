@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Execute `window[Symbol.for('mutraction.debug')]()` on the console to access diagnostic tools.
+
 ### Fixed
 
 - When a `mu:if` conditional element is a descendant of a cleaned-up document element, all its subscriptions are invalidated and disposed.
+- When a `mu:if` never satisfies its condition, and its container is cleaned up, the condition subscription is now cleaned up correctly instead of leaking an active effect.
 
 ## [0.22.4] - 2023-11-11
 

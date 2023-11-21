@@ -1,3 +1,4 @@
+import { cleanup } from "./cleanup.js";
 import { effect } from "./effect.js";
 import { ElementSpan } from "./elementSpan.js";
 import { NodeOptions, isNodeOptions } from "./types.js";
@@ -9,22 +10,21 @@ import { NodeOptions, isNodeOptions } from "./types.js";
  * @returns a DOM node that replaces itself when its dependencies change.
  */
 export function Swapper(nodeFactory: () => Node | NodeOptions) {
-    const span = new ElementSpan();
-    let cleanup: (() => void) | undefined;
+    const span = new ElementSpan;
 
     const swapperSubscription = effect(function swapperEffect(dep) {
-        cleanup?.();
-        cleanup = undefined;
-
-        span.cleanup();
+        for (const node of span.emptyAsFragment().childNodes) {
+            cleanup(node);
+        }
         const output = nodeFactory();
 
         if (isNodeOptions(output)) {
             span.replaceWith(output.node);
-            cleanup = output.cleanup;
+            return output.cleanup;
         }
         else if (output != null) {
             span.replaceWith(output);
+            return;
         }
     });
     span.registerCleanup(swapperSubscription);

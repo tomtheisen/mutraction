@@ -20,7 +20,7 @@ function ex1() {
                   to { transform: rotate(360deg); }
               }
             `}</style>
-            <div mu:if={ model.isLoading} style={{ 
+            <div mu:if={ model.isLoading } style={{ 
                     display: "inline-block", 
                     animation: "rotating 3s linear infinite" }}>
                 Loading
@@ -64,7 +64,7 @@ export function spinner() {
                         to { transform: rotate(360deg); }
                     }
                     \`}</style>
-                    <div mu:if={ model.isLoading} style={{ 
+                    <div mu:if={ model.isLoading } style={{ 
                         display: "inline-block", 
                         animation: "rotating 3s linear infinite" }}>
                       Loading

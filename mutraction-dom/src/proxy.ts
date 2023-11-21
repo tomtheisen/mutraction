@@ -1,7 +1,8 @@
 import { Tracker } from "./tracker.js";
-import { TrackerOf, RecordDependency, RecordMutation, ProxyOf, GetOriginal } from "./symbols.js";
-import type { ArrayExtend, ArrayShorten, DeleteProperty, Key, ReadonlyDeep, SingleMutation } from "./types.js";
+import { TrackerOf, RecordDependency, RecordMutation, ProxyOf, GetOriginal, AccessPath } from "./symbols.js";
+import type { ArrayExtend, ArrayShorten, DeleteProperty, Key, SingleMutation } from "./types.js";
 import { createOrRetrievePropRef } from "./propref.js";
+import { isDebugMode } from "./debug.js";
 
 const mutatingArrayMethods 
     = ["copyWithin","fill","pop","push","reverse","shift","sort","splice","unshift"];
@@ -48,16 +49,31 @@ export function canBeProxied(val: unknown): val is object {
     return true;
 }
 
+export function getAccessPath(obj: Object): string | undefined {
+    return (obj as any)[AccessPath];
+}
+
+function setAccessPath(obj: Object, path: string) {
+    Object.assign(obj, {[AccessPath]: path});
+}
+
 export function makeProxyHandler<TModel extends object>(model: TModel, tracker: Tracker) : ProxyHandler<TModel> {
     type TKey = (keyof TModel) & Key;
     
     function getOrdinary(target: TModel, name: TKey, receiver: TModel) {
         if (name === TrackerOf) return tracker;
         if (name === GetOriginal) return target;
+        if (name === AccessPath) return target[name];
 
         tracker[RecordDependency](createOrRetrievePropRef(target, name));
 
         let result = Reflect.get(target, name, receiver) as TModel[TKey];
+        if (result && typeof result === "object" && isDebugMode) {
+            const start = getAccessPath(target);
+            const accessPath = start ? start + "." + String(name) : String(name);
+            setAccessPath(result, accessPath);
+        }
+
         if (canBeProxied(result)) {
             const existingProxy = (result as any)[ProxyOf];
             if (existingProxy) {
@@ -116,6 +132,15 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
     // so if the number of completed sets changes between start and end of parent set, then don't record it
     let setsCompleted = 0;
     function setOrdinary(target: TModel, name: TKey, newValue: any, receiver: TModel) {
+        if (name === AccessPath) {
+            return Reflect.set(target, AccessPath, newValue);
+        }
+
+        if (newValue && typeof newValue === "object" && isDebugMode) {
+            const accessPath = (getAccessPath(target) ?? "~") + "." + String(name);
+            setAccessPath(newValue, accessPath);
+        }
+
         if (canBeProxied(newValue)) {
             const handler = makeProxyHandler(newValue, tracker);
             newValue = new Proxy(newValue, handler);

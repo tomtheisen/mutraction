@@ -4,6 +4,195 @@ var TrackerOf = Symbol("TrackerOf");
 var ProxyOf = Symbol("ProxyOf");
 var RecordDependency = Symbol("RecordDependency");
 var GetOriginal = Symbol("GetOriginal");
+var AccessPath = Symbol("AccessPath");
+
+// out/debug.js
+var debugModeKey = "mu:debugMode";
+var debugPullInterval = 250;
+var isDebugMode = !!sessionStorage.getItem(debugModeKey);
+function enableDebugMode() {
+  sessionStorage.setItem(debugModeKey, "true");
+  location.reload();
+}
+Object.assign(window, { [Symbol.for("mutraction.debug")]: enableDebugMode });
+if (["localhost", "127.0.0.1", "[::1]"].includes(location.hostname) && !isDebugMode) {
+  console.info(`[\xB5] Try the mutraction diagnostic tool.  This message is only shown from localhost, but the tool is always available.`);
+  console.info("\xBB window[Symbol.for('mutraction.debug')]()");
+}
+function disableDebugMode() {
+  sessionStorage.removeItem(debugModeKey);
+  location.reload();
+}
+function valueString(val) {
+  if (Array.isArray(val))
+    return `Array(${val.length})`;
+  if (typeof val === "object")
+    return "{ ... }";
+  return JSON.stringify(val);
+}
+function getPropRefListItem(propRef) {
+  const objPath = getAccessPath(propRef.object);
+  const fullPath = objPath ? objPath + "." + String(propRef.prop) : String(propRef.prop);
+  const value = valueString(propRef.current);
+  const subCount = propRef.subscribers.size;
+  const subCountMessage = `(${subCount} ${subCount === 1 ? "subscriber" : "subscribers"})`;
+  const li = el("li", {}, el("code", {}, fullPath), ": ", value, " ", subCountMessage);
+  return li;
+}
+function el(tag, styles, ...nodes) {
+  const node = document.createElement(tag);
+  node.style.all = "revert";
+  Object.assign(node.style, styles);
+  node.append(...nodes);
+  return node;
+}
+function getNodeAndTextDependencies(node) {
+  const textDeps = Array.from(node.childNodes).filter((n) => n instanceof Text).flatMap((n) => getNodeDependencies(n)).filter(Boolean).map((n) => n);
+  return (getNodeDependencies(node) ?? []).concat(...textDeps);
+}
+if (isDebugMode) {
+  let refreshPropRefList = function() {
+    const propRefListItems = [];
+    for (const propRef of allPropRefs) {
+      propRefListItems.push(getPropRefListItem(propRef));
+    }
+    propRefList.replaceChildren(...propRefListItems);
+  }, startInspectPick = function() {
+    inspectButton.disabled = true;
+    inspectButton.textContent = "\u2026";
+    inspectedName.textContent = "(choose)";
+    let inspectedElement;
+    let originalBoxShadow = "";
+    function moveHandler(ev) {
+      if (ev.target instanceof HTMLElement) {
+        let target = ev.target;
+        while (target && (getNodeAndTextDependencies(target)?.length ?? 0) === 0) {
+          target = target.parentElement;
+        }
+        if (target != inspectedElement) {
+          if (inspectedElement)
+            inspectedElement.style.boxShadow = originalBoxShadow;
+          originalBoxShadow = target?.style.boxShadow ?? "";
+          if (target) {
+            if (target.style.boxShadow)
+              target.style.boxShadow += ", inset #f0f4 0 99vmax";
+            else
+              target.style.boxShadow += "inset #f0f4 0 99vmax";
+          }
+          inspectedElement = target;
+        }
+      }
+      ev.stopPropagation();
+    }
+    document.addEventListener("mousemove", moveHandler, { capture: true });
+    document.addEventListener("click", (ev) => {
+      inspectButton.disabled = false;
+      inspectButton.textContent = "\u{1F50D}";
+      document.removeEventListener("mousemove", moveHandler, { capture: true });
+      if (inspectedElement) {
+        inspectedElement.style.boxShadow = originalBoxShadow;
+        inspectedName.textContent = inspectedElement.tagName.toLowerCase();
+        const deps = getNodeAndTextDependencies(inspectedElement);
+        const trackedProps = new Set(deps.flatMap((d) => d.trackedProperties));
+        const trackedPropItems = [];
+        for (const propRef of trackedProps) {
+          trackedPropItems.push(getPropRefListItem(propRef));
+        }
+        inspectedPropList.replaceChildren(...trackedPropItems);
+      } else {
+        inspectedName.textContent = "(none)";
+        inspectedPropList.replaceChildren();
+      }
+    }, { capture: true, once: true });
+  };
+  refreshPropRefList2 = refreshPropRefList, startInspectPick2 = startInspectPick;
+  const container = el("div", {
+    position: "fixed",
+    top: "50px",
+    left: "50px",
+    width: "30em",
+    height: "20em",
+    resize: "both",
+    minHeight: "1.6em",
+    minWidth: "15em",
+    zIndex: "2147483647",
+    background: "#eee",
+    color: "#123",
+    boxShadow: "#000 0em 0.5em 1em",
+    border: "solid #345 0.4em",
+    fontSize: "16px",
+    display: "flex",
+    flexDirection: "column",
+    overflow: "auto"
+  });
+  const toggle = el("button", { marginRight: "1em" }, "_");
+  let minimized = false;
+  toggle.addEventListener("click", (ev) => {
+    if (minimized = !minimized) {
+      container.style.maxHeight = "1.6em";
+      container.style.maxWidth = "15em";
+    } else {
+      container.style.maxHeight = "";
+      container.style.maxWidth = "";
+    }
+  });
+  const closeButton = el("button", { float: "right" }, "\xD7");
+  closeButton.addEventListener("click", disableDebugMode);
+  const head = el("div", {
+    fontWeight: "bold",
+    background: "#123",
+    color: "#eee",
+    padding: "0.1em 1em",
+    cursor: "grab"
+  }, closeButton, toggle, "\u03BC diagnostics");
+  const effectCount = el("span", {}, "0");
+  const effectSummary = el("p", {}, el("p", {}, el("strong", {}, "Active effects: "), effectCount));
+  setInterval(() => {
+    effectCount.innerText = String(getActiveEffectCount());
+  }, debugPullInterval);
+  const undoButton = el("button", {}, "Undo");
+  const redoButton = el("button", {}, "Redo");
+  const historySummary = el("p", {}, el("strong", {}, "History: "), undoButton, redoButton);
+  undoButton.addEventListener("click", () => defaultTracker.undo());
+  redoButton.addEventListener("click", () => defaultTracker.redo());
+  const propRefCountNumber = el("span", {}, "0");
+  const propRefRefreshButton = el("button", {}, "\u21BB");
+  propRefRefreshButton.addEventListener("click", refreshPropRefList);
+  const propRefCount = el("div", {}, el("strong", {}, "Live PropRefs: "), propRefCountNumber, " ", propRefRefreshButton);
+  const propRefList = el("ol", {});
+  let seenGeneration = -1;
+  setInterval(() => {
+    if (allPropRefs.generation !== seenGeneration) {
+      propRefCountNumber.replaceChildren(String(allPropRefs.sizeBound));
+      refreshPropRefList();
+      seenGeneration = allPropRefs.generation;
+    }
+  }, debugPullInterval);
+  const inspectButton = el("button", {}, "\u{1F50D}");
+  inspectButton.addEventListener("click", startInspectPick);
+  const inspectedName = el("span", {}, "(none)");
+  const inspectedPropList = el("ol", {});
+  const content = el("div", { padding: "1em", overflow: "auto" }, effectSummary, historySummary, propRefCount, propRefList, inspectButton, " ", el("strong", {}, "Inspected node:"), " ", inspectedName, inspectedPropList);
+  container.append(head, content);
+  document.body.append(container);
+  let xOffset = 0, yOffset = 0;
+  head.addEventListener("mousedown", (ev) => {
+    const rect = container.getBoundingClientRect();
+    xOffset = ev.x - rect.x;
+    yOffset = ev.y - rect.y;
+    window.addEventListener("mousemove", moveHandler);
+    document.body.addEventListener("mouseup", (ev2) => {
+      window.removeEventListener("mousemove", moveHandler);
+    }, { once: true });
+    ev.preventDefault();
+    function moveHandler(ev2) {
+      container.style.left = ev2.x - xOffset + "px";
+      container.style.top = ev2.y - yOffset + "px";
+    }
+  });
+}
+var refreshPropRefList2;
+var startInspectPick2;
 
 // out/proxy.js
 var mutatingArrayMethods = ["copyWithin", "fill", "pop", "push", "reverse", "shift", "sort", "splice", "unshift"];
@@ -46,14 +235,27 @@ function canBeProxied(val) {
     return false;
   return true;
 }
+function getAccessPath(obj) {
+  return obj[AccessPath];
+}
+function setAccessPath(obj, path) {
+  Object.assign(obj, { [AccessPath]: path });
+}
 function makeProxyHandler(model, tracker) {
   function getOrdinary(target, name, receiver) {
     if (name === TrackerOf)
       return tracker;
     if (name === GetOriginal)
       return target;
+    if (name === AccessPath)
+      return target[name];
     tracker[RecordDependency](createOrRetrievePropRef(target, name));
     let result = Reflect.get(target, name, receiver);
+    if (result && typeof result === "object" && isDebugMode) {
+      const start = getAccessPath(target);
+      const accessPath = start ? start + "." + String(name) : String(name);
+      setAccessPath(result, accessPath);
+    }
     if (canBeProxied(result)) {
       const existingProxy = result[ProxyOf];
       if (existingProxy) {
@@ -104,6 +306,13 @@ function makeProxyHandler(model, tracker) {
   }
   let setsCompleted = 0;
   function setOrdinary(target, name, newValue, receiver) {
+    if (name === AccessPath) {
+      return Reflect.set(target, AccessPath, newValue);
+    }
+    if (newValue && typeof newValue === "object" && isDebugMode) {
+      const accessPath = (getAccessPath(target) ?? "~") + "." + String(name);
+      setAccessPath(newValue, accessPath);
+    }
     if (canBeProxied(newValue)) {
       const handler = makeProxyHandler(newValue, tracker);
       newValue = new Proxy(newValue, handler);
@@ -184,7 +393,39 @@ function isTracked(obj) {
   return typeof obj === "object" && !!obj[TrackerOf];
 }
 
+// out/liveCollection.js
+var LiveCollection = class {
+  /* upper bound for live object count */
+  get sizeBound() {
+    return this.#sizeBound;
+  }
+  #sizeBound = 0;
+  get generation() {
+    return this.#generation;
+  }
+  #generation = 0;
+  items = /* @__PURE__ */ new Map();
+  registry = new FinalizationRegistry((idx) => {
+    --this.#sizeBound;
+    this.items.delete(idx);
+    ++this.#generation;
+  });
+  add(t) {
+    this.registry.register(t, this.#sizeBound);
+    this.items.set(this.#sizeBound++, new WeakRef(t));
+    ++this.#generation;
+  }
+  *[Symbol.iterator]() {
+    for (const ref of this.items.values()) {
+      const t = ref.deref();
+      if (t)
+        yield t;
+    }
+  }
+};
+
 // out/propref.js
+var allPropRefs = isDebugMode ? new LiveCollection() : null;
 var PropReference = class {
   object;
   prop;
@@ -199,13 +440,12 @@ var PropReference = class {
     }
     this.object = object;
     this.prop = prop;
+    allPropRefs?.add(this);
   }
   subscribe(dependencyList) {
     this.#subscribers.add(dependencyList);
     return {
-      dispose: () => {
-        this.#subscribers.delete(dependencyList);
-      }
+      dispose: () => this.#subscribers.delete(dependencyList)
     };
   }
   notifySubscribers() {
@@ -551,6 +791,8 @@ var Tracker = class {
   /** record a mutation, if you have the secret key  */
   [RecordMutation](mutation) {
     if (this.options.trackHistory) {
+      if (isDebugMode)
+        mutation.targetPath = getAccessPath(mutation.target);
       (this.#transaction?.operations ?? this.#operationHistory).push(Object.freeze(mutation));
     }
     this.clearRedos();
@@ -635,6 +877,10 @@ function track(model) {
 // out/effect.js
 var emptyEffect = { dispose: () => {
 } };
+var activeEffects = 0;
+function getActiveEffectCount() {
+  return activeEffects;
+}
 function effect(sideEffect, options = {}) {
   const { tracker = defaultTracker, suppressUntrackedWarning = false } = options;
   let dep = tracker.startDependencyTrack();
@@ -650,19 +896,28 @@ function effect(sideEffect, options = {}) {
     }
     return emptyEffect;
   }
+  ++activeEffects;
   let subscription = dep.subscribe(effectDependencyChanged);
-  const effectDispose = () => {
+  let disposed = false;
+  function effectDispose() {
+    if (disposed)
+      console.error("Effect already disposed");
+    disposed = true;
     dep.untrackAll();
     subscription.dispose();
-  };
+    --activeEffects;
+  }
+  ;
   function effectDependencyChanged(trigger) {
     if (typeof lastResult === "function")
       lastResult();
     effectDispose();
+    disposed = false;
     dep = tracker.startDependencyTrack();
     lastResult = sideEffect(dep, trigger);
     dep.endDependencyTrack();
     subscription = dep.subscribe(effectDependencyChanged);
+    ++activeEffects;
   }
   return { dispose: effectDispose };
 }
@@ -681,7 +936,7 @@ function cleanup(node) {
   const cleanups = nodeCleanups.get(node);
   cleanups?.forEach((s) => s.dispose());
   if (node instanceof Element) {
-    node.childNodes.forEach((child2) => cleanup(child2));
+    node.childNodes.forEach(cleanup);
   }
 }
 
@@ -690,24 +945,36 @@ var suppress = { suppressUntrackedWarning: true };
 function isNodeModifier(obj) {
   return obj != null && typeof obj === "object" && "$muType" in obj && typeof obj.$muType === "string";
 }
-function doApply(el, mod) {
+function doApply(el2, mod) {
   if (Array.isArray(mod)) {
-    mod.forEach((mod2) => doApply(el, mod2));
+    mod.forEach((mod2) => doApply(el2, mod2));
     return;
   }
   if (!isNodeModifier(mod))
     throw Error("Expected a node modifier for 'mu:apply', but got " + typeof mod);
   switch (mod.$muType) {
     case "attribute":
-      el.setAttribute(mod.name, mod.value);
+      el2.setAttribute(mod.name, mod.value);
       break;
     default:
       throw Error("Unknown node modifier type: " + mod.$muType);
   }
 }
+var nodeDependencyMap = /* @__PURE__ */ new WeakMap();
+function addNodeDependency(node, depList) {
+  if (depList.trackedProperties.length === 0)
+    return;
+  let depLists = nodeDependencyMap.get(node);
+  if (!depLists)
+    nodeDependencyMap.set(node, depLists = []);
+  depLists.push(depList);
+}
+function getNodeDependencies(node) {
+  return nodeDependencyMap.get(node);
+}
 function element(tagName, staticAttrs, dynamicAttrs, ...children) {
-  const el = document.createElement(tagName);
-  el.append(...children);
+  const el2 = document.createElement(tagName);
+  el2.append(...children);
   let syncEvents;
   let diagnosticApplied = false;
   let diagnosticUpdates = 0;
@@ -718,13 +985,13 @@ function element(tagName, staticAttrs, dynamicAttrs, ...children) {
         syncEvents = value;
         break;
       case "mu:apply":
-        doApply(el, value);
+        doApply(el2, value);
         break;
       case "mu:diagnostic":
         diagnosticApplied = true;
         break;
       default:
-        el[name] = value;
+        el2[name] = value;
         break;
     }
   }
@@ -733,7 +1000,7 @@ function element(tagName, staticAttrs, dynamicAttrs, ...children) {
   }
   const syncedProps = syncEvents ? [] : void 0;
   for (let [name, getter] of Object.entries(dynamicAttrs)) {
-    if (syncedProps && name in el) {
+    if (syncedProps && name in el2) {
       const propRef = defaultTracker.getPropRefTolerant(getter);
       if (propRef) {
         syncedProps.push([name, propRef]);
@@ -741,57 +1008,69 @@ function element(tagName, staticAttrs, dynamicAttrs, ...children) {
     }
     switch (name) {
       case "style": {
-        const callback = !diagnosticApplied ? function updateStyle() {
-          Object.assign(el.style, getter());
+        const callback = !diagnosticApplied ? function updateStyle(dl) {
+          Object.assign(el2.style, getter());
+          if (isDebugMode)
+            addNodeDependency(el2, dl);
         } : function updateStyleDiagnostic(dl, trigger) {
           if (doneConstructing)
             console.trace(`[mu:diagnostic] Updating ${tagName}`, { attribute: name, trigger, updates: ++diagnosticUpdates });
-          Object.assign(el.style, getter());
+          Object.assign(el2.style, getter());
+          if (isDebugMode)
+            addNodeDependency(el2, dl);
         };
         const sub = effect(callback, suppress);
-        registerCleanup(el, sub);
+        registerCleanup(el2, sub);
         break;
       }
       case "classList": {
-        const callback = !diagnosticApplied ? function updateClassList() {
+        const callback = !diagnosticApplied ? function updateClassList(dl) {
           const classMap = getter();
           for (const [name2, on] of Object.entries(classMap))
-            el.classList.toggle(name2, !!on);
+            el2.classList.toggle(name2, !!on);
+          if (isDebugMode)
+            addNodeDependency(el2, dl);
         } : function updateClassListDiagnostic(dl, trigger) {
           if (doneConstructing)
             console.trace(`[mu:diagnostic] Updating ${tagName}`, { attribute: name, trigger, updates: ++diagnosticUpdates });
           const classMap = getter();
           for (const [name2, on] of Object.entries(classMap))
-            el.classList.toggle(name2, !!on);
+            el2.classList.toggle(name2, !!on);
+          if (isDebugMode)
+            addNodeDependency(el2, dl);
         };
         const sub = effect(callback, suppress);
-        registerCleanup(el, sub);
+        registerCleanup(el2, sub);
         break;
       }
       default: {
-        const callback = !diagnosticApplied ? function updateAttribute() {
-          el[name] = getter();
+        const callback = !diagnosticApplied ? function updateAttribute(dl) {
+          el2[name] = getter();
+          if (isDebugMode)
+            addNodeDependency(el2, dl);
         } : function updateAttributeDiagnostic(dl, trigger) {
           if (doneConstructing)
             console.trace(`[mu:diagnostic] Updating ${tagName}`, { attribute: name, trigger, updates: ++diagnosticUpdates });
-          el[name] = getter();
+          el2[name] = getter();
+          if (isDebugMode)
+            addNodeDependency(el2, dl);
         };
         const sub = effect(callback, suppress);
-        registerCleanup(el, sub);
+        registerCleanup(el2, sub);
         break;
       }
     }
   }
   if (syncEvents && syncedProps?.length) {
     for (const e of syncEvents.matchAll(/\S+/g)) {
-      el.addEventListener(e[0], () => {
+      el2.addEventListener(e[0], () => {
         for (const [name, propRef] of syncedProps)
-          propRef.current = el[name];
+          propRef.current = el2[name];
       });
     }
   }
   doneConstructing = true;
-  return el;
+  return el2;
 }
 function child(getter) {
   let node = document.createTextNode("");
@@ -807,6 +1086,8 @@ function child(getter) {
         registerCleanup(newNode, sub);
       node.replaceWith(newNode);
       node = newNode;
+      if (isDebugMode)
+        addNodeDependency(node, dl);
     }
   }, suppress);
   registerCleanup(node, sub);
@@ -885,17 +1166,17 @@ function isNodeOptions(arg) {
 // out/swapper.js
 function Swapper(nodeFactory) {
   const span = new ElementSpan();
-  let cleanup2;
   const swapperSubscription = effect(function swapperEffect(dep) {
-    cleanup2?.();
-    cleanup2 = void 0;
-    span.cleanup();
+    for (const node of span.emptyAsFragment().childNodes) {
+      cleanup(node);
+    }
     const output = nodeFactory();
     if (isNodeOptions(output)) {
       span.replaceWith(output.node);
-      cleanup2 = output.cleanup;
+      return output.cleanup;
     } else if (output != null) {
       span.replaceWith(output);
+      return;
     }
   });
   span.registerCleanup(swapperSubscription);
@@ -1005,9 +1286,14 @@ function getEmptyText() {
   return document.createTextNode("");
 }
 function choose(...choices) {
-  let current = getEmptyText();
-  let currentNodeGetter = getEmptyText;
-  effect(function chooseEffect() {
+  let current;
+  let currentNodeGetter;
+  let conditionChanging = false;
+  function dispose() {
+    if (!conditionChanging)
+      sub.dispose();
+  }
+  const sub = effect(function chooseEffect() {
     let newNodeGetter;
     for (const { nodeGetter, conditionGetter } of choices) {
       if (!conditionGetter || conditionGetter()) {
@@ -1017,13 +1303,20 @@ function choose(...choices) {
     }
     newNodeGetter ??= getEmptyText;
     if (newNodeGetter !== currentNodeGetter) {
-      cleanup(current);
+      if (current) {
+        conditionChanging = true;
+        cleanup(current);
+        conditionChanging = false;
+      }
       currentNodeGetter = newNodeGetter;
       const newNode = currentNodeGetter();
-      current.replaceWith(newNode);
+      current?.replaceWith(newNode);
+      registerCleanup(newNode, { dispose });
       current = newNode;
     }
   }, suppress3);
+  if (!current)
+    throw Error("Logical error in choose() for mu:if.  No element assigned after first effect invocation.");
   return current;
 }
 
@@ -1128,9 +1421,8 @@ function untrackedCloneImpl(obj, maxDepth) {
 }
 
 // out/index.js
-var version = "0.22.3";
+var version = "0.22.4";
 export {
-  DependencyList,
   ForEach,
   ForEachPersist,
   PromiseLoader,

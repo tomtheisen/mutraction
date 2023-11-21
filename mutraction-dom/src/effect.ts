@@ -10,6 +10,11 @@ type EffectOptions = {
     tracker?: Tracker;
 }
 
+let activeEffects = 0;
+export function getActiveEffectCount() {
+    return activeEffects;
+}
+
 /**
  * Runs a callback, and remembers the tracked properties accessed.
  * Any time one of them changes, it runs the callback again.
@@ -37,23 +42,31 @@ export function effect(sideEffect: (dep: DependencyList, trigger?: PropReference
         return emptyEffect;
     }
 
+    ++activeEffects;
     let subscription = dep.subscribe(effectDependencyChanged);
 
     // tear down old subscriptions
-    const effectDispose = () => {
+    let disposed = false;
+    function effectDispose() {
+        if (disposed) console.error("Effect already disposed");
+        disposed = true;
+
         dep.untrackAll();
         subscription.dispose();
+        --activeEffects;
     };
 
     function effectDependencyChanged(trigger?: PropReference) {
         if (typeof lastResult === "function") lastResult(); // user cleanup
 
         effectDispose();
+        disposed = false;
         
         dep = tracker.startDependencyTrack();
         lastResult = sideEffect(dep, trigger);
         dep.endDependencyTrack();
         subscription = dep.subscribe(effectDependencyChanged);
+        ++activeEffects;
     }
 
     return { dispose: effectDispose };

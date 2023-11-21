@@ -4,6 +4,7 @@ import { DependencyList } from "./dependency.js";
 import { PropReference } from "./propref.js";
 import { NodeModifier, Subscription } from "./types.js";
 import { registerCleanup } from "./cleanup.js";
+import { isDebugMode } from "./debug.js";
 
 const suppress = { suppressUntrackedWarning: true };
 
@@ -35,6 +36,18 @@ function doApply(el: HTMLElement, mod: unknown) {
         default:
             throw Error("Unknown node modifier type: " + mod.$muType);
     }
+}
+
+const nodeDependencyMap = new WeakMap<ChildNode, DependencyList[]>;
+function addNodeDependency(node: ChildNode, depList: DependencyList) {
+    if (depList.trackedProperties.length === 0) return;
+    let depLists = nodeDependencyMap.get(node);
+    if (!depLists) nodeDependencyMap.set(node, depLists = []);
+    depLists.push(depList);
+}
+
+export function getNodeDependencies(node: ChildNode) : DependencyList[] | undefined {
+    return nodeDependencyMap.get(node);
 }
 
 export function element<E extends keyof HTMLElementTagNameMap>(
@@ -87,11 +100,15 @@ export function element<E extends keyof HTMLElementTagNameMap>(
         switch (name) {
             case "style": {
                 const callback = !diagnosticApplied
-                    ? function updateStyle() { Object.assign(el.style, getter()); }
+                    ? function updateStyle(dl: DependencyList) { 
+                        Object.assign(el.style, getter());
+                        if (isDebugMode) addNodeDependency(el, dl);
+                    }
                     : function updateStyleDiagnostic(dl: DependencyList, trigger?: PropReference) {
                         if (doneConstructing)
                             console.trace(`[mu:diagnostic] Updating ${ tagName }`, { attribute: name, trigger, updates: ++diagnosticUpdates });
                         Object.assign(el.style, getter());
+                        if (isDebugMode) addNodeDependency(el, dl);
                     };
                 const sub = effect(callback, suppress);
                 registerCleanup(el, sub);
@@ -100,15 +117,17 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 
             case "classList": {
                 const callback = !diagnosticApplied
-                    ? function updateClassList() { 
+                    ? function updateClassList(dl: DependencyList) { 
                         const classMap = getter() as Record<string, boolean>;
                         for (const [name, on] of Object.entries(classMap)) el.classList.toggle(name, !!on);
+                        if (isDebugMode) addNodeDependency(el, dl);
                     }
                     : function updateClassListDiagnostic(dl: DependencyList, trigger?: PropReference) { 
                         if (doneConstructing)
                             console.trace(`[mu:diagnostic] Updating ${ tagName }`, { attribute: name, trigger, updates: ++diagnosticUpdates });
                         const classMap = getter() as Record<string, boolean>;
                         for (const [name, on] of Object.entries(classMap)) el.classList.toggle(name, !!on);
+                        if (isDebugMode) addNodeDependency(el, dl);
                     };
                 const sub = effect(callback, suppress);
                 registerCleanup(el, sub);
@@ -117,11 +136,15 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 
             default: {
                 const callback = !diagnosticApplied
-                    ? function updateAttribute() { (el as any)[name] = getter(); }
+                    ? function updateAttribute(dl: DependencyList) { 
+                        (el as any)[name] = getter();
+                        if (isDebugMode) addNodeDependency(el, dl);
+                    }
                     : function updateAttributeDiagnostic(dl: DependencyList, trigger?: PropReference) {
                         if (doneConstructing)
                             console.trace(`[mu:diagnostic] Updating ${ tagName }`, { attribute: name, trigger, updates: ++diagnosticUpdates });
                         (el as any)[name] = getter();
+                        if (isDebugMode) addNodeDependency(el, dl);
                     };
                 const sub = effect(callback, suppress);
                 registerCleanup(el, sub);
@@ -158,6 +181,7 @@ export function child(getter: () => number | string | bigint | null | undefined 
             if (sub) registerCleanup(newNode, sub);
             node.replaceWith(newNode);
             node = newNode;
+            if (isDebugMode) addNodeDependency(node, dl);
         }
     }, suppress);
     registerCleanup(node, sub);
