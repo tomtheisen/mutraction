@@ -14,6 +14,7 @@ export const nav =
                         <li><a href="#topics/two-way">Two-way binding</a></li>
                         <li><a href="#topics/history">Mutation history</a></li>
                         <li><a href="#topics/styles">Styles and classes</a></li>
+                        <li><a href="#topics/debug">Troubleshooting</a></li>
                     </ul>
                 </details>
             </li>

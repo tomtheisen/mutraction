@@ -129,6 +129,11 @@ if (isDebugMode) {
 
     const undoButton = el("button", {}, "Undo");
     const redoButton = el("button", {}, "Redo");
+    queueMicrotask(() => {
+        const { trackHistory } = defaultTracker.options;
+        if (!trackHistory) undoButton.disabled = redoButton.disabled = true;
+    });
+
     const historySummary = el("p", {}, 
         el("strong", {}, "History: "), 
         undoButton,
