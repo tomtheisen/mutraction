@@ -1,6 +1,7 @@
-import { track, defaultTracker as tracker, DependencyList, isTracked, Tracker, effect, defaultTracker } from '../src/index.js';
+import { track, defaultTracker as tracker, isTracked, Tracker, effect, defaultTracker } from '../src/index.js';
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
+import type { DependencyList } from '../src/dependency.js';
 
 function assertDependencies(dep: DependencyList, expected: [obj: object, prop: string][]) {
     assert.equal(dep.trackedProperties.length, expected.length, "Unexpected dependency size");
