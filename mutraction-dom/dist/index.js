@@ -936,7 +936,7 @@ function cleanup(node) {
   const cleanups = nodeCleanups.get(node);
   cleanups?.forEach((s) => s.dispose());
   if (node instanceof Element) {
-    node.childNodes.forEach((child2) => cleanup(child2));
+    node.childNodes.forEach(cleanup);
   }
 }
 
@@ -1286,8 +1286,8 @@ function getEmptyText() {
   return document.createTextNode("");
 }
 function choose(...choices) {
-  let current = getEmptyText();
-  let currentNodeGetter = getEmptyText;
+  let current;
+  let currentNodeGetter;
   let conditionChanging = false;
   function dispose() {
     if (!conditionChanging)
@@ -1303,17 +1303,20 @@ function choose(...choices) {
     }
     newNodeGetter ??= getEmptyText;
     if (newNodeGetter !== currentNodeGetter) {
-      conditionChanging = true;
-      cleanup(current);
-      conditionChanging = false;
+      if (current) {
+        conditionChanging = true;
+        cleanup(current);
+        conditionChanging = false;
+      }
       currentNodeGetter = newNodeGetter;
       const newNode = currentNodeGetter();
-      current.replaceWith(newNode);
+      current?.replaceWith(newNode);
       registerCleanup(newNode, { dispose });
       current = newNode;
     }
   }, suppress3);
-  registerCleanup(current, { dispose });
+  if (!current)
+    throw Error("Logical error in choose() for mu:if.  No element assigned after first effect invocation.");
   return current;
 }
 

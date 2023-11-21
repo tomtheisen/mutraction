@@ -13,8 +13,8 @@ function getEmptyText() {
 }
 
 export function choose(...choices: ConditionalElement[]): Node {
-    let current: ChildNode = getEmptyText(); 
-    let currentNodeGetter: () => ChildNode = getEmptyText;   
+    let current: ChildNode | undefined;
+    let currentNodeGetter: () => ChildNode;   
 
     // Flag is set when condition value caused the resolved node to change.
     // The effect needs to be disposed when the node is cleaned up, but only without the flag.
@@ -37,20 +37,21 @@ export function choose(...choices: ConditionalElement[]): Node {
         // e.g. `model.x > 1` stays true when model.x changes from 2 to 3
         // but we don't want to rebuild the node
         if (newNodeGetter !== currentNodeGetter) {
-            conditionChanging = true;
-            cleanup(current);
-            conditionChanging = false;
+            if (current) {
+                conditionChanging = true;
+                cleanup(current);
+                conditionChanging = false;
+            }
 
             currentNodeGetter = newNodeGetter;
             const newNode = currentNodeGetter();
-            current.replaceWith(newNode);
+            current?.replaceWith(newNode);
 
             registerCleanup(newNode, { dispose });
             current = newNode;
         }
     }, suppress);
 
-    registerCleanup(current, { dispose });
-
+    if (!current) throw Error("Logical error in choose() for mu:if.  No element assigned after first effect invocation.");
     return current;
 }

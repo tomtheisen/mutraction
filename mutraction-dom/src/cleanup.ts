@@ -17,6 +17,6 @@ export function cleanup(node: ChildNode) {
     cleanups?.forEach(s => s.dispose());
 
     if (node instanceof Element) {
-        node.childNodes.forEach(child => cleanup(child));
+        node.childNodes.forEach(cleanup);
     }
 }
