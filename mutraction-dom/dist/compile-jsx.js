@@ -117,11 +117,6 @@ export default function (_) {
                                         throw path.buildCodeFrameError(`Expression value expected for '${name.name.name}'`);
                                     staticPropsForRuntime.push(t.objectProperty(t.stringLiteral("mu:apply"), value.expression, true /* computed */));
                                     break;
-                                case "diagnostic":
-                                    if (value)
-                                        throw path.buildCodeFrameError("mu:diagnostic does not take a value.");
-                                    staticPropsForRuntime.push(t.objectProperty(t.stringLiteral("mu:diagnostic"), t.booleanLiteral(true), true /* computed */));
-                                    break;
                                 default:
                                     throw path.buildCodeFrameError(`Unsupported mutraction JSX attribute ${name.name.name}`);
                             }

@@ -976,9 +976,6 @@ function element(tagName, staticAttrs, dynamicAttrs, ...children) {
   const el2 = document.createElement(tagName);
   el2.append(...children);
   let syncEvents;
-  let diagnosticApplied = false;
-  let diagnosticUpdates = 0;
-  let doneConstructing = false;
   for (let [name, value] of Object.entries(staticAttrs)) {
     switch (name) {
       case "mu:syncEvent":
@@ -987,16 +984,10 @@ function element(tagName, staticAttrs, dynamicAttrs, ...children) {
       case "mu:apply":
         doApply(el2, value);
         break;
-      case "mu:diagnostic":
-        diagnosticApplied = true;
-        break;
       default:
         el2[name] = value;
         break;
     }
-  }
-  if (diagnosticApplied) {
-    console.trace(`[mu:diagnostic] Creating ${tagName}`);
   }
   const syncedProps = syncEvents ? [] : void 0;
   for (let [name, getter] of Object.entries(dynamicAttrs)) {
@@ -1008,54 +999,37 @@ function element(tagName, staticAttrs, dynamicAttrs, ...children) {
     }
     switch (name) {
       case "style": {
-        const callback = !diagnosticApplied ? function updateStyle(dl) {
-          Object.assign(el2.style, getter());
-          if (isDebugMode)
-            addNodeDependency(el2, dl);
-        } : function updateStyleDiagnostic(dl, trigger) {
-          if (doneConstructing)
-            console.trace(`[mu:diagnostic] Updating ${tagName}`, { attribute: name, trigger, updates: ++diagnosticUpdates });
+        let updateStyle2 = function(dl) {
           Object.assign(el2.style, getter());
           if (isDebugMode)
             addNodeDependency(el2, dl);
         };
-        const sub = effect(callback, suppress);
+        var updateStyle = updateStyle2;
+        const sub = effect(updateStyle2, suppress);
         registerCleanup(el2, sub);
         break;
       }
       case "classList": {
-        const callback = !diagnosticApplied ? function updateClassList(dl) {
-          const classMap = getter();
-          for (const [name2, on] of Object.entries(classMap))
-            el2.classList.toggle(name2, !!on);
-          if (isDebugMode)
-            addNodeDependency(el2, dl);
-        } : function updateClassListDiagnostic(dl, trigger) {
-          if (doneConstructing)
-            console.trace(`[mu:diagnostic] Updating ${tagName}`, { attribute: name, trigger, updates: ++diagnosticUpdates });
+        let updateClassList2 = function(dl) {
           const classMap = getter();
           for (const [name2, on] of Object.entries(classMap))
             el2.classList.toggle(name2, !!on);
           if (isDebugMode)
             addNodeDependency(el2, dl);
         };
-        const sub = effect(callback, suppress);
+        var updateClassList = updateClassList2;
+        const sub = effect(updateClassList2, suppress);
         registerCleanup(el2, sub);
         break;
       }
       default: {
-        const callback = !diagnosticApplied ? function updateAttribute(dl) {
-          el2[name] = getter();
-          if (isDebugMode)
-            addNodeDependency(el2, dl);
-        } : function updateAttributeDiagnostic(dl, trigger) {
-          if (doneConstructing)
-            console.trace(`[mu:diagnostic] Updating ${tagName}`, { attribute: name, trigger, updates: ++diagnosticUpdates });
+        let updateAttribute2 = function(dl) {
           el2[name] = getter();
           if (isDebugMode)
             addNodeDependency(el2, dl);
         };
-        const sub = effect(callback, suppress);
+        var updateAttribute = updateAttribute2;
+        const sub = effect(updateAttribute2, suppress);
         registerCleanup(el2, sub);
         break;
       }
@@ -1069,7 +1043,6 @@ function element(tagName, staticAttrs, dynamicAttrs, ...children) {
       });
     }
   }
-  doneConstructing = true;
   return el2;
 }
 function child(getter) {

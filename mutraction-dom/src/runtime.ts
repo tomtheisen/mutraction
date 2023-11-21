@@ -60,9 +60,6 @@ export function element<E extends keyof HTMLElementTagNameMap>(
     el.append(...children);
 
     let syncEvents: string | undefined;
-    let diagnosticApplied = false;
-    let diagnosticUpdates = 0;
-    let doneConstructing = false;
 
     for (let [name, value] of Object.entries(staticAttrs) as [string, string][]) {
         switch (name) {
@@ -74,18 +71,10 @@ export function element<E extends keyof HTMLElementTagNameMap>(
                 doApply(el, value);
                 break;
 
-            case "mu:diagnostic":
-                diagnosticApplied = true;
-                break;
-
             default:
                 (el as any)[name] = value;                
                 break;
         }
-    }
-
-    if (diagnosticApplied) {
-        console.trace(`[mu:diagnostic] Creating ${ tagName }`);
     }
 
     const syncedProps = syncEvents ? [] as [prop: keyof typeof el, ref: PropReference][] : undefined;
@@ -99,54 +88,32 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 
         switch (name) {
             case "style": {
-                const callback = !diagnosticApplied
-                    ? function updateStyle(dl: DependencyList) { 
-                        Object.assign(el.style, getter());
-                        if (isDebugMode) addNodeDependency(el, dl);
-                    }
-                    : function updateStyleDiagnostic(dl: DependencyList, trigger?: PropReference) {
-                        if (doneConstructing)
-                            console.trace(`[mu:diagnostic] Updating ${ tagName }`, { attribute: name, trigger, updates: ++diagnosticUpdates });
-                        Object.assign(el.style, getter());
-                        if (isDebugMode) addNodeDependency(el, dl);
-                    };
-                const sub = effect(callback, suppress);
+                function updateStyle(dl: DependencyList) { 
+                    Object.assign(el.style, getter());
+                    if (isDebugMode) addNodeDependency(el, dl);
+                }
+                const sub = effect(updateStyle, suppress);
                 registerCleanup(el, sub);
                 break;
             }
 
             case "classList": {
-                const callback = !diagnosticApplied
-                    ? function updateClassList(dl: DependencyList) { 
-                        const classMap = getter() as Record<string, boolean>;
-                        for (const [name, on] of Object.entries(classMap)) el.classList.toggle(name, !!on);
-                        if (isDebugMode) addNodeDependency(el, dl);
-                    }
-                    : function updateClassListDiagnostic(dl: DependencyList, trigger?: PropReference) { 
-                        if (doneConstructing)
-                            console.trace(`[mu:diagnostic] Updating ${ tagName }`, { attribute: name, trigger, updates: ++diagnosticUpdates });
-                        const classMap = getter() as Record<string, boolean>;
-                        for (const [name, on] of Object.entries(classMap)) el.classList.toggle(name, !!on);
-                        if (isDebugMode) addNodeDependency(el, dl);
-                    };
-                const sub = effect(callback, suppress);
+                function updateClassList(dl: DependencyList) { 
+                    const classMap = getter() as Record<string, boolean>;
+                    for (const [name, on] of Object.entries(classMap)) el.classList.toggle(name, !!on);
+                    if (isDebugMode) addNodeDependency(el, dl);
+                }
+                const sub = effect(updateClassList, suppress);
                 registerCleanup(el, sub);
                 break;
             }
 
             default: {
-                const callback = !diagnosticApplied
-                    ? function updateAttribute(dl: DependencyList) { 
-                        (el as any)[name] = getter();
-                        if (isDebugMode) addNodeDependency(el, dl);
-                    }
-                    : function updateAttributeDiagnostic(dl: DependencyList, trigger?: PropReference) {
-                        if (doneConstructing)
-                            console.trace(`[mu:diagnostic] Updating ${ tagName }`, { attribute: name, trigger, updates: ++diagnosticUpdates });
-                        (el as any)[name] = getter();
-                        if (isDebugMode) addNodeDependency(el, dl);
-                    };
-                const sub = effect(callback, suppress);
+                function updateAttribute(dl: DependencyList) { 
+                    (el as any)[name] = getter();
+                    if (isDebugMode) addNodeDependency(el, dl);
+                }
+                const sub = effect(updateAttribute, suppress);
                 registerCleanup(el, sub);
                 break;
             }
@@ -161,7 +128,6 @@ export function element<E extends keyof HTMLElementTagNameMap>(
         }
     }
 
-    doneConstructing = true;
     return el;
 }
 

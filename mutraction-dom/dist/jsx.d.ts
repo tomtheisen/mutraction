@@ -14,7 +14,6 @@ type MutractionElement<ElementType extends keyof HTMLElementTagNameMap> = {
     "mu:else"?: true;
     "mu:syncEvent"?: (keyof HTMLElementEventMap) | string;
     "mu:apply"?: NodeModifier | NodeModifier[];
-    "mu:diagnostic"?: true;
 };
 
 export namespace JSX {
