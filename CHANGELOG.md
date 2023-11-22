@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The active effect list in the diagnostic tool now groups effect callbacks by function name.
+
+## [0.23.0] - 2023-11-21
+
 ### Added
 
 - Execute `window[Symbol.for('mutraction.debug')]()` on the console to access diagnostic tools.

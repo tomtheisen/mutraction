@@ -715,6 +715,8 @@ if ("sessionStorage" in globalThis) {
         return `Array(${val.length})`;
       if (typeof val === "object")
         return "{ ... }";
+      if (typeof val === "function")
+        return val.name ? `${val.name}() { ... }` : "() => { ... }";
       return JSON.stringify(val);
     }, el = function(tag, styles, ...nodes) {
       const node = document.createElement(tag);
@@ -730,7 +732,7 @@ if ("sessionStorage" in globalThis) {
       const fullPath = objPath ? objPath + "." + String(propRef.prop) : String(propRef.prop);
       const value = propRef.current;
       const serialized = valueString(value);
-      const editable = !value || typeof value !== "object";
+      const editable = !value || typeof value !== "object" && typeof value !== "function";
       const valueSpan = el("span", editable ? { cursor: "pointer", textDecoration: "underline" } : {}, serialized);
       const subCount = propRef.subscribers.size;
       const subCountMessage = `(${subCount} ${subCount === 1 ? "subscriber" : "subscribers"})`;
