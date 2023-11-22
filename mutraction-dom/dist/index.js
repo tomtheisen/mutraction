@@ -6,218 +6,6 @@ var RecordDependency = Symbol("RecordDependency");
 var GetOriginal = Symbol("GetOriginal");
 var AccessPath = Symbol("AccessPath");
 
-// out/debug.js
-var debugModeKey = "mu:debugMode";
-var debugPullInterval = 250;
-var isDebugMode = "sessionStorage" in globalThis && !!sessionStorage.getItem(debugModeKey);
-if ("sessionStorage" in globalThis) {
-  let enableDebugMode = function() {
-    sessionStorage.setItem(debugModeKey, "true");
-    location.reload();
-  }, disableDebugMode = function() {
-    sessionStorage.removeItem(debugModeKey);
-    location.reload();
-  }, valueString = function(val) {
-    if (Array.isArray(val))
-      return `Array(${val.length})`;
-    if (typeof val === "object")
-      return "{ ... }";
-    return JSON.stringify(val);
-  }, el = function(tag, styles, ...nodes) {
-    const node = document.createElement(tag);
-    node.style.all = "revert";
-    Object.assign(node.style, styles);
-    node.append(...nodes);
-    return node;
-  }, getNodeAndTextDependencies = function(node) {
-    const textDeps = Array.from(node.childNodes).filter((n) => n instanceof Text).flatMap((n) => getNodeDependencies(n)).filter(Boolean).map((n) => n);
-    return (getNodeDependencies(node) ?? []).concat(...textDeps);
-  };
-  enableDebugMode2 = enableDebugMode, disableDebugMode2 = disableDebugMode, valueString2 = valueString, el2 = el, getNodeAndTextDependencies2 = getNodeAndTextDependencies;
-  Object.assign(window, { [Symbol.for("mutraction.debug")]: enableDebugMode });
-  if (["localhost", "127.0.0.1", "[::1]"].includes(location.hostname) && !isDebugMode) {
-    console.info(`[\xB5] Try the mutraction diagnostic tool.  This message is only shown from localhost, but the tool is always available.`);
-    console.info("\xBB window[Symbol.for('mutraction.debug')]()");
-  }
-  if (isDebugMode) {
-    let getPropRefListItem = function(propRef) {
-      const objPath = getAccessPath(propRef.object);
-      const fullPath = objPath ? objPath + "." + String(propRef.prop) : String(propRef.prop);
-      const value = propRef.current;
-      const serialized = valueString(value);
-      const editable = !value || typeof value !== "object";
-      const valueSpan = el("span", editable ? { cursor: "pointer", textDecoration: "underline" } : {}, serialized);
-      const subCount = propRef.subscribers.size;
-      const subCountMessage = `(${subCount} ${subCount === 1 ? "subscriber" : "subscribers"})`;
-      const li = el("li", {}, el("code", {}, fullPath), ": ", valueSpan, " ", subCountMessage);
-      if (editable)
-        valueSpan.addEventListener("click", () => {
-          const result = prompt(`Update ${String(propRef.prop)}`, serialized);
-          try {
-            if (result)
-              propRef.current = JSON.parse(result);
-            refreshPropRefList();
-          } catch {
-          }
-        });
-      return li;
-    }, refreshPropRefList = function() {
-      const propRefListItems = [];
-      for (const propRef of allPropRefs) {
-        propRefListItems.push(getPropRefListItem(propRef));
-      }
-      propRefList.replaceChildren(...propRefListItems);
-    }, startInspectPick = function() {
-      inspectButton.disabled = true;
-      inspectButton.textContent = "\u2026";
-      inspectedName.textContent = "(choose)";
-      let inspectedElement;
-      let originalBoxShadow = "";
-      function moveHandler(ev) {
-        if (ev.target instanceof HTMLElement) {
-          let target = ev.target;
-          while (target && (getNodeAndTextDependencies(target)?.length ?? 0) === 0) {
-            target = target.parentElement;
-          }
-          if (target != inspectedElement) {
-            if (inspectedElement)
-              inspectedElement.style.boxShadow = originalBoxShadow;
-            originalBoxShadow = target?.style.boxShadow ?? "";
-            if (target) {
-              if (target.style.boxShadow)
-                target.style.boxShadow += ", inset #f0f4 0 99vmax";
-              else
-                target.style.boxShadow += "inset #f0f4 0 99vmax";
-            }
-            inspectedElement = target;
-          }
-        }
-        ev.stopPropagation();
-      }
-      document.addEventListener("mousemove", moveHandler, { capture: true });
-      document.addEventListener("click", (ev) => {
-        ev.stopPropagation();
-        ev.preventDefault();
-        inspectButton.disabled = false;
-        inspectButton.textContent = "\u{1F50D}";
-        document.removeEventListener("mousemove", moveHandler, { capture: true });
-        if (inspectedElement) {
-          inspectedElement.style.boxShadow = originalBoxShadow;
-          inspectedName.textContent = inspectedElement.tagName.toLowerCase();
-          const deps = getNodeAndTextDependencies(inspectedElement);
-          const trackedProps = new Set(deps.flatMap((d) => d.trackedProperties));
-          const trackedPropItems = [];
-          for (const propRef of trackedProps) {
-            trackedPropItems.push(getPropRefListItem(propRef));
-          }
-          inspectedPropList.replaceChildren(...trackedPropItems);
-        } else {
-          inspectedName.textContent = "(none)";
-          inspectedPropList.replaceChildren();
-        }
-      }, { capture: true, once: true });
-    };
-    getPropRefListItem2 = getPropRefListItem, refreshPropRefList2 = refreshPropRefList, startInspectPick2 = startInspectPick;
-    const container = el("div", {
-      position: "fixed",
-      top: "50px",
-      left: "50px",
-      width: "30em",
-      height: "20em",
-      resize: "both",
-      minHeight: "1.6em",
-      minWidth: "15em",
-      zIndex: "2147483647",
-      background: "#eee",
-      color: "#123",
-      boxShadow: "#000 0em 0.5em 1em",
-      border: "solid #345 0.4em",
-      fontSize: "16px",
-      display: "flex",
-      flexDirection: "column",
-      overflow: "auto"
-    });
-    const toggle = el("button", { marginRight: "1em" }, "_");
-    let minimized = false;
-    toggle.addEventListener("click", (ev) => {
-      if (minimized = !minimized) {
-        container.style.maxHeight = "1.6em";
-        container.style.maxWidth = "15em";
-      } else {
-        container.style.maxHeight = "";
-        container.style.maxWidth = "";
-      }
-    });
-    const closeButton = el("button", { float: "right" }, "\xD7");
-    closeButton.addEventListener("click", disableDebugMode);
-    const head = el("div", {
-      fontWeight: "bold",
-      background: "#123",
-      color: "#eee",
-      padding: "0.1em 1em",
-      cursor: "grab"
-    }, closeButton, toggle, "\u03BC diagnostics");
-    const effectCount = el("span", {}, "0");
-    const effectSummary = el("p", {}, el("p", {}, el("strong", {}, "Active effects: "), effectCount));
-    setInterval(() => {
-      effectCount.innerText = String(getActiveEffectCount());
-    }, debugPullInterval);
-    const undoButton = el("button", {}, "Undo");
-    const redoButton = el("button", {}, "Redo");
-    queueMicrotask(() => {
-      const { trackHistory } = defaultTracker.options;
-      if (!trackHistory)
-        undoButton.disabled = redoButton.disabled = true;
-    });
-    const historySummary = el("p", {}, el("strong", {}, "History: "), undoButton, redoButton);
-    undoButton.addEventListener("click", () => defaultTracker.undo());
-    redoButton.addEventListener("click", () => defaultTracker.redo());
-    const propRefCountNumber = el("span", {}, "0");
-    const propRefRefreshButton = el("button", {}, "\u21BB");
-    propRefRefreshButton.addEventListener("click", refreshPropRefList);
-    const propRefCount = el("div", {}, el("strong", {}, "Live PropRefs: "), propRefCountNumber, " ", propRefRefreshButton);
-    const propRefList = el("ol", {});
-    let seenGeneration = -1;
-    setInterval(() => {
-      if (allPropRefs.generation !== seenGeneration) {
-        propRefCountNumber.replaceChildren(String(allPropRefs.sizeBound));
-        refreshPropRefList();
-        seenGeneration = allPropRefs.generation;
-      }
-    }, debugPullInterval);
-    const inspectButton = el("button", {}, "\u{1F50D}");
-    inspectButton.addEventListener("click", startInspectPick);
-    const inspectedName = el("span", {}, "(none)");
-    const inspectedPropList = el("ol", {});
-    const content = el("div", { padding: "1em", overflow: "auto" }, effectSummary, historySummary, inspectButton, " ", el("strong", {}, "Inspected node:"), " ", inspectedName, inspectedPropList, propRefCount, propRefList);
-    container.append(head, content);
-    document.body.append(container);
-    let xOffset = 0, yOffset = 0;
-    head.addEventListener("mousedown", (ev) => {
-      const rect = container.getBoundingClientRect();
-      xOffset = ev.x - rect.x;
-      yOffset = ev.y - rect.y;
-      window.addEventListener("mousemove", moveHandler);
-      document.body.addEventListener("mouseup", (ev2) => {
-        window.removeEventListener("mousemove", moveHandler);
-      }, { once: true });
-      ev.preventDefault();
-      function moveHandler(ev2) {
-        container.style.left = ev2.x - xOffset + "px";
-        container.style.top = ev2.y - yOffset + "px";
-      }
-    });
-  }
-}
-var getPropRefListItem2;
-var refreshPropRefList2;
-var startInspectPick2;
-var enableDebugMode2;
-var disableDebugMode2;
-var valueString2;
-var el2;
-var getNodeAndTextDependencies2;
-
 // out/proxy.js
 var mutatingArrayMethods = ["copyWithin", "fill", "pop", "push", "reverse", "shift", "sort", "splice", "unshift"];
 function isArrayLength(value) {
@@ -449,7 +237,12 @@ var LiveCollection = class {
 };
 
 // out/propref.js
-var allPropRefs = isDebugMode ? new LiveCollection() : null;
+var allPropRefs = new LiveCollection();
+function getAllPropRefs() {
+  if (!allPropRefs)
+    throw Error("Only allowed in debug mode");
+  return allPropRefs;
+}
 var PropReference = class {
   object;
   prop;
@@ -898,12 +691,249 @@ function track(model) {
   return defaultTracker.track(model);
 }
 
+// out/debug.js
+var debugModeKey = "mu:debugMode";
+var debugPullInterval = 250;
+var isDebugMode = "sessionStorage" in globalThis && !!sessionStorage.getItem(debugModeKey);
+if ("sessionStorage" in globalThis) {
+  let enableDebugMode = function() {
+    sessionStorage.setItem(debugModeKey, "true");
+    location.reload();
+  }, disableDebugMode = function() {
+    sessionStorage.removeItem(debugModeKey);
+    location.reload();
+  };
+  enableDebugMode2 = enableDebugMode, disableDebugMode2 = disableDebugMode;
+  Object.assign(window, { [Symbol.for("mutraction.debug")]: enableDebugMode });
+  if (["localhost", "127.0.0.1", "[::1]"].includes(location.hostname) && !isDebugMode) {
+    console.info(`[\xB5] Try the mutraction diagnostic tool.  This message is only shown from localhost, but the tool is always available.`);
+    console.info("\xBB window[Symbol.for('mutraction.debug')]()");
+  }
+  if (isDebugMode) {
+    let valueString = function(val) {
+      if (Array.isArray(val))
+        return `Array(${val.length})`;
+      if (typeof val === "object")
+        return "{ ... }";
+      return JSON.stringify(val);
+    }, el = function(tag, styles, ...nodes) {
+      const node = document.createElement(tag);
+      node.style.all = "revert";
+      Object.assign(node.style, styles);
+      node.append(...nodes);
+      return node;
+    }, getNodeAndTextDependencies = function(node) {
+      const textDeps = Array.from(node.childNodes).filter((n) => n instanceof Text).flatMap((n) => getNodeDependencies(n)).filter(Boolean).map((n) => n);
+      return (getNodeDependencies(node) ?? []).concat(...textDeps);
+    }, getPropRefListItem = function(propRef) {
+      const objPath = getAccessPath(propRef.object);
+      const fullPath = objPath ? objPath + "." + String(propRef.prop) : String(propRef.prop);
+      const value = propRef.current;
+      const serialized = valueString(value);
+      const editable = !value || typeof value !== "object";
+      const valueSpan = el("span", editable ? { cursor: "pointer", textDecoration: "underline" } : {}, serialized);
+      const subCount = propRef.subscribers.size;
+      const subCountMessage = `(${subCount} ${subCount === 1 ? "subscriber" : "subscribers"})`;
+      const li = el("li", {}, el("code", {}, fullPath), ": ", valueSpan, " ", subCountMessage);
+      if (editable)
+        valueSpan.addEventListener("click", () => {
+          const result = prompt(`Update ${String(propRef.prop)}`, serialized);
+          try {
+            if (result)
+              propRef.current = JSON.parse(result);
+            refreshPropRefList();
+          } catch {
+          }
+        });
+      return li;
+    }, refreshPropRefList = function() {
+      const propRefListItems = [];
+      for (const propRef of allPropRefs2) {
+        propRefListItems.push(getPropRefListItem(propRef));
+      }
+      propRefList.replaceChildren(...propRefListItems);
+    }, startInspectPick = function() {
+      inspectButton.disabled = true;
+      inspectButton.textContent = "\u2026";
+      inspectedName.textContent = "(choose)";
+      let inspectedElement;
+      let originalBoxShadow = "";
+      function moveHandler(ev) {
+        if (ev.target instanceof HTMLElement) {
+          let target = ev.target;
+          while (target && (getNodeAndTextDependencies(target)?.length ?? 0) === 0) {
+            target = target.parentElement;
+          }
+          if (target != inspectedElement) {
+            if (inspectedElement)
+              inspectedElement.style.boxShadow = originalBoxShadow;
+            originalBoxShadow = target?.style.boxShadow ?? "";
+            if (target) {
+              if (target.style.boxShadow)
+                target.style.boxShadow += ", inset #f0f4 0 99vmax";
+              else
+                target.style.boxShadow += "inset #f0f4 0 99vmax";
+            }
+            inspectedElement = target;
+          }
+        }
+        ev.stopPropagation();
+      }
+      document.addEventListener("mousemove", moveHandler, { capture: true });
+      document.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        ev.preventDefault();
+        inspectButton.disabled = false;
+        inspectButton.textContent = "\u{1F50D}";
+        document.removeEventListener("mousemove", moveHandler, { capture: true });
+        if (inspectedElement) {
+          inspectedElement.style.boxShadow = originalBoxShadow;
+          inspectedName.textContent = inspectedElement.tagName.toLowerCase();
+          const deps = getNodeAndTextDependencies(inspectedElement);
+          const trackedProps = new Set(deps.flatMap((d) => d.trackedProperties));
+          const trackedPropItems = [];
+          for (const propRef of trackedProps) {
+            trackedPropItems.push(getPropRefListItem(propRef));
+          }
+          inspectedPropList.replaceChildren(...trackedPropItems);
+        } else {
+          inspectedName.textContent = "(none)";
+          inspectedPropList.replaceChildren();
+        }
+      }, { capture: true, once: true });
+    };
+    valueString2 = valueString, el2 = el, getNodeAndTextDependencies2 = getNodeAndTextDependencies, getPropRefListItem2 = getPropRefListItem, refreshPropRefList2 = refreshPropRefList, startInspectPick2 = startInspectPick;
+    const container = el("div", {
+      position: "fixed",
+      top: "50px",
+      left: "50px",
+      width: "30em",
+      height: "20em",
+      resize: "both",
+      minHeight: "1.6em",
+      minWidth: "15em",
+      zIndex: "2147483647",
+      background: "#eee",
+      color: "#123",
+      boxShadow: "#000 0em 0.5em 1em",
+      border: "solid #345 0.4em",
+      fontSize: "16px",
+      display: "flex",
+      flexDirection: "column",
+      overflow: "auto"
+    });
+    const toggle = el("button", { marginRight: "1em" }, "_");
+    let minimized = false;
+    toggle.addEventListener("click", (ev) => {
+      if (minimized = !minimized) {
+        container.style.maxHeight = "1.6em";
+        container.style.maxWidth = "15em";
+      } else {
+        container.style.maxHeight = "";
+        container.style.maxWidth = "";
+      }
+    });
+    const closeButton = el("button", { float: "right" }, "\xD7");
+    closeButton.addEventListener("click", disableDebugMode);
+    const head = el("div", {
+      fontWeight: "bold",
+      background: "#123",
+      color: "#eee",
+      padding: "0.1em 1em",
+      cursor: "grab"
+    }, closeButton, toggle, "\u03BC diagnostics");
+    const effectCount = el("div", { whiteSpace: "pre" }, "0");
+    const effectSummary = el("p", {}, el("p", {}, el("strong", {}, "Active effects: "), effectCount));
+    let activeEffectsGeneration2 = -1;
+    setInterval(() => {
+      let { activeEffects: activeEffects2, generation } = getActiveEffects();
+      if (generation !== activeEffectsGeneration2) {
+        activeEffectsGeneration2 = generation;
+        effectCount.innerText = [...activeEffects2.entries()].map((e) => `${e[0]}\xD7${e[1]}`).join("\n");
+      }
+    }, debugPullInterval);
+    const undoButton = el("button", {}, "Undo");
+    const redoButton = el("button", {}, "Redo");
+    queueMicrotask(() => {
+      const { trackHistory } = defaultTracker.options;
+      if (!trackHistory)
+        undoButton.disabled = redoButton.disabled = true;
+    });
+    const historySummary = el("p", {}, el("strong", {}, "History: "), undoButton, redoButton);
+    undoButton.addEventListener("click", () => defaultTracker.undo());
+    redoButton.addEventListener("click", () => defaultTracker.redo());
+    const propRefCountNumber = el("span", {}, "0");
+    const allPropRefs2 = getAllPropRefs();
+    const propRefRefreshButton = el("button", {}, "\u21BB");
+    propRefRefreshButton.addEventListener("click", refreshPropRefList);
+    const propRefCount = el("div", {}, el("strong", {}, "Live PropRefs: "), propRefCountNumber, " ", propRefRefreshButton);
+    const propRefList = el("ol", {});
+    let seenGeneration = -1;
+    setInterval(() => {
+      if (allPropRefs2.generation !== seenGeneration) {
+        propRefCountNumber.replaceChildren(String(allPropRefs2.sizeBound));
+        refreshPropRefList();
+        seenGeneration = allPropRefs2.generation;
+      }
+    }, debugPullInterval);
+    const inspectButton = el("button", {}, "\u{1F50D}");
+    inspectButton.addEventListener("click", startInspectPick);
+    const inspectedName = el("span", {}, "(none)");
+    const inspectedPropList = el("ol", {});
+    const content = el("div", { padding: "1em", overflow: "auto" }, effectSummary, historySummary, inspectButton, " ", el("strong", {}, "Inspected node:"), " ", inspectedName, inspectedPropList, propRefCount, propRefList);
+    container.append(head, content);
+    document.body.append(container);
+    let xOffset = 0, yOffset = 0;
+    head.addEventListener("mousedown", (ev) => {
+      const rect = container.getBoundingClientRect();
+      xOffset = ev.x - rect.x;
+      yOffset = ev.y - rect.y;
+      window.addEventListener("mousemove", moveHandler);
+      document.body.addEventListener("mouseup", (ev2) => {
+        window.removeEventListener("mousemove", moveHandler);
+      }, { once: true });
+      ev.preventDefault();
+      function moveHandler(ev2) {
+        container.style.left = ev2.x - xOffset + "px";
+        container.style.top = ev2.y - yOffset + "px";
+      }
+    });
+  }
+}
+var valueString2;
+var el2;
+var getNodeAndTextDependencies2;
+var getPropRefListItem2;
+var refreshPropRefList2;
+var startInspectPick2;
+var enableDebugMode2;
+var disableDebugMode2;
+
 // out/effect.js
 var emptyEffect = { dispose: () => {
 } };
-var activeEffects = 0;
-function getActiveEffectCount() {
-  return activeEffects;
+var activeEffectsGeneration = 0;
+var activeEffects = /* @__PURE__ */ new Map();
+function recordActiveEffect(sideEffect) {
+  const name = sideEffect.name || "(anonymous)";
+  const current = activeEffects.get(name);
+  if (current)
+    activeEffects.set(name, current + 1);
+  else
+    activeEffects.set(name, 1);
+  ++activeEffectsGeneration;
+}
+function removeActiveEffect(sideEffect) {
+  const name = sideEffect.name || "(anonymous)";
+  const current = activeEffects.get(name);
+  if (!current || current <= 1)
+    activeEffects.delete(name);
+  else
+    activeEffects.set(name, current - 1);
+  ++activeEffectsGeneration;
+}
+function getActiveEffects() {
+  return { activeEffects, generation: activeEffectsGeneration };
 }
 function effect(sideEffect, options = {}) {
   const { tracker = defaultTracker, suppressUntrackedWarning = false } = options;
@@ -920,28 +950,31 @@ function effect(sideEffect, options = {}) {
     }
     return emptyEffect;
   }
-  ++activeEffects;
+  if (isDebugMode)
+    recordActiveEffect(sideEffect);
   let subscription = dep.subscribe(effectDependencyChanged);
   let disposed = false;
+  let changing = false;
   function effectDispose() {
     if (disposed)
       console.error("Effect already disposed");
     disposed = true;
     dep.untrackAll();
     subscription.dispose();
-    --activeEffects;
+    if (!changing && isDebugMode)
+      removeActiveEffect(sideEffect);
   }
   ;
   function effectDependencyChanged(trigger) {
     if (typeof lastResult === "function")
       lastResult();
+    changing = true;
     effectDispose();
-    disposed = false;
+    changing = disposed = false;
     dep = tracker.startDependencyTrack();
     lastResult = sideEffect(dep, trigger);
     dep.endDependencyTrack();
     subscription = dep.subscribe(effectDependencyChanged);
-    ++activeEffects;
   }
   return { dispose: effectDispose };
 }

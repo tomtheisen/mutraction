@@ -1,5 +1,5 @@
-import { getActiveEffectCount } from "./effect.js";
-import { PropReference, allPropRefs } from "./propref.js";
+import { getActiveEffects } from "./effect.js";
+import { PropReference, getAllPropRefs } from "./propref.js";
 import { getAccessPath } from "./proxy.js";
 import { getNodeDependencies } from "./runtime.js";
 import { defaultTracker } from "./tracker.js";
@@ -26,31 +26,31 @@ if ("sessionStorage" in globalThis) {
         location.reload();
     }
 
-    function valueString(val: unknown): string {
-        if (Array.isArray(val)) return `Array(${ val.length })`;
-        if (typeof val === "object") return "{ ... }";
-        return JSON.stringify(val);
-    }
-
-    function el<K extends keyof HTMLElementTagNameMap>(tag: K, styles: Partial<CSSStyleDeclaration>, ...nodes: (string | Node)[]): HTMLElementTagNameMap[K];
-    function el(tag: string, styles: Partial<CSSStyleDeclaration>, ...nodes: (string | Node)[]): HTMLElement {
-        const node = document.createElement(tag);
-        node.style.all = "revert";
-        Object.assign(node.style, styles);
-        node.append(...nodes);
-        return node;
-    }
-
-    function getNodeAndTextDependencies(node: HTMLElement) {
-        const textDeps = Array.from(node.childNodes)
-            .filter(n => n instanceof Text)
-            .flatMap(n => getNodeDependencies(n))
-            .filter(Boolean)
-            .map(n => n!);
-        return (getNodeDependencies(node) ?? []).concat(...textDeps);
-    }
-
     if (isDebugMode) {
+        function valueString(val: unknown): string {
+            if (Array.isArray(val)) return `Array(${ val.length })`;
+            if (typeof val === "object") return "{ ... }";
+            return JSON.stringify(val);
+        }
+    
+        function el<K extends keyof HTMLElementTagNameMap>(tag: K, styles: Partial<CSSStyleDeclaration>, ...nodes: (string | Node)[]): HTMLElementTagNameMap[K];
+        function el(tag: string, styles: Partial<CSSStyleDeclaration>, ...nodes: (string | Node)[]): HTMLElement {
+            const node = document.createElement(tag);
+            node.style.all = "revert";
+            Object.assign(node.style, styles);
+            node.append(...nodes);
+            return node;
+        }
+    
+        function getNodeAndTextDependencies(node: HTMLElement) {
+            const textDeps = Array.from(node.childNodes)
+                .filter(n => n instanceof Text)
+                .flatMap(n => getNodeDependencies(n))
+                .filter(Boolean)
+                .map(n => n!);
+            return (getNodeDependencies(node) ?? []).concat(...textDeps);
+        }
+
         function getPropRefListItem(propRef: PropReference) {
             const objPath = getAccessPath(propRef.object);
             const fullPath = objPath ? objPath + "." + String(propRef.prop) : String(propRef.prop);
@@ -122,10 +122,15 @@ if ("sessionStorage" in globalThis) {
             },
             closeButton, toggle, "μ diagnostics");
 
-        const effectCount = el("span", {}, "0");
+        const effectCount = el("div", { whiteSpace: "pre" }, "0");
         const effectSummary = el("p", {}, el("p", {}, el("strong", {}, "Active effects: "), effectCount));
+        let activeEffectsGeneration = -1;
         setInterval(() => {
-            effectCount.innerText = String(getActiveEffectCount());
+            let { activeEffects, generation } = getActiveEffects();
+            if (generation !== activeEffectsGeneration) {
+                activeEffectsGeneration = generation;
+                effectCount.innerText = [...activeEffects.entries()].map(e => `${e[0]}×${e[1]}`).join("\n");
+            }
         }, debugPullInterval);
 
         const undoButton = el("button", {}, "Undo");
@@ -145,9 +150,10 @@ if ("sessionStorage" in globalThis) {
         
         const propRefCountNumber = el("span", {}, "0");
 
+        const allPropRefs = getAllPropRefs();
         function refreshPropRefList() {
             const propRefListItems = [];
-            for (const propRef of allPropRefs!) {
+            for (const propRef of allPropRefs) {
                 propRefListItems.push(getPropRefListItem(propRef));
             }
             propRefList.replaceChildren(...propRefListItems);

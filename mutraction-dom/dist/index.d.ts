@@ -238,6 +238,7 @@ type EffectOptions = {
 	suppressUntrackedWarning?: boolean;
 	tracker?: Tracker;
 };
+type SideEffect = (dep: DependencyList, trigger?: PropReference) => (void | (() => void));
 /**
  * Runs a callback, and remembers the tracked properties accessed.
  * Any time one of them changes, it runs the callback again.
@@ -246,7 +247,7 @@ type EffectOptions = {
  * @param options
  * @returns a subscription that can be disposed to turn the effect off.
  */
-export declare function effect(sideEffect: (dep: DependencyList, trigger?: PropReference) => (void | (() => void)), options?: EffectOptions): Subscription;
+export declare function effect(sideEffect: SideEffect, options?: EffectOptions): Subscription;
 type Route = {
 	pattern: RegExp | string;
 	element: Node | ((match: RegExpExecArray) => Node);

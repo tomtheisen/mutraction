@@ -2,10 +2,13 @@ import { Key, Subscription } from "./types.js";
 import { ProxyOf } from "./symbols.js";
 import { isTracked } from "./proxy.js";
 import { DependencyList } from "./dependency.js";
-import { isDebugMode } from "./debug.js";
 import { LiveCollection } from "./liveCollection.js";
 
-export const allPropRefs = isDebugMode ? new LiveCollection<PropReference> : null;
+const allPropRefs = new LiveCollection<PropReference>;
+export function getAllPropRefs() {
+    if (!allPropRefs) throw Error("Only allowed in debug mode");
+    return allPropRefs;
+}
 
 /**
  * Represents a particular named property on a particular object.

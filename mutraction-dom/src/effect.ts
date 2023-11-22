@@ -1,3 +1,4 @@
+import { isDebugMode } from "./debug.js";
 import { DependencyList } from "./dependency.js";
 import { PropReference } from "./propref.js";
 import { Tracker, defaultTracker } from "./tracker.js";
@@ -10,11 +11,29 @@ type EffectOptions = {
     tracker?: Tracker;
 }
 
-let activeEffects = 0;
-export function getActiveEffectCount() {
-    return activeEffects;
+let activeEffectsGeneration = 0;
+const activeEffects = new Map<string, number>();
+function recordActiveEffect(sideEffect: SideEffect) {
+    const name = sideEffect.name || "(anonymous)";
+    const current = activeEffects.get(name);
+    if (current) activeEffects.set(name, current + 1);
+    else activeEffects.set(name, 1);
+    ++activeEffectsGeneration;
 }
 
+function removeActiveEffect(sideEffect: SideEffect) {
+    const name = sideEffect.name || "(anonymous)";
+    const current = activeEffects.get(name);
+    if (!current || current <= 1) activeEffects.delete(name);
+    else activeEffects.set(name, current - 1);
+    ++activeEffectsGeneration;
+}
+
+export function getActiveEffects() {
+    return { activeEffects, generation: activeEffectsGeneration };
+}
+
+type SideEffect = (dep: DependencyList, trigger?: PropReference) => (void | (() => void));
 /**
  * Runs a callback, and remembers the tracked properties accessed.
  * Any time one of them changes, it runs the callback again.
@@ -23,7 +42,7 @@ export function getActiveEffectCount() {
  * @param options 
  * @returns a subscription that can be disposed to turn the effect off.
  */
-export function effect(sideEffect: (dep: DependencyList, trigger?: PropReference) => (void | (() => void)), options: EffectOptions = {}): Subscription {
+export function effect(sideEffect: SideEffect, options: EffectOptions = {}): Subscription {
     const { tracker = defaultTracker, suppressUntrackedWarning = false } = options;
     let dep = tracker.startDependencyTrack();
 
@@ -42,31 +61,32 @@ export function effect(sideEffect: (dep: DependencyList, trigger?: PropReference
         return emptyEffect;
     }
 
-    ++activeEffects;
+    if (isDebugMode) recordActiveEffect(sideEffect);
     let subscription = dep.subscribe(effectDependencyChanged);
 
     // tear down old subscriptions
     let disposed = false;
+    let changing = false;
     function effectDispose() {
         if (disposed) console.error("Effect already disposed");
         disposed = true;
 
         dep.untrackAll();
         subscription.dispose();
-        --activeEffects;
+        if (!changing && isDebugMode) removeActiveEffect(sideEffect);
     };
 
     function effectDependencyChanged(trigger?: PropReference) {
         if (typeof lastResult === "function") lastResult(); // user cleanup
 
+        changing = true;
         effectDispose();
-        disposed = false;
+        changing = disposed = false;
         
         dep = tracker.startDependencyTrack();
         lastResult = sideEffect(dep, trigger);
         dep.endDependencyTrack();
         subscription = dep.subscribe(effectDependencyChanged);
-        ++activeEffects;
     }
 
     return { dispose: effectDispose };
