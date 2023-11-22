@@ -7,11 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.23.1] - 2023-11-21
+
 ### Changed
 
 - The active effect list in the diagnostic tool now groups effect callbacks by function name.
 
-## [0.23.0] - 2023-11-21
+## [0.23.0] - 2023-11-20
 
 ### Added
 
