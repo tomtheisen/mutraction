@@ -29,8 +29,8 @@ export function linkProxyToObject(obj: any, proxy: any) {
         enumerable: false,
         writable: true,
         configurable: false,
+        value: proxy,
     });
-    obj[ProxyOf] = proxy;
 }
 
 // Some types do not tolerate being proxied
@@ -48,6 +48,25 @@ export function canBeProxied(val: unknown): val is object {
 
     return true;
 }
+
+function maybeGetProxy<T>(value: any, tracker: Tracker): T | undefined {
+    if (!canBeProxied(value)) return undefined;
+    
+    const existingProxy = (value as any)[ProxyOf];
+    if (existingProxy) {
+        if (existingProxy[TrackerOf] !== tracker) {
+            throw Error("Object cannot be tracked by multiple tracker instances");
+        }
+        return existingProxy;
+    }
+    else {
+        const handler = makeProxyHandler(value, tracker);
+        const proxy = new Proxy(value, handler) as T;
+        linkProxyToObject(value, proxy);
+        return proxy;
+    }
+}
+
 
 export function getAccessPath(obj: Object): string | undefined {
     return (obj as any)[AccessPath];
@@ -74,21 +93,9 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
             setAccessPath(result, accessPath);
         }
 
-        if (canBeProxied(result)) {
-            const existingProxy = (result as any)[ProxyOf];
-            if (existingProxy) {
-                if (existingProxy[TrackerOf] !== tracker) {
-                    throw Error("Object cannot be tracked by multiple tracker instances");
-                }
-                result = existingProxy;
-            }
-            else {
-                const original = result;
-                const handler = makeProxyHandler(original, tracker);
-                result = target[name] = new Proxy(original, handler) as typeof target[TKey];
-                linkProxyToObject(original, result);
-            }
-        }
+        const maybeProxy = maybeGetProxy(result, tracker);
+        if (maybeProxy) result = target[name] = maybeProxy as any;
+
         if (typeof result === 'function' && tracker.options.autoTransactionalize && name !== "constructor") {
             const original = result as Function;
             function proxyWrapped() {
@@ -141,10 +148,7 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
             setAccessPath(newValue, accessPath);
         }
 
-        if (canBeProxied(newValue)) {
-            const handler = makeProxyHandler(newValue, tracker);
-            newValue = new Proxy(newValue, handler);
-        }
+        newValue = maybeGetProxy(newValue, tracker) ?? newValue;
 
         const mutation: SingleMutation = name in target
             ? { type: "change", target, name, oldValue: model[name], newValue, timestamp: new Date }
@@ -212,6 +216,55 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
     if (Array.isArray(model)) {
         set = setArray;
         if (tracker.options.trackHistory) get = getArrayTransactionShim;
+    }
+    else if (model instanceof Set) {
+        const itemsSymbol = Symbol("items");
+
+        get = function getFromSet(target: TModel, name: TKey, receiver: TModel): any {
+            if (!(target instanceof Set)) throw Error("Expected Set target in proxy.");
+            const itemsPropRef = createOrRetrievePropRef(target, itemsSymbol);
+            switch (name) {
+                case "size": 
+                    tracker[RecordDependency](createOrRetrievePropRef(target, "size"));
+                    return model.size;
+
+                case "has":
+                case "entries":
+                case "keys":
+                case "values":
+                case "forEach":
+                case Symbol.iterator:
+                    return function has(value: any) {
+                        tracker[RecordDependency](itemsPropRef);
+                        return (target as any)[name](value);
+                    };
+
+                case "add": 
+                    return function add(value: any) {
+                        if (target.has(value)) return;
+                        target.add(value);
+                        tracker[RecordMutation]({type: "setadd", name: itemsSymbol, target, timestamp: new Date, newValue: value});
+                    };
+
+                case "delete":
+                    return function delete$(value: any) {
+                        if (!target.has(value)) return;
+                        target.delete(value);
+                        tracker[RecordMutation]({type: "setdelete", name: itemsSymbol, target, timestamp: new Date, oldValue: value});
+                    };
+
+                case "clear":
+                    return function clear() {
+                        if (target.size === 0) return;
+                        const oldValues = Array.from(target.values());
+                        target.clear();
+                        tracker[RecordMutation]({type: "setclear", name: itemsSymbol, target, timestamp: new Date, oldValues });
+                    };
+
+                default: return getOrdinary(target, name, receiver);
+            }
+    
+        };
     }
     
     if (isArguments(model)) throw Error('Tracking of exotic arguments objects not supported');

@@ -199,6 +199,9 @@ export class Tracker {
                 case 'create': delete targetAny[mutation.name]; break;
                 case 'arrayextend': targetAny.length = mutation.oldLength; break;
                 case 'arrayshorten': targetAny.push(...mutation.removed); break;
+                case 'setadd': targetAny.delete(mutation.newValue); break;
+                case 'setdelete': targetAny.add(mutation.oldValue); break;
+                case 'setclear': mutation.oldValues.forEach(targetAny.add.bind(targetAny)); break;
                 default: mutation satisfies never;
             }
             if (!this.#transaction) {
@@ -236,6 +239,9 @@ export class Tracker {
                 case 'delete': delete targetAny[mutation.name]; break;
                 case 'arrayextend': targetAny[mutation.newIndex] = mutation.newValue; break;
                 case 'arrayshorten': targetAny.length = mutation.newLength; break;
+                case 'setadd': targetAny.add(mutation.newValue); break;
+                case 'setdelete': targetAny.delete(mutation.oldValue); break;
+                case 'setclear': targetAny.clear(); break;
                 default: mutation satisfies never;
             }
             if (!this.#transaction) {
@@ -281,6 +287,9 @@ export class Tracker {
             createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
             if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
                 createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
+            }
+            if (mutation.type.startsWith("set")) {
+                createOrRetrievePropRef(mutation.target, "size").notifySubscribers();
             }
             this.#historyPropRef?.notifySubscribers();
         }
