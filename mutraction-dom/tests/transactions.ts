@@ -1,6 +1,7 @@
 import { track, defaultTracker as tracker, effect, Tracker, defaultTracker, createOrRetrievePropRef } from '../src/index.js';
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
+import { Transaction } from '../src/types.js';
 
 test('basic transaction works', () => {
     const model = track({foo: "bar"});
@@ -158,6 +159,39 @@ test('transaction without history', () => {
 
     assert.equal(model.x, 3);
 });
+
+test('set transaction collapsing', () => {
+    const tr = new Tracker;
+    const model = tr.track(new Set([1]));
+
+    tr.startTransaction();
+    model.add(3);
+    model.add(5);
+    model.delete(5);
+    model.delete(3);
+    tr.commit();
+
+    console.log();
+    assert.equal(model, new Set([1]));
+    assert.equal(tr.history[0].type, "transaction");
+    assert.equal((tr.history[0] as Transaction).operations.length, 0);
+});
+
+test('map transaction collapsing', () => {
+    const tr = new Tracker;
+    const model = tr.track(new Map<string, string>);
+
+    tr.startTransaction();
+    model.set("a", "b");
+    model.set("a", "c");
+    model.delete("a");
+    tr.commit();
+
+    assert.equal(model, new Map);
+    assert.equal(tr.history[0].type, "transaction");
+    assert.equal((tr.history[0] as Transaction).operations.length, 0);
+});
+
 
 test.run();
 

@@ -38,6 +38,30 @@ export function compactTransaction({ operations }: Transaction): void {
             else if (prevOp.type === "delete" && currOp.type === "create") {
                 operations.splice(--i, 2, { ...currOp, ...prevOp, type: "change" });
             }
+
+            else if (prevOp.type === "setadd" && currOp.type === "setdelete" && Object.is(prevOp.newValue, currOp.oldValue)) {
+                operations.splice(--i, 2); // together it's a no-op
+            }
+            else if (prevOp.type === "setdelete" && currOp.type === "setadd" && Object.is(prevOp.oldValue, currOp.newValue)) {
+                operations.splice(--i, 2); // together it's a no-op
+            }
+
+            else if (prevOp.type === "mapcreate" && currOp.type === "mapchange" && prevOp.key === currOp.key) {
+                operations.splice(--i, 2, { ...prevOp, newValue: currOp.newValue });
+            }
+            else if (prevOp.type === "mapcreate" && currOp.type === "mapdelete" && prevOp.key === currOp.key) {
+                operations.splice(--i, 2); // together it's a no-op
+            }
+            else if (prevOp.type === "mapchange" && currOp.type === "mapchange" && prevOp.key === currOp.key) {
+                operations.splice(--i, 2, { ...currOp, newValue: currOp.newValue });
+            }
+            else if (prevOp.type === "mapchange" && currOp.type === "mapdelete" && prevOp.key === currOp.key) {
+                operations.splice(--i, 2, { ...currOp, oldValue: prevOp.oldValue });
+            }
+            else if (prevOp.type === "mapdelete" && currOp.type === "mapcreate" && prevOp.key === currOp.key) {
+                operations.splice(--i, 2, { ...currOp, ...prevOp, type: "mapchange" });
+            }
+
             else ++i;
         }
         else ++i;
