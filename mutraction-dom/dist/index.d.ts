@@ -19,6 +19,43 @@ type ChangeProperty = BaseSingleMutation & {
 	oldValue: any;
 	newValue: any;
 };
+type SetAdd = BaseSingleMutation & {
+	type: "setadd";
+	newValue: any;
+};
+type SetDelete = BaseSingleMutation & {
+	type: "setdelete";
+	oldValue: any;
+};
+type SetClear = BaseSingleMutation & {
+	type: "setclear";
+	oldValues: any[];
+};
+type SetMutation = SetAdd | SetDelete | SetClear;
+type MapCreate = BaseSingleMutation & {
+	type: "mapcreate";
+	key: any;
+	newValue: any;
+};
+type MapChange = BaseSingleMutation & {
+	type: "mapchange";
+	key: any;
+	oldValue: any;
+	newValue: any;
+};
+type MapDelete = BaseSingleMutation & {
+	type: "mapdelete";
+	key: any;
+	oldValue: any;
+};
+type MapClear = BaseSingleMutation & {
+	type: "mapclear";
+	oldEntries: [
+		key: any,
+		value: any
+	][];
+};
+type MapMutation = MapCreate | MapChange | MapDelete | MapClear;
 type ArrayExtend = BaseSingleMutation & {
 	type: "arrayextend";
 	oldLength: number;
@@ -31,9 +68,10 @@ type ArrayShorten = BaseSingleMutation & {
 	newLength: number;
 	removed: ReadonlyArray<any>;
 };
+type ArrayMutation = ArrayExtend | ArrayShorten;
 type SingleMutation = {
 	targetPath?: string;
-} & (CreateProperty | DeleteProperty | ChangeProperty | ArrayExtend | ArrayShorten);
+} & (CreateProperty | DeleteProperty | ChangeProperty | ArrayMutation | SetMutation | MapMutation);
 type Transaction = {
 	type: "transaction";
 	transactionName?: string;

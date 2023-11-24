@@ -3,7 +3,7 @@ import { DependencyList } from "./dependency.js";
 import { compactTransaction } from "./compactTransaction.js";
 import type { Mutation, ReadonlyDeep, SingleMutation, Transaction } from "./types.js";
 import { PropReference, createOrRetrievePropRef } from "./propref.js";
-import { canBeProxied, getAccessPath, getExistingProxy, isTracked, linkProxyToObject, makeProxyHandler } from "./proxy.js";
+import { getAccessPath, isTracked, linkProxyToObject, makeProxyHandler, prepareForTracking } from "./proxy.js";
 import { isDebugMode } from "./debug.js";
 
 const defaultTrackerOptions = {
@@ -13,24 +13,6 @@ const defaultTrackerOptions = {
 };
 
 export type TrackerOptions = Partial<typeof defaultTrackerOptions>;
-
-function prepareForTracking(value: any, tracker: Tracker) {
-    if (value instanceof Set) {
-        const snap = Array.from(value);
-
-        for (const e of snap) {
-            const proxy = getExistingProxy(e);
-            if (proxy) {
-                value.delete(e);
-                value.add(proxy);
-            }
-            else if (canBeProxied(e)) {
-                value.delete(e);
-                value.add(tracker.track(e))
-            }
-        };
-    }
-}
 
 /**
  * Oversees object mutations and allows history manipulation.
@@ -215,11 +197,19 @@ export class Tracker {
                 case 'change':
                 case 'delete': targetAny[mutation.name] = mutation.oldValue; break;
                 case 'create': delete targetAny[mutation.name]; break;
+
                 case 'arrayextend': targetAny.length = mutation.oldLength; break;
                 case 'arrayshorten': targetAny.push(...mutation.removed); break;
+                
                 case 'setadd': targetAny.delete(mutation.newValue); break;
                 case 'setdelete': targetAny.add(mutation.oldValue); break;
                 case 'setclear': mutation.oldValues.forEach(targetAny.add.bind(targetAny)); break;
+                
+                case 'mapcreate': targetAny.delete(mutation.key); break;
+                case 'mapchange': 
+                case 'mapdelete': targetAny.set(mutation.key, mutation.oldValue); break;
+                case 'mapclear': mutation.oldEntries.forEach(([k, v]) => targetAny.set(k, v)); break;
+
                 default: mutation satisfies never;
             }
             if (!this.#transaction) {
@@ -255,11 +245,19 @@ export class Tracker {
                 case 'change':
                 case 'create': targetAny[mutation.name] = mutation.newValue; break;
                 case 'delete': delete targetAny[mutation.name]; break;
+
                 case 'arrayextend': targetAny[mutation.newIndex] = mutation.newValue; break;
                 case 'arrayshorten': targetAny.length = mutation.newLength; break;
+                
                 case 'setadd': targetAny.add(mutation.newValue); break;
                 case 'setdelete': targetAny.delete(mutation.oldValue); break;
                 case 'setclear': targetAny.clear(); break;
+                
+                case 'mapcreate':
+                case 'mapchange': targetAny.set(mutation.key, mutation.newValue); break;
+                case 'mapdelete': targetAny.delete(mutation.key); break;
+                case 'mapclear': targetAny.clear(); break;
+
                 default: mutation satisfies never;
             }
             if (!this.#transaction) {

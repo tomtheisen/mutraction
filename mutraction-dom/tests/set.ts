@@ -85,5 +85,4 @@ test('set addition track', () => {
     assert.ok(model.vals.has(member));
 });
 
-
 test.run();

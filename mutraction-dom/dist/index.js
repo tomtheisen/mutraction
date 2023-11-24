@@ -5,6 +5,7 @@ var ProxyOf = Symbol("ProxyOf");
 var RecordDependency = Symbol("RecordDependency");
 var GetOriginal = Symbol("GetOriginal");
 var AccessPath = Symbol("AccessPath");
+var ItemsSymbol = Symbol("items");
 
 // out/proxy.js
 var mutatingArrayMethods = ["copyWithin", "fill", "pop", "push", "reverse", "shift", "sort", "splice", "unshift"];
@@ -27,9 +28,12 @@ function linkProxyToObject(obj, proxy) {
   Object.defineProperty(obj, ProxyOf, {
     enumerable: false,
     writable: true,
-    configurable: false
+    configurable: false,
+    value: proxy
   });
-  obj[ProxyOf] = proxy;
+}
+function getExistingProxy(value) {
+  return value[ProxyOf];
 }
 var unproxyableConstructors = /* @__PURE__ */ new Set([RegExp, Promise]);
 if ("window" in globalThis)
@@ -47,13 +51,191 @@ function canBeProxied(val) {
     return false;
   return true;
 }
+function maybeGetProxy(value, tracker) {
+  if (typeof value !== "object" || !value)
+    return void 0;
+  if (isTracked(value))
+    return value;
+  const existingProxy = getExistingProxy(value);
+  if (existingProxy) {
+    if (existingProxy[TrackerOf] !== tracker) {
+      throw Error("Object cannot be tracked by multiple tracker instances");
+    }
+    return existingProxy;
+  }
+  if (canBeProxied(value))
+    return tracker.track(value);
+}
 function getAccessPath(obj) {
   return obj[AccessPath];
 }
-function setAccessPath(obj, path) {
-  Object.assign(obj, { [AccessPath]: path });
+function setAccessPath(obj, parentPath, leafSegment) {
+  const fullPath = parentPath ? parentPath + "." + String(leafSegment) : String(leafSegment);
+  Object.assign(obj, { [AccessPath]: fullPath });
+}
+function assertSafeMapKey(key) {
+  if (key && typeof key === "object" && !Object.isFrozen(key)) {
+    throw Error("In order to apply tracking proxy, Map keys must be immutable or frozen.");
+  }
+}
+function prepareForTracking(value, tracker) {
+  if (value instanceof Set) {
+    const snap = Array.from(value);
+    for (const e of snap) {
+      const proxy = getExistingProxy(e);
+      if (proxy) {
+        value.delete(e);
+        value.add(proxy);
+      } else if (canBeProxied(e)) {
+        value.delete(e);
+        value.add(tracker.track(e));
+      }
+    }
+    ;
+  } else if (value instanceof Map) {
+    const snap = Array.from(value);
+    for (const [k, v] of snap) {
+      assertSafeMapKey(k);
+      const proxy = getExistingProxy(v);
+      if (proxy)
+        value.set(k, proxy);
+      else if (canBeProxied(v))
+        value.set(k, tracker.track(v));
+    }
+  }
+}
+function getSetProxyHandler(tracker) {
+  return {
+    get(target, name, receiver) {
+      if (!(target instanceof Set))
+        throw Error("Expected Set target in proxy.");
+      const itemsPropRef = createOrRetrievePropRef(target, ItemsSymbol);
+      switch (name) {
+        case TrackerOf:
+          return tracker;
+        case GetOriginal:
+          return target;
+        case "size":
+          tracker[RecordDependency](itemsPropRef);
+          return target.size;
+        case "has":
+        case "entries":
+        case "keys":
+        case "values":
+        case "forEach":
+        case Symbol.iterator:
+          return function setProxy() {
+            tracker[RecordDependency](itemsPropRef);
+            return target[name](...arguments);
+          };
+        case "add":
+          return function add(value) {
+            value = maybeGetProxy(value, tracker) ?? value;
+            setAccessPath(value, getAccessPath(target), "\u2203");
+            if (target.has(value))
+              return;
+            const result = target.add(value);
+            tracker[RecordMutation]({ type: "setadd", name: ItemsSymbol, target, timestamp: /* @__PURE__ */ new Date(), newValue: value });
+            return result;
+          };
+        case "delete":
+          return function delete$(value) {
+            value = maybeGetProxy(value, tracker) ?? value;
+            if (!target.has(value))
+              return;
+            const result = target.delete(value);
+            tracker[RecordMutation]({ type: "setdelete", name: ItemsSymbol, target, timestamp: /* @__PURE__ */ new Date(), oldValue: value });
+            return result;
+          };
+        case "clear":
+          return function clear() {
+            if (target.size === 0)
+              return;
+            const oldValues = Array.from(target.values());
+            target.clear();
+            tracker[RecordMutation]({ type: "setclear", name: ItemsSymbol, target, timestamp: /* @__PURE__ */ new Date(), oldValues });
+          };
+        default:
+          return Reflect.get(target, name, receiver);
+      }
+    }
+  };
+}
+function getMapProxyHandler(tracker) {
+  return {
+    get(target, name, receiver) {
+      if (!(target instanceof Map))
+        throw Error("Expected Map target in proxy.");
+      const itemsPropRef = createOrRetrievePropRef(target, ItemsSymbol);
+      switch (name) {
+        case TrackerOf:
+          return tracker;
+        case GetOriginal:
+          return target;
+        case "size":
+          tracker[RecordDependency](itemsPropRef);
+          return target.size;
+        case "has":
+        case "keys":
+        case "values":
+        case "entries":
+        case Symbol.iterator:
+          return function mapProxy() {
+            tracker[RecordDependency](itemsPropRef);
+            return target[name](...arguments);
+          };
+        case "get":
+          return function get(key) {
+            tracker[RecordDependency](itemsPropRef);
+            const result = target.get(key);
+            if (typeof result === "object" && result && isTracked(result)) {
+              setAccessPath(result, getAccessPath(target), `get(${key})`);
+            }
+            return result;
+          };
+        case "set":
+          return function set(key, val) {
+            assertSafeMapKey(key);
+            const isChange = target.has(key);
+            const oldValue = isChange && target.get(key);
+            const proxy = maybeGetProxy(val, tracker);
+            if (proxy) {
+              setAccessPath(proxy, getAccessPath(target), `get(${key})`);
+            }
+            target.set(key, val = proxy ?? val);
+            const mutation = isChange ? { target, name: ItemsSymbol, timestamp: /* @__PURE__ */ new Date(), type: "mapchange", key, newValue: val, oldValue } : { target, name: ItemsSymbol, timestamp: /* @__PURE__ */ new Date(), type: "mapcreate", key, newValue: val };
+            tracker[RecordMutation](mutation);
+            return receiver;
+          };
+        case "delete":
+          return function delete$(key) {
+            const oldValue = target.get(key);
+            if (!target.delete(key))
+              return false;
+            const mutation = { target, name: ItemsSymbol, timestamp: /* @__PURE__ */ new Date(), type: "mapdelete", key, oldValue };
+            tracker[RecordMutation](mutation);
+            return true;
+          };
+        case "clear":
+          return function clear() {
+            const oldEntries = Array.from(target.entries());
+            target.clear();
+            const mutation = { target, name: ItemsSymbol, timestamp: /* @__PURE__ */ new Date(), type: "mapclear", oldEntries };
+            tracker[RecordMutation](mutation);
+          };
+        default:
+          return Reflect.get(target, name, receiver);
+      }
+    }
+  };
 }
 function makeProxyHandler(model, tracker) {
+  if (!canBeProxied(model))
+    throw Error("This object type cannot be proxied");
+  if (model instanceof Set)
+    return getSetProxyHandler(tracker);
+  if (model instanceof Map)
+    return getMapProxyHandler(tracker);
   function getOrdinary(target, name, receiver) {
     if (name === TrackerOf)
       return tracker;
@@ -64,25 +246,12 @@ function makeProxyHandler(model, tracker) {
     tracker[RecordDependency](createOrRetrievePropRef(target, name));
     let result = Reflect.get(target, name, receiver);
     if (result && typeof result === "object" && isDebugMode) {
-      const start = getAccessPath(target);
-      const accessPath = start ? start + "." + String(name) : String(name);
-      setAccessPath(result, accessPath);
+      setAccessPath(result, getAccessPath(target), name);
     }
-    if (canBeProxied(result)) {
-      const existingProxy = result[ProxyOf];
-      if (existingProxy) {
-        if (existingProxy[TrackerOf] !== tracker) {
-          throw Error("Object cannot be tracked by multiple tracker instances");
-        }
-        result = existingProxy;
-      } else {
-        const original = result;
-        const handler = makeProxyHandler(original, tracker);
-        result = target[name] = new Proxy(original, handler);
-        linkProxyToObject(original, result);
-      }
-    }
-    if (typeof result === "function" && tracker.options.autoTransactionalize && name !== "constructor") {
+    const maybeProxy = maybeGetProxy(result, tracker);
+    if (maybeProxy) {
+      result = target[name] = maybeProxy;
+    } else if (typeof result === "function" && tracker.options.autoTransactionalize && name !== "constructor") {
       let proxyWrapped2 = function() {
         const autoTransaction = tracker.startTransaction(original.name ?? "auto");
         try {
@@ -122,13 +291,9 @@ function makeProxyHandler(model, tracker) {
       return Reflect.set(target, AccessPath, newValue);
     }
     if (newValue && typeof newValue === "object" && isDebugMode) {
-      const accessPath = (getAccessPath(target) ?? "~") + "." + String(name);
-      setAccessPath(newValue, accessPath);
+      setAccessPath(newValue, getAccessPath(target), name);
     }
-    if (canBeProxied(newValue)) {
-      const handler = makeProxyHandler(newValue, tracker);
-      newValue = new Proxy(newValue, handler);
-    }
+    newValue = maybeGetProxy(newValue, tracker) ?? newValue;
     const mutation = name in target ? { type: "change", target, name, oldValue: model[name], newValue, timestamp: /* @__PURE__ */ new Date() } : { type: "create", target, name, newValue, timestamp: /* @__PURE__ */ new Date() };
     const initialSets = setsCompleted;
     const wasSet = Reflect.set(target, name, newValue, receiver);
@@ -420,8 +585,7 @@ var Tracker = class {
     if (isTracked(model))
       throw Error("Object already tracked");
     this.#inUse = true;
-    if (!canBeProxied)
-      throw Error("This object type cannot be proxied");
+    prepareForTracking(model, this);
     const proxied = new Proxy(model, makeProxyHandler(model, this));
     linkProxyToObject(model, proxied);
     return proxied;
@@ -538,6 +702,25 @@ var Tracker = class {
         case "arrayshorten":
           targetAny.push(...mutation.removed);
           break;
+        case "setadd":
+          targetAny.delete(mutation.newValue);
+          break;
+        case "setdelete":
+          targetAny.add(mutation.oldValue);
+          break;
+        case "setclear":
+          mutation.oldValues.forEach(targetAny.add.bind(targetAny));
+          break;
+        case "mapcreate":
+          targetAny.delete(mutation.key);
+          break;
+        case "mapchange":
+        case "mapdelete":
+          targetAny.set(mutation.key, mutation.oldValue);
+          break;
+        case "mapclear":
+          mutation.oldEntries.forEach(([k, v]) => targetAny.set(k, v));
+          break;
         default:
           mutation;
       }
@@ -581,6 +764,25 @@ var Tracker = class {
           break;
         case "arrayshorten":
           targetAny.length = mutation.newLength;
+          break;
+        case "setadd":
+          targetAny.add(mutation.newValue);
+          break;
+        case "setdelete":
+          targetAny.delete(mutation.oldValue);
+          break;
+        case "setclear":
+          targetAny.clear();
+          break;
+        case "mapcreate":
+        case "mapchange":
+          targetAny.set(mutation.key, mutation.newValue);
+          break;
+        case "mapdelete":
+          targetAny.delete(mutation.key);
+          break;
+        case "mapclear":
+          targetAny.clear();
           break;
         default:
           mutation;
