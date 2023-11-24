@@ -1,9 +1,9 @@
-import { ProxyOf, RecordDependency, RecordMutation, TrackerOf } from "./symbols.js";
+import { RecordDependency, RecordMutation } from "./symbols.js";
 import { DependencyList } from "./dependency.js";
 import { compactTransaction } from "./compactTransaction.js";
 import type { Mutation, ReadonlyDeep, SingleMutation, Transaction } from "./types.js";
 import { PropReference, createOrRetrievePropRef } from "./propref.js";
-import { canBeProxied, getAccessPath, isTracked, linkProxyToObject, makeProxyHandler } from "./proxy.js";
+import { canBeProxied, getAccessPath, getExistingProxy, isTracked, linkProxyToObject, makeProxyHandler } from "./proxy.js";
 import { isDebugMode } from "./debug.js";
 
 const defaultTrackerOptions = {
@@ -13,6 +13,24 @@ const defaultTrackerOptions = {
 };
 
 export type TrackerOptions = Partial<typeof defaultTrackerOptions>;
+
+function prepareForTracking(value: any, tracker: Tracker) {
+    if (value instanceof Set) {
+        const snap = Array.from(value);
+
+        for (const e of snap) {
+            const proxy = getExistingProxy(e);
+            if (proxy) {
+                value.delete(e);
+                value.add(proxy);
+            }
+            else if (canBeProxied(e)) {
+                value.delete(e);
+                value.add(tracker.track(e))
+            }
+        };
+    }
+}
 
 /**
  * Oversees object mutations and allows history manipulation.
@@ -70,7 +88,7 @@ export class Tracker {
     track<TModel extends object>(model: TModel): TModel {
         if (isTracked(model)) throw Error('Object already tracked');
         this.#inUse = true;
-        if (!canBeProxied) throw Error("This object type cannot be proxied");
+        prepareForTracking(model, this);
         const proxied = new Proxy(model, makeProxyHandler(model, this));
         linkProxyToObject(model, proxied);
         return proxied;
@@ -287,9 +305,6 @@ export class Tracker {
             createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
             if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
                 createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
-            }
-            if (mutation.type.startsWith("set")) {
-                createOrRetrievePropRef(mutation.target, "size").notifySubscribers();
             }
             this.#historyPropRef?.notifySubscribers();
         }

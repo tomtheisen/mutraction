@@ -47,6 +47,43 @@ test('set clear undo', () => {
 
     defaultTracker.undo();
     assert.equal(model, new Set<number>([66, 77]));
-})
+});
+
+test('set member track', () => {
+    const model = track(new Set([{ current: "original" }]));
+
+    const [member] = [...model.values()];
+
+    assert.equal(member, {current: "original"});
+
+    member.current = "changed"
+    assert.equal(member, {current: "changed"});
+
+    defaultTracker.undo();
+    assert.equal(member, {current: "original"});
+
+    assert.ok(model.has(member));
+});
+
+test('set addition track', () => {
+    const model = track({
+        vals: new Set<{ current: string }>,
+        val: "",
+    });
+    model.vals.add({ current: "original" });
+
+    const [member] = [...model.vals.values()];
+
+    assert.equal(member, {current: "original"});
+
+    member.current = "changed"
+    assert.equal(member, {current: "changed"});
+
+    defaultTracker.undo();
+    assert.equal(member, {current: "original"});
+
+    assert.ok(model.vals.has(member));
+});
+
 
 test.run();
