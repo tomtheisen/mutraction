@@ -7,103 +7,7 @@ var GetOriginal = Symbol("GetOriginal");
 var AccessPath = Symbol("AccessPath");
 var ItemsSymbol = Symbol("items");
 
-// out/proxy.js
-var mutatingArrayMethods = ["copyWithin", "fill", "pop", "push", "reverse", "shift", "sort", "splice", "unshift"];
-function isArrayLength(value) {
-  if (typeof value === "string")
-    return isArrayIndex(value);
-  return typeof value === "number" && (value & 2147483647) === value;
-}
-function isArrayIndex(name) {
-  if (typeof name !== "string")
-    return false;
-  if (!/^\d{1,10}$/.test(name))
-    return false;
-  return parseInt(name, 10) < 2147483647;
-}
-function isArguments(item) {
-  return Object.prototype.toString.call(item) === "[object Arguments]";
-}
-function linkProxyToObject(obj, proxy) {
-  Object.defineProperty(obj, ProxyOf, {
-    enumerable: false,
-    writable: true,
-    configurable: false,
-    value: proxy
-  });
-}
-function getExistingProxy(value) {
-  return value[ProxyOf];
-}
-var unproxyableConstructors = /* @__PURE__ */ new Set([RegExp, Promise]);
-if ("window" in globalThis)
-  unproxyableConstructors.add(globalThis.window.constructor);
-function canBeProxied(val) {
-  if (val == null)
-    return false;
-  if (typeof val !== "object")
-    return false;
-  if (isTracked(val))
-    return false;
-  if (!Object.isExtensible(val))
-    return false;
-  if (unproxyableConstructors.has(val.constructor))
-    return false;
-  return true;
-}
-function maybeGetProxy(value, tracker) {
-  if (typeof value !== "object" || !value)
-    return void 0;
-  if (isTracked(value))
-    return value;
-  const existingProxy = getExistingProxy(value);
-  if (existingProxy) {
-    if (existingProxy[TrackerOf] !== tracker) {
-      throw Error("Object cannot be tracked by multiple tracker instances");
-    }
-    return existingProxy;
-  }
-  if (canBeProxied(value))
-    return tracker.track(value);
-}
-function getAccessPath(obj) {
-  return obj[AccessPath];
-}
-function setAccessPath(obj, parentPath, leafSegment) {
-  const fullPath = parentPath ? parentPath + "." + String(leafSegment) : String(leafSegment);
-  Object.assign(obj, { [AccessPath]: fullPath });
-}
-function assertSafeMapKey(key) {
-  if (key && typeof key === "object" && !Object.isFrozen(key)) {
-    throw Error("In order to apply tracking proxy, Map keys must be immutable or frozen.");
-  }
-}
-function prepareForTracking(value, tracker) {
-  if (value instanceof Set) {
-    const snap = Array.from(value);
-    for (const e of snap) {
-      const proxy = getExistingProxy(e);
-      if (proxy) {
-        value.delete(e);
-        value.add(proxy);
-      } else if (canBeProxied(e)) {
-        value.delete(e);
-        value.add(tracker.track(e));
-      }
-    }
-    ;
-  } else if (value instanceof Map) {
-    const snap = Array.from(value);
-    for (const [k, v] of snap) {
-      assertSafeMapKey(k);
-      const proxy = getExistingProxy(v);
-      if (proxy)
-        value.set(k, proxy);
-      else if (canBeProxied(v))
-        value.set(k, tracker.track(v));
-    }
-  }
-}
+// out/proxy.set.js
 function getSetProxyHandler(tracker) {
   return {
     get(target, name, receiver) {
@@ -161,6 +65,8 @@ function getSetProxyHandler(tracker) {
     }
   };
 }
+
+// out/proxy.map.js
 function getMapProxyHandler(tracker) {
   return {
     get(target, name, receiver) {
@@ -228,6 +134,78 @@ function getMapProxyHandler(tracker) {
       }
     }
   };
+}
+function assertSafeMapKey(key) {
+  if (key && typeof key === "object" && !Object.isFrozen(key)) {
+    throw Error("In order to apply tracking proxy, Map keys must be immutable or frozen.");
+  }
+}
+
+// out/proxy.js
+var mutatingArrayMethods = ["copyWithin", "fill", "pop", "push", "reverse", "shift", "sort", "splice", "unshift"];
+function isArrayLength(value) {
+  if (typeof value === "string")
+    return isArrayIndex(value);
+  return typeof value === "number" && (value & 2147483647) === value;
+}
+function isArrayIndex(name) {
+  if (typeof name !== "string")
+    return false;
+  if (!/^\d{1,10}$/.test(name))
+    return false;
+  return parseInt(name, 10) < 2147483647;
+}
+function isArguments(item) {
+  return Object.prototype.toString.call(item) === "[object Arguments]";
+}
+function linkProxyToObject(obj, proxy) {
+  Object.defineProperty(obj, ProxyOf, {
+    enumerable: false,
+    writable: true,
+    configurable: false,
+    value: proxy
+  });
+}
+function getExistingProxy(value) {
+  return value[ProxyOf];
+}
+var unproxyableConstructors = /* @__PURE__ */ new Set([RegExp, Promise]);
+if ("window" in globalThis)
+  unproxyableConstructors.add(globalThis.window.constructor);
+function canBeProxied(val) {
+  if (val == null)
+    return false;
+  if (typeof val !== "object")
+    return false;
+  if (isTracked(val))
+    return false;
+  if (!Object.isExtensible(val))
+    return false;
+  if (unproxyableConstructors.has(val.constructor))
+    return false;
+  return true;
+}
+function maybeGetProxy(value, tracker) {
+  if (typeof value !== "object" || !value)
+    return void 0;
+  if (isTracked(value))
+    return value;
+  const existingProxy = getExistingProxy(value);
+  if (existingProxy) {
+    if (existingProxy[TrackerOf] !== tracker) {
+      throw Error("Object cannot be tracked by multiple tracker instances");
+    }
+    return existingProxy;
+  }
+  if (canBeProxied(value))
+    return tracker.track(value);
+}
+function getAccessPath(obj) {
+  return obj[AccessPath];
+}
+function setAccessPath(obj, parentPath, leafSegment) {
+  const fullPath = parentPath ? parentPath + "." + String(leafSegment) : String(leafSegment);
+  Object.assign(obj, { [AccessPath]: fullPath });
 }
 function makeProxyHandler(model, tracker) {
   if (!canBeProxied(model))
@@ -530,6 +508,20 @@ function compactTransaction({ operations }) {
         operations.splice(--i, 2, { ...currOp, oldValue: prevOp.oldValue });
       } else if (prevOp.type === "delete" && currOp.type === "create") {
         operations.splice(--i, 2, { ...currOp, ...prevOp, type: "change" });
+      } else if (prevOp.type === "setadd" && currOp.type === "setdelete" && Object.is(prevOp.newValue, currOp.oldValue)) {
+        operations.splice(--i, 2);
+      } else if (prevOp.type === "setdelete" && currOp.type === "setadd" && Object.is(prevOp.oldValue, currOp.newValue)) {
+        operations.splice(--i, 2);
+      } else if (prevOp.type === "mapcreate" && currOp.type === "mapchange" && prevOp.key === currOp.key) {
+        operations.splice(--i, 2, { ...prevOp, newValue: currOp.newValue });
+      } else if (prevOp.type === "mapcreate" && currOp.type === "mapdelete" && prevOp.key === currOp.key) {
+        operations.splice(--i, 2);
+      } else if (prevOp.type === "mapchange" && currOp.type === "mapchange" && prevOp.key === currOp.key) {
+        operations.splice(--i, 2, { ...currOp, newValue: currOp.newValue });
+      } else if (prevOp.type === "mapchange" && currOp.type === "mapdelete" && prevOp.key === currOp.key) {
+        operations.splice(--i, 2, { ...currOp, oldValue: prevOp.oldValue });
+      } else if (prevOp.type === "mapdelete" && currOp.type === "mapcreate" && prevOp.key === currOp.key) {
+        operations.splice(--i, 2, { ...currOp, ...prevOp, type: "mapchange" });
       } else
         ++i;
     } else
@@ -891,6 +883,32 @@ var Tracker = class {
 var defaultTracker = new Tracker();
 function track(model) {
   return defaultTracker.track(model);
+}
+function prepareForTracking(value, tracker) {
+  if (value instanceof Set) {
+    const snap = Array.from(value);
+    for (const e of snap) {
+      const proxy = getExistingProxy(e);
+      if (proxy) {
+        value.delete(e);
+        value.add(proxy);
+      } else if (canBeProxied(e)) {
+        value.delete(e);
+        value.add(tracker.track(e));
+      }
+    }
+    ;
+  } else if (value instanceof Map) {
+    const snap = Array.from(value);
+    for (const [k, v] of snap) {
+      assertSafeMapKey(k);
+      const proxy = getExistingProxy(v);
+      if (proxy)
+        value.set(k, proxy);
+      else if (canBeProxied(v))
+        value.set(k, tracker.track(v));
+    }
+  }
 }
 
 // out/debug.js

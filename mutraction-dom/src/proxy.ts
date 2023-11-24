@@ -1,8 +1,10 @@
 import { Tracker } from "./tracker.js";
-import { TrackerOf, RecordDependency, RecordMutation, ProxyOf, GetOriginal, AccessPath, ItemsSymbol } from "./symbols.js";
-import type { ArrayExtend, ArrayShorten, DeleteProperty, Key, MapClear, MapDelete, SingleMutation } from "./types.js";
+import { TrackerOf, RecordDependency, RecordMutation, ProxyOf, GetOriginal, AccessPath } from "./symbols.js";
+import type { ArrayExtend, ArrayShorten, DeleteProperty, Key, SingleMutation } from "./types.js";
 import { createOrRetrievePropRef } from "./propref.js";
 import { isDebugMode } from "./debug.js";
+import { getSetProxyHandler } from "./proxy.set.js";
+import { getMapProxyHandler } from "./proxy.map.js";
 
 const mutatingArrayMethods 
     = ["copyWithin","fill","pop","push","reverse","shift","sort","splice","unshift"];
@@ -53,8 +55,8 @@ export function canBeProxied(val: unknown): val is object {
     return true;
 }
 
-/* get a new or existing tracker proxy if possible */
-function maybeGetProxy<T>(value: T, tracker: Tracker): T | undefined {
+/** get a new or existing tracker proxy if possible */
+export function maybeGetProxy<T>(value: T, tracker: Tracker): T | undefined {
     // rule out the easy cases
     if (typeof value !== "object" || !value) return undefined;
     // this *is* a proxy
@@ -75,182 +77,9 @@ export function getAccessPath(obj: Object): string | undefined {
     return (obj as any)[AccessPath];
 }
 
-function setAccessPath(obj: Object, parentPath: string | undefined, leafSegment: string | symbol) {
+export function setAccessPath(obj: Object, parentPath: string | undefined, leafSegment: string | symbol) {
     const fullPath = parentPath ? parentPath + "." + String(leafSegment) : String(leafSegment);
     Object.assign(obj, {[AccessPath]: fullPath});
-}
-
-function assertSafeMapKey(key: any) {
-    if (key && typeof key === "object" && !Object.isFrozen(key)) {
-        throw Error("In order to apply tracking proxy, Map keys must be immutable or frozen.")
-    }
-}
-
-export function prepareForTracking(value: any, tracker: Tracker) {
-    if (value instanceof Set) {
-        const snap = Array.from(value);
-
-        for (const e of snap) {
-            const proxy = getExistingProxy(e);
-            if (proxy) {
-                value.delete(e);
-                value.add(proxy);
-            }
-            else if (canBeProxied(e)) {
-                value.delete(e);
-                value.add(tracker.track(e))
-            }
-        };
-    }
-    else if (value instanceof Map) {
-        const snap = Array.from(value);
-        for (const [k, v] of snap) {
-            assertSafeMapKey(k);
-            const proxy = getExistingProxy(v);
-            if (proxy) value.set(k, proxy);
-            else if (canBeProxied(v)) value.set(k, tracker.track(v));
-        }
-    }
-}
-
-function getSetProxyHandler<T>(tracker: Tracker): ProxyHandler<Set<T>> {
-    return {
-        get(target: Set<T>, name: keyof Set<T> | symbol, receiver: Set<T>): any {
-            if (!(target instanceof Set)) throw Error("Expected Set target in proxy.");
-            const itemsPropRef = createOrRetrievePropRef(target, ItemsSymbol);
-            switch (name) {
-                case TrackerOf: return tracker;
-                case GetOriginal: return target;
-        
-                case "size": 
-                    tracker[RecordDependency](itemsPropRef);
-                    return target.size;
-
-                case "has":
-                case "entries":
-                case "keys":
-                case "values":
-                case "forEach":
-                case Symbol.iterator:
-                    return function setProxy() {
-                        tracker[RecordDependency](itemsPropRef);
-                        return (target as any)[name](...arguments);
-                    };
-
-                case "add": 
-                    return function add(value: any) {
-                        value = maybeGetProxy(value, tracker) ?? value;
-                        setAccessPath(value, getAccessPath(target), "∃");
-
-                        if (target.has(value)) return;
-                        const result = target.add(value);
-                        tracker[RecordMutation]({type: "setadd", name: ItemsSymbol, target, timestamp: new Date, newValue: value});
-                        return result;
-                    };
-
-                case "delete":
-                    return function delete$(value: any) {
-                        value = maybeGetProxy(value, tracker) ?? value;
-                        if (!target.has(value)) return;
-                        const result = target.delete(value);
-                        tracker[RecordMutation]({type: "setdelete", name: ItemsSymbol, target, timestamp: new Date, oldValue: value});
-                        return result;
-                    };
-
-                case "clear":
-                    return function clear() {
-                        if (target.size === 0) return;
-                        const oldValues = Array.from(target.values());
-                        target.clear();
-                        tracker[RecordMutation]({type: "setclear", name: ItemsSymbol, target, timestamp: new Date, oldValues });
-                    };
-
-                default: return Reflect.get(target, name, receiver);
-            }
-        },
-    };
-}
-
-function getMapProxyHandler<K, V>(tracker: Tracker): ProxyHandler<Map<K, V>> {
-    return {
-        get(target: Map<K, V>, name: keyof Map<K, V> | symbol, receiver: Map<K, V>) {
-            if (!(target instanceof Map)) throw Error("Expected Map target in proxy.");
-            const itemsPropRef = createOrRetrievePropRef(target, ItemsSymbol);
-            switch (name) {
-                case TrackerOf: return tracker;
-                case GetOriginal: return target;
-
-                case "size":
-                    tracker[RecordDependency](itemsPropRef);
-                    return target.size;
-
-                case "has":
-                case "keys":
-                case "values":
-                case "entries":
-                case Symbol.iterator:
-                    return function mapProxy() {
-                        tracker[RecordDependency](itemsPropRef);
-                        return (target as any)[name](...arguments);
-                    };
-
-                case "get":
-                    return function get(key: K) {
-                        tracker[RecordDependency](itemsPropRef);
-                        const result = target.get(key);
-                        if (typeof result === "object" && result && isTracked(result)) {
-                            setAccessPath(result, getAccessPath(target), `get(${ key })`);
-                        }
-                        return result;
-                    }
-                
-                case "set":
-                    return function set(key: K, val: V) {
-                        assertSafeMapKey(key);
-
-                        const isChange = target.has(key);
-                        const oldValue = isChange && target.get(key);
-
-                        const proxy = maybeGetProxy(val, tracker);
-                        if (proxy) {
-                            setAccessPath(proxy, getAccessPath(target), `get(${ key })`)
-                        }
-
-                        target.set(key, val = proxy ?? val);
-                        const mutation: SingleMutation = isChange
-                            ? { target, name: ItemsSymbol, timestamp: new Date, type: "mapchange", key, newValue: val, oldValue }
-                            : { target, name: ItemsSymbol, timestamp: new Date, type: "mapcreate", key, newValue: val };
-                        tracker[RecordMutation](mutation);
-
-                        return receiver;
-                    }
-
-                case "delete":
-                    return function delete$(key: K) {
-                        const oldValue = target.get(key);
-
-                        if (!target.delete(key)) return false;
-
-                        const mutation: MapDelete = { target, name: ItemsSymbol, timestamp: new Date, type: "mapdelete", key, oldValue };
-                        tracker[RecordMutation](mutation);
-
-                        return true;
-                    };
-
-                case "clear":
-                    return function clear() {
-                        const oldEntries = Array.from(target.entries());
-
-                        target.clear();
-
-                        const mutation: MapClear = { target, name: ItemsSymbol, timestamp: new Date, type: "mapclear", oldEntries };
-                        tracker[RecordMutation](mutation);
-                    };
-
-                default: return Reflect.get(target, name, receiver);
-            }
-        }
-    };
 }
 
 export function makeProxyHandler<TModel extends object>(model: TModel, tracker: Tracker) : ProxyHandler<TModel> {

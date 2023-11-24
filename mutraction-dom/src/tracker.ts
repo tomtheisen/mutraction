@@ -1,10 +1,12 @@
+import type { Mutation, ReadonlyDeep, SingleMutation, Transaction } from "./types.js";
 import { RecordDependency, RecordMutation } from "./symbols.js";
 import { DependencyList } from "./dependency.js";
 import { compactTransaction } from "./compactTransaction.js";
-import type { Mutation, ReadonlyDeep, SingleMutation, Transaction } from "./types.js";
 import { PropReference, createOrRetrievePropRef } from "./propref.js";
-import { getAccessPath, isTracked, linkProxyToObject, makeProxyHandler, prepareForTracking } from "./proxy.js";
+import { getAccessPath, isTracked, linkProxyToObject, makeProxyHandler } from "./proxy.js";
 import { isDebugMode } from "./debug.js";
+import { getExistingProxy, canBeProxied } from "./proxy.js";
+import { assertSafeMapKey } from "./proxy.map.js";
 
 const defaultTrackerOptions = {
     trackHistory: true,
@@ -384,7 +386,7 @@ export class Tracker {
 /** This is the default `Tracker` instance, and the one used for all JSX node updates
  * @see Tracker
  */
-export const defaultTracker: Tracker = new Tracker;
+export const defaultTracker = new Tracker;
 
 /**
  * This is the main entry point of mutraction.  This returns a tracked proxy wrapping
@@ -395,4 +397,31 @@ export const defaultTracker: Tracker = new Tracker;
  */
 export function track<TModel extends object>(model: TModel): TModel {
     return defaultTracker.track(model);
+}
+
+function prepareForTracking(value: any, tracker: Tracker) {
+    if (value instanceof Set) {
+        const snap = Array.from(value);
+
+        for (const e of snap) {
+            const proxy = getExistingProxy(e);
+            if (proxy) {
+                value.delete(e);
+                value.add(proxy);
+            }
+            else if (canBeProxied(e)) {
+                value.delete(e);
+                value.add(tracker.track(e));
+            }
+        };
+    }
+    else if (value instanceof Map) {
+        const snap = Array.from(value);
+        for (const [k, v] of snap) {
+            assertSafeMapKey(k);
+            const proxy = getExistingProxy(v);
+            if (proxy) value.set(k, proxy);
+            else if (canBeProxied(v)) value.set(k, tracker.track(v));
+        }
+    }
 }
