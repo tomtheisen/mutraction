@@ -1113,10 +1113,8 @@ if ("sessionStorage" in globalThis) {
     redoButton.addEventListener("click", () => defaultTracker.redo());
     updateCallbacks.push(() => {
       historyCount.innerText = String(history.length);
-      if (historySummary.open) {
-        const items = history.slice(-historyDepth).map(describeMutation).map((desc) => el("li", {}, desc));
-        historyList.replaceChildren(...items);
-      }
+      const items = history.slice(-historyDepth).map(describeMutation).map((desc) => el("li", {}, desc));
+      historyList.replaceChildren(...items);
     });
     const propRefCountNumber = el("span", {}, "0");
     const allPropRefs2 = getAllPropRefs();
