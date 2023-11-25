@@ -293,15 +293,25 @@ if ("sessionStorage" in globalThis) {
 
             window.addEventListener("mousemove", moveHandler);
 
-            document.body.addEventListener("mouseup", ev => {
-                window.removeEventListener("mousemove", moveHandler);
-            }, { once: true });
+            document.body.addEventListener("mouseup", upHandler, { once: true });
             ev.preventDefault();
 
+            function upHandler(ev: MouseEvent) {
+                window.removeEventListener("mousemove", moveHandler);
+            }
+
             function moveHandler(ev: MouseEvent) {
-                container.style.left = ev.x - xOffset + "px";
-                container.style.top = ev.y - yOffset + "px";
-                clampIntoView();
+                const buttonPressed = (ev.buttons & 1) > 0;
+
+                if (buttonPressed) {
+                    container.style.left = ev.x - xOffset + "px";
+                    container.style.top = ev.y - yOffset + "px";
+                    clampIntoView();
+                }
+                else {
+                    window.removeEventListener("mousemove", moveHandler);
+                    window.removeEventListener("mouseup", upHandler);
+                }
             }
         });
 

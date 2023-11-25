@@ -1145,14 +1145,21 @@ if ("sessionStorage" in globalThis) {
       xOffset = ev.x - rect.x;
       yOffset = ev.y - rect.y;
       window.addEventListener("mousemove", moveHandler);
-      document.body.addEventListener("mouseup", (ev2) => {
-        window.removeEventListener("mousemove", moveHandler);
-      }, { once: true });
+      document.body.addEventListener("mouseup", upHandler, { once: true });
       ev.preventDefault();
+      function upHandler(ev2) {
+        window.removeEventListener("mousemove", moveHandler);
+      }
       function moveHandler(ev2) {
-        container.style.left = ev2.x - xOffset + "px";
-        container.style.top = ev2.y - yOffset + "px";
-        clampIntoView();
+        const buttonPressed = (ev2.buttons & 1) > 0;
+        if (buttonPressed) {
+          container.style.left = ev2.x - xOffset + "px";
+          container.style.top = ev2.y - yOffset + "px";
+          clampIntoView();
+        } else {
+          window.removeEventListener("mousemove", moveHandler);
+          window.removeEventListener("mouseup", upHandler);
+        }
       }
     });
     window.addEventListener("resize", clampIntoView);
