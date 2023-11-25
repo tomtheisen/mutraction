@@ -1,4 +1,4 @@
-import { getActiveEffects } from "./effect.js";
+import { effect, getActiveEffects } from "./effect.js";
 import { PropReference, getAllPropRefs } from "./propref.js";
 import { getAccessPath } from "./proxy.js";
 import { getNodeDependencies } from "./runtime.js";
@@ -6,7 +6,7 @@ import { defaultTracker } from "./tracker.js";
 import { Mutation } from "./types.js";
 
 const debugModeKey = "mu:debugMode";
-const debugPullInterval = 250;
+const debugUpdateDebounce = 250;
 const historyDepth = 10;
 
 export const isDebugMode = ("sessionStorage" in globalThis) && !!sessionStorage.getItem(debugModeKey);
@@ -29,6 +29,21 @@ if ("sessionStorage" in globalThis) {
     }
 
     if (isDebugMode) {
+        const updateCallbacks: (() => void)[] = [];
+
+        let handle = 0;
+        queueMicrotask(() => {
+            effect(function historyChanged() {
+                defaultTracker.history.length;
+                if (handle === 0) {
+                    handle = setTimeout(function updateDiagnostics() {
+                        for (const cb of updateCallbacks) cb();
+                        handle = 0;
+                    }, debugUpdateDebounce);
+                }
+            });
+        });
+
         function valueString(val: unknown): string {
             if (Array.isArray(val)) return `Array(${ val.length })`;
             if (typeof val === "object") return "{ ... }";
@@ -132,14 +147,14 @@ if ("sessionStorage" in globalThis) {
             effectDetails
         );
         let activeEffectsGeneration = -1;
-        setInterval(() => {
+        updateCallbacks.push(() => {
             let { activeEffects, generation } = getActiveEffects();
             if (generation !== activeEffectsGeneration) {
                 activeEffectsGeneration = generation;
                 effectDetails.innerText = [...activeEffects.entries()].map(e => `${e[0]}×${e[1]}`).join("\n");
                 effectCount.innerText = String(Array.from(activeEffects.values()).reduce((a, b) => a + b, 0));
             }
-        }, debugPullInterval);
+        });
 
         const undoButton = el("button", {}, "Undo");
         const redoButton = el("button", {}, "Redo");
@@ -160,14 +175,13 @@ if ("sessionStorage" in globalThis) {
         );
         undoButton.addEventListener("click", () => defaultTracker.undo());
         redoButton.addEventListener("click", () => defaultTracker.redo());
-        setInterval(() => {
+        updateCallbacks.push(() => {
             historyCount.innerText = String(history.length);
             if (historySummary.open) {
-                const items = history.slice(-10).map(describeMutation).map(desc => el("li", {}, desc));
+                const items = history.slice(-historyDepth).map(describeMutation).map(desc => el("li", {}, desc));
                 historyList.replaceChildren(...items);
             }
-        }, debugPullInterval);
-        
+        });
         
         const propRefCountNumber = el("span", {}, "0");
 
@@ -191,13 +205,13 @@ if ("sessionStorage" in globalThis) {
         )
 
         let seenGeneration = -1;
-        setInterval(() => {
+        updateCallbacks.push(() => {
             if (allPropRefs!.generation !== seenGeneration) {
                 propRefCountNumber.replaceChildren(String(allPropRefs!.sizeBound));
                 refreshPropRefList();
                 seenGeneration = allPropRefs!.generation;
             }
-        }, debugPullInterval);
+        });
 
         function startInspectPick() {
             inspectButton.disabled = true;

@@ -913,7 +913,8 @@ function prepareForTracking(value, tracker) {
 
 // out/debug.js
 var debugModeKey = "mu:debugMode";
-var debugPullInterval = 250;
+var debugUpdateDebounce = 250;
+var historyDepth = 10;
 var isDebugMode = "sessionStorage" in globalThis && !!sessionStorage.getItem(debugModeKey);
 if ("sessionStorage" in globalThis) {
   let enableDebugMode = function() {
@@ -1025,6 +1026,20 @@ if ("sessionStorage" in globalThis) {
       }, { capture: true, once: true });
     };
     valueString2 = valueString, el2 = el, getNodeAndTextDependencies2 = getNodeAndTextDependencies, getPropRefListItem2 = getPropRefListItem, refreshPropRefList2 = refreshPropRefList, startInspectPick2 = startInspectPick;
+    const updateCallbacks = [];
+    let handle = 0;
+    queueMicrotask(() => {
+      effect(function historyChanged() {
+        defaultTracker.history.length;
+        if (handle === 0) {
+          handle = setTimeout(function updateDiagnostics() {
+            for (const cb of updateCallbacks)
+              cb();
+            handle = 0;
+          }, debugUpdateDebounce);
+        }
+      });
+    });
     const container = el("div", {
       position: "fixed",
       top: "50px",
@@ -1068,14 +1083,14 @@ if ("sessionStorage" in globalThis) {
     const effectCount = el("span", {}, "0");
     const effectSummary = el("details", { cursor: "pointer", marginBottom: "1em" }, el("summary", {}, el("strong", {}, "Active effects: "), effectCount), effectDetails);
     let activeEffectsGeneration2 = -1;
-    setInterval(() => {
+    updateCallbacks.push(() => {
       let { activeEffects: activeEffects2, generation } = getActiveEffects();
       if (generation !== activeEffectsGeneration2) {
         activeEffectsGeneration2 = generation;
         effectDetails.innerText = [...activeEffects2.entries()].map((e) => `${e[0]}\xD7${e[1]}`).join("\n");
         effectCount.innerText = String(Array.from(activeEffects2.values()).reduce((a, b) => a + b, 0));
       }
-    }, debugPullInterval);
+    });
     const undoButton = el("button", {}, "Undo");
     const redoButton = el("button", {}, "Redo");
     queueMicrotask(() => {
@@ -1089,13 +1104,13 @@ if ("sessionStorage" in globalThis) {
     const historySummary = el("details", { cursor: "pointer", marginBottom: "1em" }, el("summary", {}, el("strong", {}, "Recent history: "), historyCount, " total ", undoButton, redoButton), historyList);
     undoButton.addEventListener("click", () => defaultTracker.undo());
     redoButton.addEventListener("click", () => defaultTracker.redo());
-    setInterval(() => {
+    updateCallbacks.push(() => {
       historyCount.innerText = String(history.length);
       if (historySummary.open) {
-        const items = history.slice(-10).map(describeMutation).map((desc) => el("li", {}, desc));
+        const items = history.slice(-historyDepth).map(describeMutation).map((desc) => el("li", {}, desc));
         historyList.replaceChildren(...items);
       }
-    }, debugPullInterval);
+    });
     const propRefCountNumber = el("span", {}, "0");
     const allPropRefs2 = getAllPropRefs();
     const propRefRefreshButton = el("button", {}, "\u21BB");
@@ -1103,13 +1118,13 @@ if ("sessionStorage" in globalThis) {
     const propRefList = el("ol", {});
     const propRefSummary = el("details", {}, el("summary", { cursor: "pointer" }, el("strong", {}, "Live PropRefs: "), propRefCountNumber, " ", propRefRefreshButton), propRefList);
     let seenGeneration = -1;
-    setInterval(() => {
+    updateCallbacks.push(() => {
       if (allPropRefs2.generation !== seenGeneration) {
         propRefCountNumber.replaceChildren(String(allPropRefs2.sizeBound));
         refreshPropRefList();
         seenGeneration = allPropRefs2.generation;
       }
-    }, debugPullInterval);
+    });
     const inspectButton = el("button", {}, "\u{1F50D}");
     inspectButton.addEventListener("click", startInspectPick);
     const inspectedName = el("span", {}, "(none)");
