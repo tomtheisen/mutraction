@@ -126,6 +126,7 @@ if ("sessionStorage" in globalThis) {
                 container.style.maxHeight = "";
                 container.style.maxWidth = "";
             }
+            clampIntoView();
         });
 
         const closeButton = el("button", { float: "right" }, "×");
@@ -300,8 +301,18 @@ if ("sessionStorage" in globalThis) {
             function moveHandler(ev: MouseEvent) {
                 container.style.left = ev.x - xOffset + "px";
                 container.style.top = ev.y - yOffset + "px";
+                clampIntoView();
             }
         });
+
+        function clampIntoView() {
+            const { x, y, width, height } = container.getBoundingClientRect();
+            const top = Math.max(0, Math.min(window.innerHeight - height, y));
+            const left = Math.max(0, Math.min(window.innerWidth - width, x));
+            container.style.top = top + "px";
+            container.style.left = left + "px";
+        }
+        window.addEventListener("resize", clampIntoView);
     }
 }
 

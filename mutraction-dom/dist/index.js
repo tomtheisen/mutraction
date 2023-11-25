@@ -1024,8 +1024,14 @@ if ("sessionStorage" in globalThis) {
           inspectedPropList.replaceChildren();
         }
       }, { capture: true, once: true });
+    }, clampIntoView = function() {
+      const { x, y, width, height } = container.getBoundingClientRect();
+      const top = Math.max(0, Math.min(window.innerHeight - height, y));
+      const left = Math.max(0, Math.min(window.innerWidth - width, x));
+      container.style.top = top + "px";
+      container.style.left = left + "px";
     };
-    valueString2 = valueString, el2 = el, getNodeAndTextDependencies2 = getNodeAndTextDependencies, getPropRefListItem2 = getPropRefListItem, refreshPropRefList2 = refreshPropRefList, startInspectPick2 = startInspectPick;
+    valueString2 = valueString, el2 = el, getNodeAndTextDependencies2 = getNodeAndTextDependencies, getPropRefListItem2 = getPropRefListItem, refreshPropRefList2 = refreshPropRefList, startInspectPick2 = startInspectPick, clampIntoView2 = clampIntoView;
     const updateCallbacks = [];
     let handle = 0;
     queueMicrotask(() => {
@@ -1069,6 +1075,7 @@ if ("sessionStorage" in globalThis) {
         container.style.maxHeight = "";
         container.style.maxWidth = "";
       }
+      clampIntoView();
     });
     const closeButton = el("button", { float: "right" }, "\xD7");
     closeButton.addEventListener("click", disableDebugMode);
@@ -1145,8 +1152,10 @@ if ("sessionStorage" in globalThis) {
       function moveHandler(ev2) {
         container.style.left = ev2.x - xOffset + "px";
         container.style.top = ev2.y - yOffset + "px";
+        clampIntoView();
       }
     });
+    window.addEventListener("resize", clampIntoView);
   }
 }
 var valueString2;
@@ -1155,6 +1164,7 @@ var getNodeAndTextDependencies2;
 var getPropRefListItem2;
 var refreshPropRefList2;
 var startInspectPick2;
+var clampIntoView2;
 var enableDebugMode2;
 var disableDebugMode2;
 function describeMutation(mut) {
