@@ -3,9 +3,11 @@ import { PropReference, getAllPropRefs } from "./propref.js";
 import { getAccessPath } from "./proxy.js";
 import { getNodeDependencies } from "./runtime.js";
 import { defaultTracker } from "./tracker.js";
+import { Mutation } from "./types.js";
 
 const debugModeKey = "mu:debugMode";
 const debugPullInterval = 250;
+const historyDepth = 10;
 
 export const isDebugMode = ("sessionStorage" in globalThis) && !!sessionStorage.getItem(debugModeKey);
 
@@ -123,14 +125,19 @@ if ("sessionStorage" in globalThis) {
             },
             closeButton, toggle, "μ diagnostics");
 
-        const effectCount = el("div", { whiteSpace: "pre" }, "0");
-        const effectSummary = el("p", {}, el("p", {}, el("strong", {}, "Active effects: "), effectCount));
+        const effectDetails = el("div", { whiteSpace: "pre" });
+        const effectCount = el("span", {}, "0");
+        const effectSummary = el("details", { cursor: "pointer", marginBottom: "1em" }, 
+            el("summary", {}, el("strong", {}, "Active effects: "), effectCount),
+            effectDetails
+        );
         let activeEffectsGeneration = -1;
         setInterval(() => {
             let { activeEffects, generation } = getActiveEffects();
             if (generation !== activeEffectsGeneration) {
                 activeEffectsGeneration = generation;
-                effectCount.innerText = [...activeEffects.entries()].map(e => `${e[0]}×${e[1]}`).join("\n");
+                effectDetails.innerText = [...activeEffects.entries()].map(e => `${e[0]}×${e[1]}`).join("\n");
+                effectCount.innerText = String(Array.from(activeEffects.values()).reduce((a, b) => a + b, 0));
             }
         }, debugPullInterval);
 
@@ -141,13 +148,26 @@ if ("sessionStorage" in globalThis) {
             if (!trackHistory) undoButton.disabled = redoButton.disabled = true;
         });
 
-        const historySummary = el("p", {}, 
-            el("strong", {}, "History: "), 
-            undoButton,
-            redoButton
+        const history = defaultTracker.history;
+        const historyCount = el("span", {}, "0");
+        const historyList = el("ol", {});
+        const historySummary = el("details", { cursor: "pointer", marginBottom: "1em" },
+            el("summary", {}, 
+                el("strong", {}, "Recent history: "),
+                historyCount, " total " , undoButton, redoButton
+            ),
+            historyList
         );
         undoButton.addEventListener("click", () => defaultTracker.undo());
         redoButton.addEventListener("click", () => defaultTracker.redo());
+        setInterval(() => {
+            historyCount.innerText = String(history.length);
+            if (historySummary.open) {
+                const items = history.slice(-10).map(describeMutation).map(desc => el("li", {}, desc));
+                historyList.replaceChildren(...items);
+            }
+        }, debugPullInterval);
+        
         
         const propRefCountNumber = el("span", {}, "0");
 
@@ -162,8 +182,13 @@ if ("sessionStorage" in globalThis) {
 
         const propRefRefreshButton = el("button", {}, "↻");
         propRefRefreshButton.addEventListener("click", refreshPropRefList);
-        const propRefCount = el("div", {}, el("strong", {}, "Live PropRefs: "), propRefCountNumber, " ", propRefRefreshButton);
         const propRefList = el("ol", {});
+        const propRefSummary = el("details", {},
+            el("summary", { cursor: "pointer" }, 
+                el("strong", {}, "Live PropRefs: "), propRefCountNumber, " ", propRefRefreshButton
+            ),
+            propRefList
+        )
 
         let seenGeneration = -1;
         setInterval(() => {
@@ -232,15 +257,14 @@ if ("sessionStorage" in globalThis) {
 
         const inspectButton = el("button", {}, "🔍");
         inspectButton.addEventListener("click", startInspectPick);
-
         const inspectedName = el("span", {}, "(none)");
         const inspectedPropList = el("ol", {});
 
         const content = el("div", {padding: "1em", overflow: "auto"}, 
+            inspectButton, " ", el("strong", {}, "Inspected node:"), " ", inspectedName, inspectedPropList,
             effectSummary,
             historySummary,
-            inspectButton, " ", el("strong", {}, "Inspected node:"), " ", inspectedName, inspectedPropList,
-            propRefCount, propRefList);
+            propRefSummary);
 
         container.append(head, content);
 
@@ -266,3 +290,25 @@ if ("sessionStorage" in globalThis) {
         });
     }
 }
+
+function describeMutation(mut: Readonly<Mutation>): string {
+    switch (mut.type) {
+        case "transaction":  return `Transaction ${ mut.transactionName }`;
+        case "create":       return `Create property ${ String(mut.name) }: ${ mut.newValue }`;
+        case "change":       return `Modify property ${ String(mut.name) }: ${ mut.newValue }`;
+        case "delete":       return `Delete property ${ String(mut.name) }`;
+        case "arrayextend":  return `Extend array to [${ mut.newIndex }] = ${ mut.newValue }`;
+        case "arrayshorten": return `Shorten array to ${ mut.newLength}`;
+        case "setadd":       return `Add to set: ${ mut.newValue }`;
+        case "setdelete":    return `Delete from set: ${ mut.oldValue }`;
+        case "setclear":     return `Clear set`;
+        case "mapcreate":    return `Add new entry to map [${ mut.key }, ${ mut.newValue }]`;
+        case "mapchange":    return `Change entry in map [${ mut.key }, ${ mut.newValue }]`;
+        case "mapdelete":    return `Remove key from map ${ mut.key }`;
+        case "mapclear":     return `Clear map`;
+
+        default: mut satisfies never;
+    }
+    throw new Error("Function not implemented.");
+}
+
