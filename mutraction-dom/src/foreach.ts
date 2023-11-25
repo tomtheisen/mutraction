@@ -65,7 +65,7 @@ export function ForEach<TIn>(array: TIn[] | (() => TIn[]) | undefined, map: (ite
 }
 
 /**
- * Generates DOM nes for an array of objects.  The resulting nodes track the array elements.
+ * Generates DOM nodes for an array of objects.  The resulting nodes track the array elements.
  * Re-ordering the array will cause the generated nodes to re-ordered in parallel
  * @param array is the input array of objects.  Primitive element values can't be used. If it's a function returning an array, identity changes to the array itself will be tracked.
  * @param map is the callback function to produce DOM nodes
