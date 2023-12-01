@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `ForEachPersist()` allows its generated document elements to be garbage collected if the corresponding key objects are no longer referenced.
+
 ## [0.24.0] - 2023-11-25
 
 ### Changed

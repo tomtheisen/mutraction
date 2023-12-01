@@ -28,9 +28,6 @@ export function ForEach<TIn>(array: TIn[] | (() => TIn[]) | undefined, map: (ite
             outputs.push(output);
 
             output.subscription = effect(function forEachItemEffect(dep) {
-                output.cleanup?.();
-                output.container.cleanup();
-
                 const item = arrayDefined[i];
                 const projection = item !== undefined ? map(item, i, arrayDefined) : document.createTextNode("");
                 if (isNodeOptions(projection)) {
@@ -41,6 +38,11 @@ export function ForEach<TIn>(array: TIn[] | (() => TIn[]) | undefined, map: (ite
                     output.container.replaceWith(projection);
                     output.cleanup = undefined;
                 }
+
+                return () => {
+                    output.cleanup?.();
+                    output.container.cleanup();
+                };
             }, suppress);
 
             result.append(output.container.removeAsFragment());
@@ -75,20 +77,18 @@ export function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]) 
     if (typeof array === "function") return Swapper(() => ForEachPersist(array(), map));
 
     const result = new ElementSpan();
-    const containers: ElementSpan[] = [];
+    type Output = { container: ElementSpan, subscription?: Subscription };
+    const outputs: Output[] = [];
     const outputMap = new WeakMap<TIn, HTMLElement | ElementSpan>;
 
     const arrayDefined = array ?? [];
     const lengthSubscription = effect(function forEachPersistLengthEffect(lengthDep) {
         // i is scoped to each loop body invocation
-        for (let i = containers.length; i < arrayDefined.length; i++) {
-            const container = new ElementSpan();
-            containers.push(container);
+        for (let i = outputs.length; i < arrayDefined.length; i++) {
+            const output: Output = { container: new ElementSpan };
+            outputs.push(output);
 
-            effect(function forEachPersistItemEffect(dep) {
-                // just keep the contents together with a parent somewhere
-                container.emptyAsFragment();
-
+            output.subscription = effect(function forEachPersistItemEffect(dep) {
                 const item = arrayDefined[i];
                 if (item == null) return; // probably an array key deletion
 
@@ -106,29 +106,38 @@ export function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]) 
                         if (dep) dep.active = true;
                     }
                 }
+                else {
+                    const connected = newContents instanceof HTMLElement ? newContents.isConnected : newContents.startMarker.isConnected;
+                    if (connected) console.error("ForEachPersist encountered the same object twice in the same array.");
+                }
 
                 if (newContents instanceof HTMLElement) {
-                    container.replaceWith(newContents);
+                    output.container.replaceWith(newContents);
                 }
                 else if (newContents != null) {
-                    container.replaceWith(newContents.removeAsFragment());
+                    output.container.replaceWith(newContents.removeAsFragment());
                 }
+
+                // just keep the contents together with a parent somewhere
+                return () => output.container.emptyAsFragment();
             }, suppress);
 
-            result.append(container.removeAsFragment());
+            result.append(output.container.removeAsFragment());
         }
 
-        while (containers.length > arrayDefined.length) {
-            cleanupSpan(containers.pop()!);
+        while (outputs.length > arrayDefined.length) {
+            cleanupOutput(outputs.pop()!);
         }
     }, suppress);
 
-    result.registerCleanup({ dispose() { containers.forEach(cleanupSpan); } })
+    result.registerCleanup({ dispose() { outputs.forEach(cleanupOutput); } })
     result.registerCleanup(lengthSubscription);
 
     return result.removeAsFragment();
 
-    function cleanupSpan(container: ElementSpan) {
+    function cleanupOutput(output: Output) {
+        const { container, subscription } = output;
+        subscription?.dispose();
         container.removeAsFragment();
         container.cleanup();
     }

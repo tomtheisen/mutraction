@@ -1523,8 +1523,6 @@ function ForEach(array, map) {
       const output = { container: new ElementSpan() };
       outputs.push(output);
       output.subscription = effect(function forEachItemEffect(dep) {
-        output.cleanup?.();
-        output.container.cleanup();
         const item = arrayDefined[i];
         const projection = item !== void 0 ? map(item, i, arrayDefined) : document.createTextNode("");
         if (isNodeOptions(projection)) {
@@ -1534,6 +1532,10 @@ function ForEach(array, map) {
           output.container.replaceWith(projection);
           output.cleanup = void 0;
         }
+        return () => {
+          output.cleanup?.();
+          output.container.cleanup();
+        };
       }, suppress2);
       result.append(output.container.removeAsFragment());
     }
@@ -1557,15 +1559,14 @@ function ForEachPersist(array, map) {
   if (typeof array === "function")
     return Swapper(() => ForEachPersist(array(), map));
   const result = new ElementSpan();
-  const containers = [];
+  const outputs = [];
   const outputMap = /* @__PURE__ */ new WeakMap();
   const arrayDefined = array ?? [];
   const lengthSubscription = effect(function forEachPersistLengthEffect(lengthDep) {
-    for (let i = containers.length; i < arrayDefined.length; i++) {
-      const container = new ElementSpan();
-      containers.push(container);
-      effect(function forEachPersistItemEffect(dep) {
-        container.emptyAsFragment();
+    for (let i = outputs.length; i < arrayDefined.length; i++) {
+      const output = { container: new ElementSpan() };
+      outputs.push(output);
+      output.subscription = effect(function forEachPersistItemEffect(dep) {
         const item = arrayDefined[i];
         if (item == null)
           return;
@@ -1583,25 +1584,32 @@ function ForEachPersist(array, map) {
             if (dep)
               dep.active = true;
           }
+        } else {
+          const connected = newContents instanceof HTMLElement ? newContents.isConnected : newContents.startMarker.isConnected;
+          if (connected)
+            console.error("ForEachPersist encountered the same object twice in the same array.");
         }
         if (newContents instanceof HTMLElement) {
-          container.replaceWith(newContents);
+          output.container.replaceWith(newContents);
         } else if (newContents != null) {
-          container.replaceWith(newContents.removeAsFragment());
+          output.container.replaceWith(newContents.removeAsFragment());
         }
+        return () => output.container.emptyAsFragment();
       }, suppress2);
-      result.append(container.removeAsFragment());
+      result.append(output.container.removeAsFragment());
     }
-    while (containers.length > arrayDefined.length) {
-      cleanupSpan(containers.pop());
+    while (outputs.length > arrayDefined.length) {
+      cleanupOutput(outputs.pop());
     }
   }, suppress2);
   result.registerCleanup({ dispose() {
-    containers.forEach(cleanupSpan);
+    outputs.forEach(cleanupOutput);
   } });
   result.registerCleanup(lengthSubscription);
   return result.removeAsFragment();
-  function cleanupSpan(container) {
+  function cleanupOutput(output) {
+    const { container, subscription } = output;
+    subscription?.dispose();
     container.removeAsFragment();
     container.cleanup();
   }
