@@ -224,7 +224,7 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
     let set = setOrdinary, get = getOrdinary;
     if (Array.isArray(model)) {
         set = setArray;
-        if (tracker.options.trackHistory) get = getArrayTransactionShim;
+        get = getArrayTransactionShim;
     }
     
     if (isArguments(model)) throw Error('Tracking of exotic arguments objects not supported');

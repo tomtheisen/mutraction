@@ -9,7 +9,6 @@ import { getExistingProxy, canBeProxied } from "./proxy.js";
 import { assertSafeMapKey } from "./proxy.map.js";
 
 const defaultTrackerOptions = {
-    trackHistory: true,
     autoTransactionalize: true,
     compactOnCommit: true,
 };
@@ -22,9 +21,7 @@ export type TrackerOptions = Partial<typeof defaultTrackerOptions>;
  */
 export class Tracker {
     #transaction?: Transaction;
-    #operationHistory?: Mutation[];
     #redos: Mutation[] = [];
-    #inUse = false;
     #dependencyTrackers: DependencyList[] = [];
 
     options: Readonly<Required<TrackerOptions>> = defaultTrackerOptions;
@@ -40,28 +37,7 @@ export class Tracker {
     }
 
     setOptions(options: TrackerOptions = {}) {
-        if (this.#inUse)
-            throw Error("Cannot change options for a tracker that has already started tracking");
-
-        if (options.trackHistory === false) {
-            // user specified no history tracking, so turn off compactOnCommit which would do nothing
-            options.compactOnCommit = false;
-            options.autoTransactionalize ??= false;
-        }
-
-        const appliedOptions = { ...defaultTrackerOptions, ...options };
-        if (appliedOptions.compactOnCommit && !appliedOptions.trackHistory) {
-            throw Error("Option compactOnCommit requires option trackHistory");
-        }
-
-        if (appliedOptions.trackHistory) {
-            // create root transaction to enable history tracking
-            this.#operationHistory = [];
-        }
-        else {
-            this.#operationHistory = undefined;
-        }
-        this.options = Object.freeze(appliedOptions);
+        this.options = Object.freeze({ ...defaultTrackerOptions, ...options });
     }
 
     /**
@@ -71,7 +47,6 @@ export class Tracker {
      */
     track<TModel extends object>(model: TModel): TModel {
         if (isTracked(model)) throw Error('Object already tracked');
-        this.#inUse = true;
         prepareForTracking(model, this);
         const proxied = new Proxy(model, makeProxyHandler(model, this));
         linkProxyToObject(model, proxied);
@@ -90,27 +65,6 @@ export class Tracker {
         return this.track(model) as ReadonlyDeep<TModel>;
     }
     
-    #ensureHistory(): void {
-        if (!this.options.trackHistory) throw Error("History tracking disabled.");
-    }
-
-    /** Retrieves the mutation history.  Active transactions aren't represented here.
-     */
-    get history(): ReadonlyArray<Readonly<Mutation>> {
-        this.#ensureHistory();
-
-        // reading the history can create a dependency too, not just the tracked model, 
-        // for use cases that depend on the tracker history
-        this.#dependencyTrackers[0]?.trackAllChanges();
-
-        this.#historyPropRef ??= createOrRetrievePropRef(this, "history");
-
-        if (!this.#operationHistory) 
-            throw Error("History tracking enabled, but no root transaction. Probably mutraction internal error.");
-
-        return this.#operationHistory; 
-    }
-
     /** Add another transaction to the stack  */
     startTransaction(name?: string): Transaction {
         this.#transaction = { type: "transaction", parent: this.#transaction, operations: [], dependencies: new Set, timestamp: new Date };
@@ -136,8 +90,6 @@ export class Tracker {
             this.#transaction = this.#transaction.parent;
         }
         else {
-            this.#operationHistory?.push(this.#transaction);
-
             // dedupe
             const allDependencyLists = new Set<DependencyList>;
                 for (const propRef of this.#transaction.dependencies) {
@@ -166,20 +118,18 @@ export class Tracker {
         if (transaction && transaction !== this.#transaction)
             throw Error('Attempted to commit wrong transaction. Transactions must be resolved in stack order.');
 
-        if (this.#transaction) {
-            while (this.#transaction.operations.length) this.undo();
-            this.#transaction = this.#transaction.parent;
-        }
-        else {
-            while (this.#operationHistory?.length) this.undo();
-        }
+        if (!this.#transaction)
+            throw Error('No transaction to rollback.');
+
+        while (this.#transaction.operations.length) this.undo();
+        this.#transaction = this.#transaction.parent;
     }
 
     /** undo last mutation or transaction and push into the redo stack  */
     undo() {
-        this.#ensureHistory();
-        const mutation = (this.#transaction?.operations ?? this.#operationHistory)!.pop();
-        if (!mutation) return;
+        const mutation = this.#transaction?.operations?.pop();
+        if (!mutation) throw Error("There must be an open transaction to undo.");
+
         this.#undoOperation(mutation);
         this.#redos.unshift(mutation);
 
@@ -225,11 +175,10 @@ export class Tracker {
 
     /** Repeat last undone mutation  */
     redo() {
-        this.#ensureHistory();
         const mutation = this.#redos.shift();
         if (!mutation) return;
         this.#redoOperation(mutation);
-        (this.#transaction?.operations ?? this.#operationHistory)!.push(mutation);
+        this.#transaction?.operations.push(mutation);
 
         if (this.#transaction == null) { // top-level transaction
             this.#historyPropRef?.notifySubscribers();
@@ -277,20 +226,10 @@ export class Tracker {
         this.#redos.length = 0;
     }
     
-    /** Commits all transactions, then empties the undo and redo history. */
-    clearHistory() {
-        this.#ensureHistory();
-        this.#transaction = undefined;
-        this.#operationHistory!.length = 0;
-        this.clearRedos();
-    }
-
     /** record a mutation, if you have the secret key  */
     [RecordMutation](mutation: SingleMutation) {
-        if (this.options.trackHistory) {
-            if (isDebugMode) mutation.targetPath = getAccessPath(mutation.target);
-            (this.#transaction?.operations ?? this.#operationHistory)!.push(Object.freeze(mutation));
-        }
+        if (isDebugMode) mutation.targetPath = getAccessPath(mutation.target);
+        this.#transaction?.operations.push(Object.freeze(mutation));
 
         this.clearRedos();
 

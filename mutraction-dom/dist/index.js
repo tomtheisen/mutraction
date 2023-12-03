@@ -337,8 +337,7 @@ function makeProxyHandler(model, tracker) {
   let set = setOrdinary, get = getOrdinary;
   if (Array.isArray(model)) {
     set = setArray;
-    if (tracker.options.trackHistory)
-      get = getArrayTransactionShim;
+    get = getArrayTransactionShim;
   }
   if (isArguments(model))
     throw Error("Tracking of exotic arguments objects not supported");
@@ -435,486 +434,9 @@ function createOrRetrievePropRef(object, prop) {
   return result;
 }
 
-// out/dependency.js
-var DependencyList = class {
-  #trackedProperties = /* @__PURE__ */ new Map();
-  #tracker;
-  #tracksAllChanges = false;
-  #subscribers = /* @__PURE__ */ new Set();
-  active = true;
-  constructor(tracker) {
-    this.#tracker = tracker;
-  }
-  get trackedProperties() {
-    return Array.from(this.#trackedProperties.keys());
-  }
-  addDependency(propRef) {
-    if (this.active && !this.#tracksAllChanges) {
-      if (this.#trackedProperties.has(propRef))
-        return;
-      const propSubscription = propRef.subscribe(this);
-      this.#trackedProperties.set(propRef, propSubscription);
-    }
-  }
-  subscribe(callback) {
-    this.#subscribers.add(callback);
-    return { dispose: () => this.#subscribers.delete(callback) };
-  }
-  notifySubscribers(trigger) {
-    const subscriberSnapshot = Array.from(this.#subscribers);
-    for (const callback of subscriberSnapshot)
-      callback(trigger);
-  }
-  endDependencyTrack() {
-    this.#tracker.endDependencyTrack(this);
-  }
-  /** Indicates that this dependency list is dependent on *all* tracked changes */
-  trackAllChanges() {
-    if (this.#tracksAllChanges)
-      return;
-    this.untrackAll();
-    const historyPropRef = createOrRetrievePropRef(this.#tracker, "history");
-    this.addDependency(historyPropRef);
-    this.#tracksAllChanges = true;
-  }
-  untrackAll() {
-    for (const sub of this.#trackedProperties.values())
-      sub.dispose();
-    this.#trackedProperties.clear();
-  }
-};
-
-// out/compactTransaction.js
-function compactTransaction({ operations }) {
-  for (let i = 0; i < operations.length; ) {
-    const currOp = operations[i];
-    if (currOp.type === "transaction") {
-      operations.splice(i, 1, ...currOp.operations);
-    } else if (currOp.type === "change" && Object.is(currOp.oldValue, currOp.newValue)) {
-      operations.splice(i, 1);
-    } else if (i > 0) {
-      const prevOp = operations[i - 1];
-      if (prevOp.type === "transaction") {
-        throw Error("Internal mutraction error.  Found internal transaction on look-back during packTransaction.");
-      } else if (prevOp.target !== currOp.target || prevOp.name !== currOp.name) {
-        ++i;
-      } else if (prevOp.type === "create" && currOp.type === "change") {
-        operations.splice(--i, 2, { ...prevOp, newValue: currOp.newValue });
-      } else if (prevOp.type === "create" && currOp.type === "delete") {
-        operations.splice(--i, 2);
-      } else if (prevOp.type === "change" && currOp.type === "change") {
-        operations.splice(--i, 2, { ...prevOp, newValue: currOp.newValue });
-      } else if (prevOp.type === "change" && currOp.type === "delete") {
-        operations.splice(--i, 2, { ...currOp, oldValue: prevOp.oldValue });
-      } else if (prevOp.type === "delete" && currOp.type === "create") {
-        operations.splice(--i, 2, { ...currOp, ...prevOp, type: "change" });
-      } else if (prevOp.type === "setadd" && currOp.type === "setdelete" && Object.is(prevOp.newValue, currOp.oldValue)) {
-        operations.splice(--i, 2);
-      } else if (prevOp.type === "setdelete" && currOp.type === "setadd" && Object.is(prevOp.oldValue, currOp.newValue)) {
-        operations.splice(--i, 2);
-      } else if (prevOp.type === "mapcreate" && currOp.type === "mapchange" && prevOp.key === currOp.key) {
-        operations.splice(--i, 2, { ...prevOp, newValue: currOp.newValue });
-      } else if (prevOp.type === "mapcreate" && currOp.type === "mapdelete" && prevOp.key === currOp.key) {
-        operations.splice(--i, 2);
-      } else if (prevOp.type === "mapchange" && currOp.type === "mapchange" && prevOp.key === currOp.key) {
-        operations.splice(--i, 2, { ...currOp, newValue: currOp.newValue });
-      } else if (prevOp.type === "mapchange" && currOp.type === "mapdelete" && prevOp.key === currOp.key) {
-        operations.splice(--i, 2, { ...currOp, oldValue: prevOp.oldValue });
-      } else if (prevOp.type === "mapdelete" && currOp.type === "mapcreate" && prevOp.key === currOp.key) {
-        operations.splice(--i, 2, { ...currOp, ...prevOp, type: "mapchange" });
-      } else
-        ++i;
-    } else
-      ++i;
-  }
-}
-
-// out/tracker.js
-var defaultTrackerOptions = {
-  trackHistory: true,
-  autoTransactionalize: true,
-  compactOnCommit: true
-};
-var Tracker = class {
-  #transaction;
-  #operationHistory;
-  #redos = [];
-  #inUse = false;
-  #dependencyTrackers = [];
-  options = defaultTrackerOptions;
-  // If defined this will be the prop reference for the "history" property of this Tracker instance
-  // If so, it should be notified whenever the history is affected
-  //      mutations outside of transactions
-  //      non-nested transaction committed
-  #historyPropRef;
-  constructor(options = {}) {
-    this.setOptions(options);
-  }
-  setOptions(options = {}) {
-    if (this.#inUse)
-      throw Error("Cannot change options for a tracker that has already started tracking");
-    if (options.trackHistory === false) {
-      options.compactOnCommit = false;
-      options.autoTransactionalize ??= false;
-    }
-    const appliedOptions = { ...defaultTrackerOptions, ...options };
-    if (appliedOptions.compactOnCommit && !appliedOptions.trackHistory) {
-      throw Error("Option compactOnCommit requires option trackHistory");
-    }
-    if (appliedOptions.trackHistory) {
-      this.#operationHistory = [];
-    } else {
-      this.#operationHistory = void 0;
-    }
-    this.options = Object.freeze(appliedOptions);
-  }
-  /**
-   * Turn on change tracking for an object.
-   * @param model
-   * @returns a proxied model object
-   */
-  track(model) {
-    if (isTracked(model))
-      throw Error("Object already tracked");
-    this.#inUse = true;
-    prepareForTracking(model, this);
-    const proxied = new Proxy(model, makeProxyHandler(model, this));
-    linkProxyToObject(model, proxied);
-    return proxied;
-  }
-  /**
-   * Turn on change tracking for an object.  This is behaviorally identical
-   * to `track()`.  It differs only in the typescript return type, which is a deep
-   * read-only type wrapper.  This might be useful if you want to enforce all mutations
-   * to be done through methods.
-   * @param model
-   * @returns a proxied model object
-   */
-  trackAsReadonlyDeep(model) {
-    return this.track(model);
-  }
-  #ensureHistory() {
-    if (!this.options.trackHistory)
-      throw Error("History tracking disabled.");
-  }
-  /** Retrieves the mutation history.  Active transactions aren't represented here.
-   */
-  get history() {
-    this.#ensureHistory();
-    this.#dependencyTrackers[0]?.trackAllChanges();
-    this.#historyPropRef ??= createOrRetrievePropRef(this, "history");
-    if (!this.#operationHistory)
-      throw Error("History tracking enabled, but no root transaction. Probably mutraction internal error.");
-    return this.#operationHistory;
-  }
-  /** Add another transaction to the stack  */
-  startTransaction(name) {
-    this.#transaction = { type: "transaction", parent: this.#transaction, operations: [], dependencies: /* @__PURE__ */ new Set(), timestamp: /* @__PURE__ */ new Date() };
-    if (name)
-      this.#transaction.transactionName = name;
-    return this.#transaction;
-  }
-  /** resolve and close the most recent transaction
-    * throws if no transactions are active
-    */
-  commit(transaction) {
-    if (!this.#transaction)
-      throw Error("Attempted to commit transaction when none were open.");
-    if (transaction && transaction !== this.#transaction)
-      throw Error("Attempted to commit wrong transaction. Transactions must be resolved in stack order.");
-    if (this.options.compactOnCommit)
-      compactTransaction(this.#transaction);
-    if (this.#transaction.parent) {
-      this.#transaction.parent.operations.push(this.#transaction);
-      this.#transaction.dependencies.forEach((d) => this.#transaction.parent.dependencies.add(d));
-      this.#transaction = this.#transaction.parent;
-    } else {
-      this.#operationHistory?.push(this.#transaction);
-      const allDependencyLists = /* @__PURE__ */ new Set();
-      for (const propRef of this.#transaction.dependencies) {
-        for (const dependencyList of propRef.subscribers) {
-          allDependencyLists.add(dependencyList);
-        }
-      }
-      for (const depList of allDependencyLists) {
-        depList.notifySubscribers();
-      }
-      this.#transaction = void 0;
-    }
-    if (this.#transaction == null) {
-      this.#historyPropRef?.notifySubscribers();
-    }
-  }
-  /** undo all operations done since the beginning of the most recent trasaction
-   * remove it from the transaction stack
-   * if no transactions are active, undo all mutations
-   */
-  rollback(transaction) {
-    if (transaction && transaction !== this.#transaction)
-      throw Error("Attempted to commit wrong transaction. Transactions must be resolved in stack order.");
-    if (this.#transaction) {
-      while (this.#transaction.operations.length)
-        this.undo();
-      this.#transaction = this.#transaction.parent;
-    } else {
-      while (this.#operationHistory?.length)
-        this.undo();
-    }
-  }
-  /** undo last mutation or transaction and push into the redo stack  */
-  undo() {
-    this.#ensureHistory();
-    const mutation = (this.#transaction?.operations ?? this.#operationHistory).pop();
-    if (!mutation)
-      return;
-    this.#undoOperation(mutation);
-    this.#redos.unshift(mutation);
-    if (this.#transaction == null) {
-      this.#historyPropRef?.notifySubscribers();
-    }
-  }
-  #undoOperation(mutation) {
-    if (mutation.type === "transaction") {
-      for (let i = mutation.operations.length; i-- > 0; ) {
-        this.#undoOperation(mutation.operations[i]);
-      }
-    } else {
-      const targetAny = mutation.target;
-      switch (mutation.type) {
-        case "change":
-        case "delete":
-          targetAny[mutation.name] = mutation.oldValue;
-          break;
-        case "create":
-          delete targetAny[mutation.name];
-          break;
-        case "arrayextend":
-          targetAny.length = mutation.oldLength;
-          break;
-        case "arrayshorten":
-          targetAny.push(...mutation.removed);
-          break;
-        case "setadd":
-          targetAny.delete(mutation.newValue);
-          break;
-        case "setdelete":
-          targetAny.add(mutation.oldValue);
-          break;
-        case "setclear":
-          mutation.oldValues.forEach(targetAny.add.bind(targetAny));
-          break;
-        case "mapcreate":
-          targetAny.delete(mutation.key);
-          break;
-        case "mapchange":
-        case "mapdelete":
-          targetAny.set(mutation.key, mutation.oldValue);
-          break;
-        case "mapclear":
-          mutation.oldEntries.forEach(([k, v]) => targetAny.set(k, v));
-          break;
-        default:
-          mutation;
-      }
-      if (!this.#transaction) {
-        createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
-        if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
-          createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
-        }
-      }
-    }
-  }
-  /** Repeat last undone mutation  */
-  redo() {
-    this.#ensureHistory();
-    const mutation = this.#redos.shift();
-    if (!mutation)
-      return;
-    this.#redoOperation(mutation);
-    (this.#transaction?.operations ?? this.#operationHistory).push(mutation);
-    if (this.#transaction == null) {
-      this.#historyPropRef?.notifySubscribers();
-    }
-  }
-  #redoOperation(mutation) {
-    if (mutation.type === "transaction") {
-      for (const operation of mutation.operations) {
-        this.#redoOperation(operation);
-      }
-    } else {
-      const targetAny = mutation.target;
-      switch (mutation.type) {
-        case "change":
-        case "create":
-          targetAny[mutation.name] = mutation.newValue;
-          break;
-        case "delete":
-          delete targetAny[mutation.name];
-          break;
-        case "arrayextend":
-          targetAny[mutation.newIndex] = mutation.newValue;
-          break;
-        case "arrayshorten":
-          targetAny.length = mutation.newLength;
-          break;
-        case "setadd":
-          targetAny.add(mutation.newValue);
-          break;
-        case "setdelete":
-          targetAny.delete(mutation.oldValue);
-          break;
-        case "setclear":
-          targetAny.clear();
-          break;
-        case "mapcreate":
-        case "mapchange":
-          targetAny.set(mutation.key, mutation.newValue);
-          break;
-        case "mapdelete":
-          targetAny.delete(mutation.key);
-          break;
-        case "mapclear":
-          targetAny.clear();
-          break;
-        default:
-          mutation;
-      }
-      if (!this.#transaction) {
-        createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
-        if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
-          createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
-        }
-      }
-    }
-  }
-  /** Clear the redo stack. Any direct mutation implicitly does this.
-   */
-  clearRedos() {
-    this.#redos.length = 0;
-  }
-  /** Commits all transactions, then empties the undo and redo history. */
-  clearHistory() {
-    this.#ensureHistory();
-    this.#transaction = void 0;
-    this.#operationHistory.length = 0;
-    this.clearRedos();
-  }
-  /** record a mutation, if you have the secret key  */
-  [RecordMutation](mutation) {
-    if (this.options.trackHistory) {
-      if (isDebugMode)
-        mutation.targetPath = getAccessPath(mutation.target);
-      (this.#transaction?.operations ?? this.#operationHistory).push(Object.freeze(mutation));
-    }
-    this.clearRedos();
-    if (this.#transaction) {
-      this.#transaction.dependencies.add(createOrRetrievePropRef(mutation.target, mutation.name));
-      if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
-        this.#transaction.dependencies.add(createOrRetrievePropRef(mutation.target, "length"));
-      }
-    } else {
-      createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
-      if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
-        createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
-      }
-      this.#historyPropRef?.notifySubscribers();
-    }
-  }
-  /** Run the callback without calling any subscribers */
-  ignoreUpdates(callback) {
-    const dep = this.startDependencyTrack();
-    dep.active = false;
-    callback();
-    dep.endDependencyTrack();
-  }
-  /** Create a new `DependencyList` from this tracker  */
-  startDependencyTrack() {
-    const deps = new DependencyList(this);
-    this.#dependencyTrackers.unshift(deps);
-    return deps;
-  }
-  endDependencyTrack(dep) {
-    if (this.#dependencyTrackers[0] !== dep)
-      throw Error("Specified dependency list is not top of stack");
-    this.#dependencyTrackers.shift();
-    return dep;
-  }
-  [RecordDependency](propRef) {
-    if (this.#gettingPropRef) {
-      this.#lastPropRef = propRef;
-    } else {
-      this.#dependencyTrackers[0]?.addDependency(propRef);
-    }
-  }
-  #gettingPropRef = false;
-  #lastPropRef = void 0;
-  /**
-   * Gets a property reference that refers to a particular property on a particular object.
-   * It can get or set the target property value using the `current` property, so it's a valid React ref.
-   * If there's an existing PropRef matching the arguments, it will be returned.
-   * A new one will be created only if necessary.
-   * @param propGetter parameter-less function that gets the target property value e.g. `() => model.settings.logFile`
-   * @returns PropReference for an object property
-   */
-  getPropRef(propGetter) {
-    const result = this.getPropRefTolerant(propGetter);
-    if (!result)
-      throw Error("No tracked properties.  Prop ref detection requires a tracked object.");
-    return result;
-  }
-  getPropRefTolerant(propGetter) {
-    if (this.#gettingPropRef)
-      throw Error("Cannot be called re-entrantly.");
-    this.#gettingPropRef = true;
-    this.#lastPropRef = void 0;
-    try {
-      const actualValue = propGetter();
-      if (!this.#lastPropRef)
-        return void 0;
-      const propRefCurrent = this.#lastPropRef.current;
-      if (!Object.is(actualValue, propRefCurrent))
-        console.error("The last operation of the callback must be a property get.\n`(foo || bar).quux` is allowed, but `foo.bar + 1` is not");
-      return this.#lastPropRef;
-    } finally {
-      this.#gettingPropRef = false;
-    }
-  }
-};
-var defaultTracker = new Tracker();
-function track(model) {
-  return defaultTracker.track(model);
-}
-function prepareForTracking(value, tracker) {
-  if (value instanceof Set) {
-    const snap = Array.from(value);
-    for (const e of snap) {
-      const proxy = getExistingProxy(e);
-      if (proxy) {
-        value.delete(e);
-        value.add(proxy);
-      } else if (canBeProxied(e)) {
-        value.delete(e);
-        value.add(tracker.track(e));
-      }
-    }
-    ;
-  } else if (value instanceof Map) {
-    const snap = Array.from(value);
-    for (const [k, v] of snap) {
-      assertSafeMapKey(k);
-      const proxy = getExistingProxy(v);
-      if (proxy)
-        value.set(k, proxy);
-      else if (canBeProxied(v))
-        value.set(k, tracker.track(v));
-    }
-  }
-}
-
 // out/debug.js
 var debugModeKey = "mu:debugMode";
 var debugUpdateDebounce = 250;
-var historyDepth = 10;
 var isDebugMode = "sessionStorage" in globalThis && !!sessionStorage.getItem(debugModeKey);
 if ("sessionStorage" in globalThis) {
   let enableDebugMode = function() {
@@ -1035,8 +557,8 @@ if ("sessionStorage" in globalThis) {
     const updateCallbacks = [];
     let handle = 0;
     queueMicrotask(() => {
-      effect(function historyChanged() {
-        defaultTracker.history.length;
+      effect(function historyChanged(dl) {
+        dl.trackAllChanges();
         if (handle === 0) {
           handle = setTimeout(function updateDiagnostics() {
             for (const cb of updateCallbacks)
@@ -1098,24 +620,6 @@ if ("sessionStorage" in globalThis) {
         effectCount.innerText = String(Array.from(activeEffects2.values()).reduce((a, b) => a + b, 0));
       }
     });
-    const undoButton = el("button", {}, "Undo");
-    const redoButton = el("button", {}, "Redo");
-    queueMicrotask(() => {
-      const { trackHistory } = defaultTracker.options;
-      if (!trackHistory)
-        undoButton.disabled = redoButton.disabled = true;
-    });
-    const history = defaultTracker.history;
-    const historyCount = el("span", {}, "0");
-    const historyList = el("ol", {});
-    const historySummary = el("details", { cursor: "pointer", marginBottom: "1em" }, el("summary", {}, el("strong", {}, "Recent history: "), historyCount, " total ", undoButton, redoButton), historyList);
-    undoButton.addEventListener("click", () => defaultTracker.undo());
-    redoButton.addEventListener("click", () => defaultTracker.redo());
-    updateCallbacks.push(() => {
-      historyCount.innerText = String(history.length);
-      const items = history.slice(-historyDepth).map(describeMutation).map((desc) => el("li", {}, desc));
-      historyList.replaceChildren(...items);
-    });
     const propRefCountNumber = el("span", {}, "0");
     const allPropRefs2 = getAllPropRefs();
     const propRefRefreshButton = el("button", {}, "\u21BB");
@@ -1134,7 +638,7 @@ if ("sessionStorage" in globalThis) {
     inspectButton.addEventListener("click", startInspectPick);
     const inspectedName = el("span", {}, "(none)");
     const inspectedPropList = el("ol", {});
-    const content = el("div", { padding: "1em", overflow: "auto" }, inspectButton, " ", el("strong", {}, "Inspected node:"), " ", inspectedName, inspectedPropList, effectSummary, historySummary, propRefSummary);
+    const content = el("div", { padding: "1em", overflow: "auto" }, inspectButton, " ", el("strong", {}, "Inspected node:"), " ", inspectedName, inspectedPropList, effectSummary, propRefSummary);
     container.append(head, content);
     document.body.append(container);
     let xOffset = 0, yOffset = 0;
@@ -1172,38 +676,433 @@ var startInspectPick2;
 var clampIntoView2;
 var enableDebugMode2;
 var disableDebugMode2;
-function describeMutation(mut) {
-  switch (mut.type) {
-    case "transaction":
-      return `Transaction ${mut.transactionName}`;
-    case "create":
-      return `Create property ${String(mut.name)}: ${mut.newValue}`;
-    case "change":
-      return `Modify property ${String(mut.name)}: ${mut.newValue}`;
-    case "delete":
-      return `Delete property ${String(mut.name)}`;
-    case "arrayextend":
-      return `Extend array to [${mut.newIndex}] = ${mut.newValue}`;
-    case "arrayshorten":
-      return `Shorten array to ${mut.newLength}`;
-    case "setadd":
-      return `Add to set: ${mut.newValue}`;
-    case "setdelete":
-      return `Delete from set: ${mut.oldValue}`;
-    case "setclear":
-      return `Clear set`;
-    case "mapcreate":
-      return `Add new entry to map [${mut.key}, ${mut.newValue}]`;
-    case "mapchange":
-      return `Change entry in map [${mut.key}, ${mut.newValue}]`;
-    case "mapdelete":
-      return `Remove key from map ${mut.key}`;
-    case "mapclear":
-      return `Clear map`;
-    default:
-      mut;
+
+// out/dependency.js
+var DependencyList = class {
+  #trackedProperties = /* @__PURE__ */ new Map();
+  #tracker;
+  #tracksAllChanges = false;
+  #subscribers = /* @__PURE__ */ new Set();
+  active = true;
+  constructor(tracker) {
+    this.#tracker = tracker;
   }
-  throw new Error("Function not implemented.");
+  get trackedProperties() {
+    return Array.from(this.#trackedProperties.keys());
+  }
+  addDependency(propRef) {
+    if (this.active && !this.#tracksAllChanges) {
+      if (this.#trackedProperties.has(propRef))
+        return;
+      const propSubscription = propRef.subscribe(this);
+      this.#trackedProperties.set(propRef, propSubscription);
+    }
+  }
+  subscribe(callback) {
+    this.#subscribers.add(callback);
+    return { dispose: () => this.#subscribers.delete(callback) };
+  }
+  notifySubscribers(trigger) {
+    const subscriberSnapshot = Array.from(this.#subscribers);
+    for (const callback of subscriberSnapshot)
+      callback(trigger);
+  }
+  endDependencyTrack() {
+    this.#tracker.endDependencyTrack(this);
+  }
+  /** Indicates that this dependency list is dependent on *all* tracked changes */
+  trackAllChanges() {
+    if (this.#tracksAllChanges)
+      return;
+    this.untrackAll();
+    const historyPropRef = createOrRetrievePropRef(this.#tracker, "history");
+    this.addDependency(historyPropRef);
+    this.#tracksAllChanges = true;
+  }
+  untrackAll() {
+    for (const sub of this.#trackedProperties.values())
+      sub.dispose();
+    this.#trackedProperties.clear();
+  }
+};
+
+// out/compactTransaction.js
+function compactTransaction({ operations }) {
+  for (let i = 0; i < operations.length; ) {
+    const currOp = operations[i];
+    if (currOp.type === "transaction") {
+      operations.splice(i, 1, ...currOp.operations);
+    } else if (currOp.type === "change" && Object.is(currOp.oldValue, currOp.newValue)) {
+      operations.splice(i, 1);
+    } else if (i > 0) {
+      const prevOp = operations[i - 1];
+      if (prevOp.type === "transaction") {
+        throw Error("Internal mutraction error.  Found internal transaction on look-back during packTransaction.");
+      } else if (prevOp.target !== currOp.target || prevOp.name !== currOp.name) {
+        ++i;
+      } else if (prevOp.type === "create" && currOp.type === "change") {
+        operations.splice(--i, 2, { ...prevOp, newValue: currOp.newValue });
+      } else if (prevOp.type === "create" && currOp.type === "delete") {
+        operations.splice(--i, 2);
+      } else if (prevOp.type === "change" && currOp.type === "change") {
+        operations.splice(--i, 2, { ...prevOp, newValue: currOp.newValue });
+      } else if (prevOp.type === "change" && currOp.type === "delete") {
+        operations.splice(--i, 2, { ...currOp, oldValue: prevOp.oldValue });
+      } else if (prevOp.type === "delete" && currOp.type === "create") {
+        operations.splice(--i, 2, { ...currOp, ...prevOp, type: "change" });
+      } else if (prevOp.type === "setadd" && currOp.type === "setdelete" && Object.is(prevOp.newValue, currOp.oldValue)) {
+        operations.splice(--i, 2);
+      } else if (prevOp.type === "setdelete" && currOp.type === "setadd" && Object.is(prevOp.oldValue, currOp.newValue)) {
+        operations.splice(--i, 2);
+      } else if (prevOp.type === "mapcreate" && currOp.type === "mapchange" && prevOp.key === currOp.key) {
+        operations.splice(--i, 2, { ...prevOp, newValue: currOp.newValue });
+      } else if (prevOp.type === "mapcreate" && currOp.type === "mapdelete" && prevOp.key === currOp.key) {
+        operations.splice(--i, 2);
+      } else if (prevOp.type === "mapchange" && currOp.type === "mapchange" && prevOp.key === currOp.key) {
+        operations.splice(--i, 2, { ...currOp, newValue: currOp.newValue });
+      } else if (prevOp.type === "mapchange" && currOp.type === "mapdelete" && prevOp.key === currOp.key) {
+        operations.splice(--i, 2, { ...currOp, oldValue: prevOp.oldValue });
+      } else if (prevOp.type === "mapdelete" && currOp.type === "mapcreate" && prevOp.key === currOp.key) {
+        operations.splice(--i, 2, { ...currOp, ...prevOp, type: "mapchange" });
+      } else
+        ++i;
+    } else
+      ++i;
+  }
+}
+
+// out/tracker.js
+var defaultTrackerOptions = {
+  autoTransactionalize: true,
+  compactOnCommit: true
+};
+var Tracker = class {
+  #transaction;
+  #redos = [];
+  #dependencyTrackers = [];
+  options = defaultTrackerOptions;
+  // If defined this will be the prop reference for the "history" property of this Tracker instance
+  // If so, it should be notified whenever the history is affected
+  //      mutations outside of transactions
+  //      non-nested transaction committed
+  #historyPropRef;
+  constructor(options = {}) {
+    this.setOptions(options);
+  }
+  setOptions(options = {}) {
+    this.options = Object.freeze({ ...defaultTrackerOptions, ...options });
+  }
+  /**
+   * Turn on change tracking for an object.
+   * @param model
+   * @returns a proxied model object
+   */
+  track(model) {
+    if (isTracked(model))
+      throw Error("Object already tracked");
+    prepareForTracking(model, this);
+    const proxied = new Proxy(model, makeProxyHandler(model, this));
+    linkProxyToObject(model, proxied);
+    return proxied;
+  }
+  /**
+   * Turn on change tracking for an object.  This is behaviorally identical
+   * to `track()`.  It differs only in the typescript return type, which is a deep
+   * read-only type wrapper.  This might be useful if you want to enforce all mutations
+   * to be done through methods.
+   * @param model
+   * @returns a proxied model object
+   */
+  trackAsReadonlyDeep(model) {
+    return this.track(model);
+  }
+  /** Add another transaction to the stack  */
+  startTransaction(name) {
+    this.#transaction = { type: "transaction", parent: this.#transaction, operations: [], dependencies: /* @__PURE__ */ new Set(), timestamp: /* @__PURE__ */ new Date() };
+    if (name)
+      this.#transaction.transactionName = name;
+    return this.#transaction;
+  }
+  /** resolve and close the most recent transaction
+    * throws if no transactions are active
+    */
+  commit(transaction) {
+    if (!this.#transaction)
+      throw Error("Attempted to commit transaction when none were open.");
+    if (transaction && transaction !== this.#transaction)
+      throw Error("Attempted to commit wrong transaction. Transactions must be resolved in stack order.");
+    if (this.options.compactOnCommit)
+      compactTransaction(this.#transaction);
+    if (this.#transaction.parent) {
+      this.#transaction.parent.operations.push(this.#transaction);
+      this.#transaction.dependencies.forEach((d) => this.#transaction.parent.dependencies.add(d));
+      this.#transaction = this.#transaction.parent;
+    } else {
+      const allDependencyLists = /* @__PURE__ */ new Set();
+      for (const propRef of this.#transaction.dependencies) {
+        for (const dependencyList of propRef.subscribers) {
+          allDependencyLists.add(dependencyList);
+        }
+      }
+      for (const depList of allDependencyLists) {
+        depList.notifySubscribers();
+      }
+      this.#transaction = void 0;
+    }
+    if (this.#transaction == null) {
+      this.#historyPropRef?.notifySubscribers();
+    }
+  }
+  /** undo all operations done since the beginning of the most recent trasaction
+   * remove it from the transaction stack
+   * if no transactions are active, undo all mutations
+   */
+  rollback(transaction) {
+    if (transaction && transaction !== this.#transaction)
+      throw Error("Attempted to commit wrong transaction. Transactions must be resolved in stack order.");
+    if (!this.#transaction)
+      throw Error("No transaction to rollback.");
+    while (this.#transaction.operations.length)
+      this.undo();
+    this.#transaction = this.#transaction.parent;
+  }
+  /** undo last mutation or transaction and push into the redo stack  */
+  undo() {
+    const mutation = this.#transaction?.operations?.pop();
+    if (!mutation)
+      throw Error("There must be an open transaction to undo.");
+    this.#undoOperation(mutation);
+    this.#redos.unshift(mutation);
+    if (this.#transaction == null) {
+      this.#historyPropRef?.notifySubscribers();
+    }
+  }
+  #undoOperation(mutation) {
+    if (mutation.type === "transaction") {
+      for (let i = mutation.operations.length; i-- > 0; ) {
+        this.#undoOperation(mutation.operations[i]);
+      }
+    } else {
+      const targetAny = mutation.target;
+      switch (mutation.type) {
+        case "change":
+        case "delete":
+          targetAny[mutation.name] = mutation.oldValue;
+          break;
+        case "create":
+          delete targetAny[mutation.name];
+          break;
+        case "arrayextend":
+          targetAny.length = mutation.oldLength;
+          break;
+        case "arrayshorten":
+          targetAny.push(...mutation.removed);
+          break;
+        case "setadd":
+          targetAny.delete(mutation.newValue);
+          break;
+        case "setdelete":
+          targetAny.add(mutation.oldValue);
+          break;
+        case "setclear":
+          mutation.oldValues.forEach(targetAny.add.bind(targetAny));
+          break;
+        case "mapcreate":
+          targetAny.delete(mutation.key);
+          break;
+        case "mapchange":
+        case "mapdelete":
+          targetAny.set(mutation.key, mutation.oldValue);
+          break;
+        case "mapclear":
+          mutation.oldEntries.forEach(([k, v]) => targetAny.set(k, v));
+          break;
+        default:
+          mutation;
+      }
+      if (!this.#transaction) {
+        createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
+        if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
+          createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
+        }
+      }
+    }
+  }
+  /** Repeat last undone mutation  */
+  redo() {
+    const mutation = this.#redos.shift();
+    if (!mutation)
+      return;
+    this.#redoOperation(mutation);
+    this.#transaction?.operations.push(mutation);
+    if (this.#transaction == null) {
+      this.#historyPropRef?.notifySubscribers();
+    }
+  }
+  #redoOperation(mutation) {
+    if (mutation.type === "transaction") {
+      for (const operation of mutation.operations) {
+        this.#redoOperation(operation);
+      }
+    } else {
+      const targetAny = mutation.target;
+      switch (mutation.type) {
+        case "change":
+        case "create":
+          targetAny[mutation.name] = mutation.newValue;
+          break;
+        case "delete":
+          delete targetAny[mutation.name];
+          break;
+        case "arrayextend":
+          targetAny[mutation.newIndex] = mutation.newValue;
+          break;
+        case "arrayshorten":
+          targetAny.length = mutation.newLength;
+          break;
+        case "setadd":
+          targetAny.add(mutation.newValue);
+          break;
+        case "setdelete":
+          targetAny.delete(mutation.oldValue);
+          break;
+        case "setclear":
+          targetAny.clear();
+          break;
+        case "mapcreate":
+        case "mapchange":
+          targetAny.set(mutation.key, mutation.newValue);
+          break;
+        case "mapdelete":
+          targetAny.delete(mutation.key);
+          break;
+        case "mapclear":
+          targetAny.clear();
+          break;
+        default:
+          mutation;
+      }
+      if (!this.#transaction) {
+        createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
+        if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
+          createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
+        }
+      }
+    }
+  }
+  /** Clear the redo stack. Any direct mutation implicitly does this.
+   */
+  clearRedos() {
+    this.#redos.length = 0;
+  }
+  /** record a mutation, if you have the secret key  */
+  [RecordMutation](mutation) {
+    if (isDebugMode)
+      mutation.targetPath = getAccessPath(mutation.target);
+    this.#transaction?.operations.push(Object.freeze(mutation));
+    this.clearRedos();
+    if (this.#transaction) {
+      this.#transaction.dependencies.add(createOrRetrievePropRef(mutation.target, mutation.name));
+      if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
+        this.#transaction.dependencies.add(createOrRetrievePropRef(mutation.target, "length"));
+      }
+    } else {
+      createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
+      if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
+        createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
+      }
+      this.#historyPropRef?.notifySubscribers();
+    }
+  }
+  /** Run the callback without calling any subscribers */
+  ignoreUpdates(callback) {
+    const dep = this.startDependencyTrack();
+    dep.active = false;
+    callback();
+    dep.endDependencyTrack();
+  }
+  /** Create a new `DependencyList` from this tracker  */
+  startDependencyTrack() {
+    const deps = new DependencyList(this);
+    this.#dependencyTrackers.unshift(deps);
+    return deps;
+  }
+  endDependencyTrack(dep) {
+    if (this.#dependencyTrackers[0] !== dep)
+      throw Error("Specified dependency list is not top of stack");
+    this.#dependencyTrackers.shift();
+    return dep;
+  }
+  [RecordDependency](propRef) {
+    if (this.#gettingPropRef) {
+      this.#lastPropRef = propRef;
+    } else {
+      this.#dependencyTrackers[0]?.addDependency(propRef);
+    }
+  }
+  #gettingPropRef = false;
+  #lastPropRef = void 0;
+  /**
+   * Gets a property reference that refers to a particular property on a particular object.
+   * It can get or set the target property value using the `current` property, so it's a valid React ref.
+   * If there's an existing PropRef matching the arguments, it will be returned.
+   * A new one will be created only if necessary.
+   * @param propGetter parameter-less function that gets the target property value e.g. `() => model.settings.logFile`
+   * @returns PropReference for an object property
+   */
+  getPropRef(propGetter) {
+    const result = this.getPropRefTolerant(propGetter);
+    if (!result)
+      throw Error("No tracked properties.  Prop ref detection requires a tracked object.");
+    return result;
+  }
+  getPropRefTolerant(propGetter) {
+    if (this.#gettingPropRef)
+      throw Error("Cannot be called re-entrantly.");
+    this.#gettingPropRef = true;
+    this.#lastPropRef = void 0;
+    try {
+      const actualValue = propGetter();
+      if (!this.#lastPropRef)
+        return void 0;
+      const propRefCurrent = this.#lastPropRef.current;
+      if (!Object.is(actualValue, propRefCurrent))
+        console.error("The last operation of the callback must be a property get.\n`(foo || bar).quux` is allowed, but `foo.bar + 1` is not");
+      return this.#lastPropRef;
+    } finally {
+      this.#gettingPropRef = false;
+    }
+  }
+};
+var defaultTracker = new Tracker();
+function track(model) {
+  return defaultTracker.track(model);
+}
+function prepareForTracking(value, tracker) {
+  if (value instanceof Set) {
+    const snap = Array.from(value);
+    for (const e of snap) {
+      const proxy = getExistingProxy(e);
+      if (proxy) {
+        value.delete(e);
+        value.add(proxy);
+      } else if (canBeProxied(e)) {
+        value.delete(e);
+        value.add(tracker.track(e));
+      }
+    }
+    ;
+  } else if (value instanceof Map) {
+    const snap = Array.from(value);
+    for (const [k, v] of snap) {
+      assertSafeMapKey(k);
+      const proxy = getExistingProxy(v);
+      if (proxy)
+        value.set(k, proxy);
+      else if (canBeProxied(v))
+        value.set(k, tracker.track(v));
+    }
+  }
 }
 
 // out/effect.js

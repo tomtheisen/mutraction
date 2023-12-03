@@ -19,14 +19,6 @@ export function trackerDoc() {
                     <code>options</code> - optional object
                     <ul>
                         <li>
-                            <code>trackHistory</code> - default <code>true</code>
-                            <p>
-                                This controls whether the tracker will track history.
-                                If not, no history manipulation will be possible.
-                                Dependency notification will continue to happen as normal.
-                            </p>
-                        </li>
-                        <li>
                             <code>autoTransactionalize</code> - default <code>true</code>
                             <p>
                                 This controls how tracked functions create history.
@@ -47,19 +39,6 @@ export function trackerDoc() {
                         </li>
                     </ul>
                 </ul>
-            </ul>
-
-            <h2>Properties</h2>
-            <ul>
-                <li>
-                    <code>history</code>
-                    <p>
-                        This is an array of mutation objects representing the
-                        entire history of all tracked objects.  Each entry contains
-                        the minimal diff necessary to apply the change.  It does not store
-                        snapshots of entire objects.
-                    </p>
-                </li>
             </ul>
 
             <h2>Methods</h2>
@@ -146,13 +125,6 @@ export function trackerDoc() {
                     <code>clearRedos()</code>
                     <p>
                         This empties the redo buffer.
-                    </p>
-                </li>
-                <li>
-                    <code>clearHistory()</code>
-                    <p>
-                        This commits all open transactions and clears all history.
-                        No changes are made to any tracked model.
                     </p>
                 </li>
             </ul>

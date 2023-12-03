@@ -124,7 +124,6 @@ export declare function createOrRetrievePropRef<TObj extends object, TKey extend
 declare const RecordMutation: unique symbol;
 declare const RecordDependency: unique symbol;
 declare const defaultTrackerOptions: {
-	trackHistory: boolean;
 	autoTransactionalize: boolean;
 	compactOnCommit: boolean;
 };
@@ -153,9 +152,6 @@ export declare class Tracker {
 	 * @returns a proxied model object
 	 */
 	trackAsReadonlyDeep<TModel extends object>(model: TModel): ReadonlyDeep<TModel>;
-	/** Retrieves the mutation history.  Active transactions aren't represented here.
-	 */
-	get history(): ReadonlyArray<Readonly<Mutation>>;
 	/** Add another transaction to the stack  */
 	startTransaction(name?: string): Transaction;
 	/** resolve and close the most recent transaction
@@ -174,8 +170,6 @@ export declare class Tracker {
 	/** Clear the redo stack. Any direct mutation implicitly does this.
 	 */
 	clearRedos(): void;
-	/** Commits all transactions, then empties the undo and redo history. */
-	clearHistory(): void;
 	/** record a mutation, if you have the secret key  */
 	[RecordMutation](mutation: SingleMutation): void;
 	/** Run the callback without calling any subscribers */

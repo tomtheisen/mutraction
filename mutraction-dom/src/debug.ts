@@ -33,8 +33,9 @@ if ("sessionStorage" in globalThis) {
 
         let handle = 0;
         queueMicrotask(() => {
-            effect(function historyChanged() {
-                defaultTracker.history.length;
+            effect(function historyChanged(dl) {
+                dl.trackAllChanges();
+
                 if (handle === 0) {
                     handle = setTimeout(function updateDiagnostics() {
                         for (const cb of updateCallbacks) cb();
@@ -157,31 +158,6 @@ if ("sessionStorage" in globalThis) {
             }
         });
 
-        const undoButton = el("button", {}, "Undo");
-        const redoButton = el("button", {}, "Redo");
-        queueMicrotask(() => {
-            const { trackHistory } = defaultTracker.options;
-            if (!trackHistory) undoButton.disabled = redoButton.disabled = true;
-        });
-
-        const history = defaultTracker.history;
-        const historyCount = el("span", {}, "0");
-        const historyList = el("ol", {});
-        const historySummary = el("details", { cursor: "pointer", marginBottom: "1em" },
-            el("summary", {}, 
-                el("strong", {}, "Recent history: "),
-                historyCount, " total " , undoButton, redoButton
-            ),
-            historyList
-        );
-        undoButton.addEventListener("click", () => defaultTracker.undo());
-        redoButton.addEventListener("click", () => defaultTracker.redo());
-        updateCallbacks.push(() => {
-            historyCount.innerText = String(history.length);
-            const items = history.slice(-historyDepth).map(describeMutation).map(desc => el("li", {}, desc));
-            historyList.replaceChildren(...items);
-        });
-        
         const propRefCountNumber = el("span", {}, "0");
 
         const allPropRefs = getAllPropRefs();
@@ -276,7 +252,6 @@ if ("sessionStorage" in globalThis) {
         const content = el("div", {padding: "1em", overflow: "auto"}, 
             inspectButton, " ", el("strong", {}, "Inspected node:"), " ", inspectedName, inspectedPropList,
             effectSummary,
-            historySummary,
             propRefSummary);
 
         container.append(head, content);
