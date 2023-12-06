@@ -52,7 +52,6 @@ export const nav =
             </li>
             <li><a href="#examples">Example apps</a></li>
             <li><a href="#why">Why mutraction</a></li>
-            <li><a href="#faq">FAQ</a></li>
         </ul>
     </nav> as HTMLElement;
 

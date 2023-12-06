@@ -32,10 +32,10 @@ if ("sessionStorage" in globalThis) {
         const updateCallbacks: (() => void)[] = [];
 
         let handle = 0;
+        // TODO find a way to track all changes
+        throw Error("NIE");
         queueMicrotask(() => {
             effect(function historyChanged(dl) {
-                dl.trackAllChanges();
-
                 if (handle === 0) {
                     handle = setTimeout(function updateDiagnostics() {
                         for (const cb of updateCallbacks) cb();

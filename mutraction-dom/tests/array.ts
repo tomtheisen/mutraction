@@ -3,23 +3,29 @@ import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
 test('array sort undo', () => {
-    const arr = track(["a","c","b"]);
+    const tr = new Tracker;
+    const tx = tr.startTransaction();
+    
+    const arr = tr.track(["a","c","b"]);
 
-    tracker.startTransaction();
+    tr.startTransaction();
     arr.sort();
-    tracker.commit();
+    tr.commit();
     assert.equal(arr, ["a", "b", "c"]);
 
-    tracker.undo();
+    tr.undo();
     assert.equal(arr, ["a", "c", "b"]);
 });
 
 test('array atomicity', () => {
-    const arr = track([3, 4]);
+    const tr = new Tracker;
+    const tx = tr.startTransaction();
+
+    const arr = tr.track([3, 4]);
 
     arr.push(8);
     arr.push(6, 7);
-    tracker.undo();
+    tr.undo();
     assert.equal(arr, [3, 4, 8]);
 });
 
@@ -31,7 +37,7 @@ test('array detection', () => {
 });
 
 test('no history arrays', () => {
-    const tr = new Tracker({ trackHistory: false, autoTransactionalize: false })
+    const tr = new Tracker({ autoTransactionalize: false })
     const arr = tr.track([1]);
 
     arr.push(2);
@@ -49,6 +55,9 @@ test('array lengthen', () => {
 
 test('action log recipe', () => {
     const tr = new Tracker({ autoTransactionalize: true });
+
+    const tx = tr.startTransaction();
+
     const model = tr.trackAsReadonlyDeep({ 
         arr: [1,2,3], 
         add(n: number) { this.arr.push(n) } 
@@ -56,29 +65,10 @@ test('action log recipe', () => {
 
     model.add(5);
 
-    assert.snapshot(
-        JSON.stringify(tr.history),
-        JSON.stringify([
-            {
-                "type":"transaction",
-                "parent": undefined,
-                "operations":[
-                    {
-                        "type":"arrayextend",
-                        "target":[1,2,3,5],
-                        "name":"3",
-                        "oldLength":3,
-                        "newIndex":3,
-                        "newValue":5,
-                        timestamp: (tr as any).history[0].operations[0].timestamp
-                    }
-                ],
-                "dependencies":{},
-                timestamp: tr.history[0].timestamp,
-                "transactionName":"add",
-            }
-        ])
-    );
+    const operation = tx.operations[0];
+    assert.equal(operation.type, "transaction");
+    assert.equal(operation.type === "transaction" && operation.transactionName, "add");
+
 });
 
 test('array pop length visible in effect', () => {

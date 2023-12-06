@@ -4,11 +4,12 @@ import * as assert from 'uvu/assert';
 
 test('undo delete redo', () => {
     const tr = new Tracker;
+    const tx = tr.startTransaction();
     const model = tr.track({ foo: "bar", x: 123 } as any);
 
     delete model.foo;
     assert.not("foo" in model);
-    assert.equal(tr.history.length, 1);
+    assert.equal(tx.operations.length, 1);
 
     tr.undo();
     assert.is(model.foo, "bar");
@@ -18,26 +19,32 @@ test('undo delete redo', () => {
 });
 
 test('array extend', () => {
-    const model = track([1] as any);
+    const tr = new Tracker;
+    const tx = tr.startTransaction();
+
+    const model = tr.track([1] as any);
 
     model[0] = 4;
     model[2] = 3;
     assert.equal(model, [4, , 3]);
     
-    tracker.undo();
+    tr.undo();
     assert.equal(model, [4]);
     
-    tracker.redo();
+    tr.redo();
     assert.equal(model, [4, , 3]);
 });
 
 test('array shift rollback test', () => {
-    const model = track(['a','b','c'] as any);
+    const tr = new Tracker;
+    const tx = tr.startTransaction();
+
+    const model = tr.track(['a','b','c'] as any);
 
     model.shift();
     assert.equal(model, ['b', 'c']);
 
-    tracker.rollback();
+    tr.rollback();
     assert.equal(model, ['a', 'b', 'c']);
 });
 
@@ -63,34 +70,17 @@ test('no symbol key leakage', () => {
     assert.equal(Object.keys(model), ["foo"]);
 });
 
-test('clear history', () => {
-    const model = track({} as any);
-
-    model.a = 1;
-    model.b = 2;
-
-    tracker.undo();
-    tracker.clearHistory();
-    assert.equal(model, {a: 1});
-
-    tracker.undo();
-    assert.equal(model, {a: 1});
-
-    tracker.redo();
-    assert.equal(model, {a: 1});
-});
-
 test('no history', () => {
-    const tr = new Tracker({ trackHistory: false, autoTransactionalize: false });
+    const tr = new Tracker({ autoTransactionalize: false });
+    // const tx = tr.startTransaction();
+
     const model = tr.track({} as any);
 
     model.foo = 7;
-    assert.throws(() => tr.undo(), "undo should throw");
-    assert.throws(() => tr.redo(), "redo should throw");
-    assert.throws(() => tr.commit(), "commit should throw");
+    assert.throws(() => tr.undo());
     assert.equal(model.foo, 7);
 
-    tr.rollback();
+    // tr.rollback();
 });
 
 test('callback immediate', () => {
@@ -111,6 +101,8 @@ test('callback immediate', () => {
 
 test('undo notifies', () => {
     const tr = new Tracker();
+    const tx = tr.startTransaction();
+
     const model = tr.track({ current: 0 });
 
     let cached = -1;
@@ -118,26 +110,34 @@ test('undo notifies', () => {
 
     model.current = 1;
     model.current = 2;
-    assert.equal(cached, 2);
-
     tr.undo();
+
+    tr.commit(tx);
+
     assert.equal(cached, 1);
 });
 
 test('undo delete notifies', () => {
     const tr = new Tracker();
+
     const model = tr.track({ foo: 123 } as any);
 
     let cached: any;
     effect(() => { cached = model.foo; }, { tracker: tr });
+    assert.equal(cached, 123);
 
+    const tx = tr.startTransaction();
+
+    model.foo = 234;
     assert.equal(cached, 123);
 
     delete model.foo;
-    assert.equal(cached, undefined);
-
-    tr.undo();
     assert.equal(cached, 123);
+    tr.undo();
+
+    tr.commit(tx);
+
+    assert.equal(cached, 234);
 });
 
 test.run();

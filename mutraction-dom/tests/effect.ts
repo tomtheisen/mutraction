@@ -152,6 +152,7 @@ test('exotic array effect', () => {
 
 test('transaction affects history length', () => {
     const tr = new Tracker;
+    const tx = tr.startTransaction();
     const model = tr.track({
         prop: 8,
         method() {
@@ -164,7 +165,7 @@ test('transaction affects history length', () => {
 
     effect(() => {
         ++runs;
-        historyLength = tr.history.length;
+        historyLength = tx.operations.length;
     }, { tracker: tr });
 
     assert.equal(runs, 1, "initial effect");

@@ -33,10 +33,7 @@ import { array } from "./recipes/array.js";
 import { html } from "./recipes/html.js";
 
 import { examples } from "./examples.js";
-import { faq } from "./faq.js";
 import { why } from "./why.js";
-
-
 
 export const routes = Router(
     { pattern: '#start', element: getStarted },
@@ -72,7 +69,6 @@ export const routes = Router(
 
     { pattern: '#examples', element: examples },
     { pattern: '#why', element: why },
-    { pattern: '#faq', element: faq },
 
     { pattern: '#clock', element: () => <>{ new Date }</> },
     { pattern: /#id=(\d+)/, element: match => <>Id match: {match[1]}</> },

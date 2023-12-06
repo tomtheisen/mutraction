@@ -139,7 +139,7 @@ export function child(getter: () => number | string | bigint | null | undefined 
         if (val instanceof Node) {
             // this effect is now dead
             // since we don't replace nodes by default
-            dl.untrackAll(); // TODO could still be trackAllProperties in the case of a .history dependency
+            dl.untrackAll();
             node = val;
         }
         else {

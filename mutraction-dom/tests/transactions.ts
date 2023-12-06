@@ -43,14 +43,12 @@ test('committed transaction has no parent', () => {
     const tr = new Tracker;
     const model = tr.track({} as any);
     
-    tr.startTransaction();
+    const tx = tr.startTransaction();
     model.lol = 132;
     tr.commit();
 
-    const transaction = tr.history[0] as any;
-    assert.ok(transaction);
-    assert.is(transaction.type, "transaction");
-    assert.not.ok(transaction.parent);
+    assert.ok(tx);
+    assert.not.ok(tx.parent);
 });
 
 test('array length 0 rollback test', () => {
@@ -65,11 +63,12 @@ test('array length 0 rollback test', () => {
 
 test('transaction does not obscure history', () => {
     const tr = new Tracker;
+    const tx = tr.startTransaction();
     const model = tr.track({} as any);
 
     model.asdf = 123;
     tr.startTransaction();
-    assert.equal(tr.history.length, 1);
+    assert.equal(tx.operations.length, 1);
 });
 
 test('transaction out of order resolution fails', () => {
@@ -95,38 +94,40 @@ test('no auto rollback on throw', () => {
 
 test('auto rollback on empty', () => {
     const tr = new Tracker({autoTransactionalize: true});
+    const tx = tr.startTransaction();
     const model = tr.track({
         x: 4,
         m() { }
     });
 
     model.m();
-    assert.equal(tr.history.length, 0);
+    assert.equal(tx.operations.length, 0);
 });
 
 test('compact into nothing', () => {
     const tr = new Tracker;
     const model = tr.track({foo: 45} as any);
 
-    tr.startTransaction("noop");
+    const tx = tr.startTransaction("noop");
     model.x = 1;
     model.x = 2;
     delete model.x;
     tr.commit();
 
-    assert.equal(tr.history, [{ 
+    assert.equal(tx, { 
         transactionName: "noop", 
         type:'transaction', 
         parent: undefined, 
         operations: [], 
         dependencies: new Set([createOrRetrievePropRef(model, "x")]),
-        timestamp: tr.history[0].timestamp,
-    }]);
+        timestamp: tx.timestamp,
+    });
 });
 
 test('compound noop', () => {
     const tr = new Tracker;
     const model = tr.track({foo: 45} as any);
+    const tx = tr.startTransaction();
 
     tr.startTransaction("noop2");
     model.foo = 99;
@@ -136,20 +137,11 @@ test('compound noop', () => {
     model.foo = 45;
     tr.commit();
 
-    assert.snapshot(
-        JSON.stringify(tr.history), 
-        JSON.stringify([{ 
-            type:'transaction', 
-            operations: [], 
-            dependencies: new Set, 
-            timestamp: tr.history[0].timestamp,
-            transactionName: "noop2", 
-        }])
-    );
+    assert.equal(tx.operations, []);
 });
 
 test('transaction without history', () => {
-    const tr = new Tracker({ trackHistory: false });
+    const tr = new Tracker();
     const model = tr.track({ x: 1 });
 
     tr.startTransaction();
@@ -162,6 +154,7 @@ test('transaction without history', () => {
 
 test('set transaction collapsing', () => {
     const tr = new Tracker;
+    const tx = tr.startTransaction();
     const model = tr.track(new Set([1]));
 
     tr.startTransaction();
@@ -173,12 +166,13 @@ test('set transaction collapsing', () => {
 
     console.log();
     assert.equal(model, new Set([1]));
-    assert.equal(tr.history[0].type, "transaction");
-    assert.equal((tr.history[0] as Transaction).operations.length, 0);
+    assert.equal(tx.operations[0].type, "transaction");
+    assert.equal((tx.operations[0] as Transaction).operations.length, 0);
 });
 
 test('map transaction collapsing', () => {
     const tr = new Tracker;
+    const tx = tr.startTransaction();
     const model = tr.track(new Map<string, string>);
 
     tr.startTransaction();
@@ -188,8 +182,8 @@ test('map transaction collapsing', () => {
     tr.commit();
 
     assert.equal(model, new Map);
-    assert.equal(tr.history[0].type, "transaction");
-    assert.equal((tr.history[0] as Transaction).operations.length, 0);
+    assert.equal(tx.operations[0].type, "transaction");
+    assert.equal((tx.operations[0] as Transaction).operations.length, 0);
 });
 
 

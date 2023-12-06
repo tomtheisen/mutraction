@@ -23,6 +23,7 @@ test('state methods', () => {
 
 test('compound setter records only leaf operations', () => {
     const tr = new Tracker;
+    const tx = tr.startTransaction();
     class C {
         _maxProp: number;
         _prop: number;
@@ -45,9 +46,9 @@ test('compound setter records only leaf operations', () => {
     tr.commit();
     assert.equal(model._maxProp, 5);
 
-    assert.equal(tr.history.length, 1);
-    assert.equal(tr.history[0].type, "transaction");
-    assert.equal(tr.history[0].type === "transaction" && tr.history[0].operations.length, 2);
+    assert.equal(tx.operations.length, 1);
+    assert.equal(tx.operations[0].type, "transaction");
+    assert.equal(tx.operations[0].type === "transaction" && tx.operations[0].operations.length, 2);
 
     tr.undo();
     assert.equal(model._maxProp, 4);

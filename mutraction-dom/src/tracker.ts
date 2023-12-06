@@ -1,4 +1,4 @@
-import type { Mutation, ReadonlyDeep, SingleMutation, Transaction } from "./types.js";
+import type { Mutation, ReadonlyDeep, SingleMutation, Subscription, Transaction } from "./types.js";
 import { RecordDependency, RecordMutation } from "./symbols.js";
 import { DependencyList } from "./dependency.js";
 import { compactTransaction } from "./compactTransaction.js";
@@ -23,14 +23,9 @@ export class Tracker {
     #transaction?: Transaction;
     #redos: Mutation[] = [];
     #dependencyTrackers: DependencyList[] = [];
+    #subscribers = new Set<(change?: Mutation) => void>;
 
     options: Readonly<Required<TrackerOptions>> = defaultTrackerOptions;
-
-    // If defined this will be the prop reference for the "history" property of this Tracker instance
-    // If so, it should be notified whenever the history is affected
-    //      mutations outside of transactions
-    //      non-nested transaction committed
-    #historyPropRef: PropReference | undefined;
 
     constructor(options: TrackerOptions = {}) {
         this.setOptions(options);
@@ -106,8 +101,18 @@ export class Tracker {
 
         if (this.#transaction == null) {
             // top level transaction, notify any history dependency
-            this.#historyPropRef?.notifySubscribers();
+            this.#notifySubscribers();
         }
+    }
+
+    subscribe(callback: (change?: Mutation) => void): Subscription {
+        this.#subscribers.add(callback);
+        const dispose = () => this.#subscribers.delete(callback);
+        return { dispose };
+    }
+
+    #notifySubscribers(change?: Mutation) {
+        for (const s of this.#subscribers) s(change);
     }
 
     /** undo all operations done since the beginning of the most recent trasaction
@@ -134,7 +139,7 @@ export class Tracker {
         this.#redos.unshift(mutation);
 
         if (this.#transaction == null) { // top-level transaction
-            this.#historyPropRef?.notifySubscribers();
+            this.#notifySubscribers();
         }
     }
     #undoOperation(mutation: Mutation) {
@@ -181,7 +186,7 @@ export class Tracker {
         this.#transaction?.operations.push(mutation);
 
         if (this.#transaction == null) { // top-level transaction
-            this.#historyPropRef?.notifySubscribers();
+            this.#notifySubscribers();
         }
     }
     #redoOperation(mutation: Mutation) {
@@ -245,7 +250,7 @@ export class Tracker {
             if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
                 createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
             }
-            this.#historyPropRef?.notifySubscribers();
+            this.#notifySubscribers();
         }
     }
 

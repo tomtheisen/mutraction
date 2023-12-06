@@ -211,8 +211,6 @@ declare class DependencyList {
 	subscribe(callback: Subscriber): Subscription;
 	notifySubscribers(trigger?: PropReference): void;
 	endDependencyTrack(): void;
-	/** Indicates that this dependency list is dependent on *all* tracked changes */
-	trackAllChanges(): void;
 	untrackAll(): void;
 }
 type ElementStringProps<E extends keyof HTMLElementTagNameMap> = {

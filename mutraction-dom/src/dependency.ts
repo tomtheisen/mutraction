@@ -14,7 +14,6 @@ type Subscriber = (trigger?: PropReference) => void;
 export class DependencyList {
     #trackedProperties = new Map<PropReference, Subscription>;
     #tracker: Tracker;
-    #tracksAllChanges = false;
     #subscribers: Set<Subscriber> = new Set;
     active = true;
 
@@ -27,7 +26,7 @@ export class DependencyList {
     }
 
     addDependency(propRef: PropReference) {
-        if (this.active && !this.#tracksAllChanges) {
+        if (this.active) {
             if (this.#trackedProperties.has(propRef)) return;
             const propSubscription = propRef.subscribe(this);
             this.#trackedProperties.set(propRef, propSubscription);
@@ -48,16 +47,6 @@ export class DependencyList {
 
     endDependencyTrack() {
         this.#tracker.endDependencyTrack(this);
-    }
-
-    /** Indicates that this dependency list is dependent on *all* tracked changes */
-    trackAllChanges() {
-        if (this.#tracksAllChanges) return; // already doing it
-        
-        this.untrackAll();
-        const historyPropRef = createOrRetrievePropRef(this.#tracker, "history");
-        this.addDependency(historyPropRef);
-        this.#tracksAllChanges = true;
     }
 
     untrackAll() {

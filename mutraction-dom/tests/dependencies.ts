@@ -64,15 +64,10 @@ test('history dependency', () => {
     const tr = new Tracker;
     const model = tr.track({} as any);
 
-    const dep = tr.startDependencyTrack();
-    // establish history dependency
-    const history = tr.history;
-    dep.endDependencyTrack();
-
+    
     let c = 0;
-    dep.subscribe(() => ++c);
+    const sub = tr.subscribe(() => ++c);
 
-    assert.equal(history.length, 0);
     assert.equal(c, 0);
 
     model.foo = {};
@@ -80,12 +75,6 @@ test('history dependency', () => {
 
     model.foo.bar = {};
     assert.equal(c, 2);
-
-    tr.undo();
-    assert.equal(c, 3);
-
-    tr.redo();
-    assert.equal(c, 4);
 });
 
 test('only top dependency notified', () => {
@@ -104,23 +93,27 @@ test('only top dependency notified', () => {
 });
 
 test('array extend undo length dep', () => {
-    const model = track([99]);
+    const tr = new Tracker;
+
+    const model = tr.track([99]);
 
     let runs = 0;
     effect(() => {
         [model.length];
         ++runs;
-    });
+    }, { tracker: tr });
     assert.equal(runs, 1);
 
+    const tx = tr.startTransaction();
     model[1] = 77;
+    tr.undo();
+    assert.equal(model, [99]);
+
+    tr.redo();
+    tr.commit(tx);
+
+    assert.equal(model, [99, 77]);
     assert.equal(runs, 2);
-
-    defaultTracker.undo();
-    assert.equal(runs, 3);
-
-    defaultTracker.redo();
-    assert.equal(runs, 4);
 });
 
 test.run();

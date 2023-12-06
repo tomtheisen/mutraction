@@ -65,7 +65,7 @@ export function trackerDoc() {
                     <p>
                         This method invokes a callback without notifying any dependency trackers.
                         Normally, assigning to a tracked variable will update any effects or DOM elements
-                        that depend on it.  If you use this method, nothing will be updated or notified.
+                        that depend on it.  If you use this method, no dependency subscribers will be notified.
                     </p>
                 </li>
                 <li>
@@ -73,7 +73,6 @@ export function trackerDoc() {
                     <p>
                         This configures the tracker.
                         The available options are the same as listed for the constructor.
-                        This method cannot be called after <code>track()</code> has been invoked on this tracker.
                         The primary use case for this method is to configure the default <code>Tracker</code> instance.
                     </p>
                 </li>
@@ -109,7 +108,9 @@ export function trackerDoc() {
                 <li>
                     <code>undo()</code>
                     <p>
-                        This reverts the most recent mutation or committed transaction.
+                        This reverts the most recent mutation or committed inner transaction.
+                        This is only possible when one or more transactions are open.
+                        When all transactions are resolved, they can no longer be undone.
                     </p>
                 </li>
                 <li>

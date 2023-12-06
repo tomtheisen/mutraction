@@ -556,9 +556,9 @@ if ("sessionStorage" in globalThis) {
     valueString2 = valueString, el2 = el, getNodeAndTextDependencies2 = getNodeAndTextDependencies, getPropRefListItem2 = getPropRefListItem, refreshPropRefList2 = refreshPropRefList, startInspectPick2 = startInspectPick, clampIntoView2 = clampIntoView;
     const updateCallbacks = [];
     let handle = 0;
+    throw Error("NIE");
     queueMicrotask(() => {
       effect(function historyChanged(dl) {
-        dl.trackAllChanges();
         if (handle === 0) {
           handle = setTimeout(function updateDiagnostics() {
             for (const cb of updateCallbacks)
@@ -681,7 +681,6 @@ var disableDebugMode2;
 var DependencyList = class {
   #trackedProperties = /* @__PURE__ */ new Map();
   #tracker;
-  #tracksAllChanges = false;
   #subscribers = /* @__PURE__ */ new Set();
   active = true;
   constructor(tracker) {
@@ -691,7 +690,7 @@ var DependencyList = class {
     return Array.from(this.#trackedProperties.keys());
   }
   addDependency(propRef) {
-    if (this.active && !this.#tracksAllChanges) {
+    if (this.active) {
       if (this.#trackedProperties.has(propRef))
         return;
       const propSubscription = propRef.subscribe(this);
@@ -709,15 +708,6 @@ var DependencyList = class {
   }
   endDependencyTrack() {
     this.#tracker.endDependencyTrack(this);
-  }
-  /** Indicates that this dependency list is dependent on *all* tracked changes */
-  trackAllChanges() {
-    if (this.#tracksAllChanges)
-      return;
-    this.untrackAll();
-    const historyPropRef = createOrRetrievePropRef(this.#tracker, "history");
-    this.addDependency(historyPropRef);
-    this.#tracksAllChanges = true;
   }
   untrackAll() {
     for (const sub of this.#trackedProperties.values())
