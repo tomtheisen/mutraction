@@ -40,17 +40,23 @@ test('set membership effect', () => {
 });
 
 test('set clear undo', () => {
-    const model = track(new Set<number>([66, 77]));
+    const tr = new Tracker;
+    const tx = tr.startTransaction();
+
+    const model = tr.track(new Set<number>([66, 77]));
 
     model.clear();
     assert.equal(model, new Set<number>);
 
-    defaultTracker.undo();
+    tr.undo();
     assert.equal(model, new Set<number>([66, 77]));
 });
 
 test('set member track', () => {
-    const model = track(new Set([{ current: "original" }]));
+    const tr = new Tracker;
+    const tx = tr.startTransaction();
+
+    const model = tr.track(new Set([{ current: "original" }]));
 
     const [member] = [...model.values()];
 
@@ -59,14 +65,17 @@ test('set member track', () => {
     member.current = "changed"
     assert.equal(member, {current: "changed"});
 
-    defaultTracker.undo();
+    tr.undo();
     assert.equal(member, {current: "original"});
 
     assert.ok(model.has(member));
 });
 
 test('set addition track', () => {
-    const model = track({
+    const tr = new Tracker;
+    const tx = tr.startTransaction();
+
+    const model = tr.track({
         vals: new Set<{ current: string }>,
         val: "",
     });
@@ -79,7 +88,7 @@ test('set addition track', () => {
     member.current = "changed"
     assert.equal(member, {current: "changed"});
 
-    defaultTracker.undo();
+    tr.undo();
     assert.equal(member, {current: "original"});
 
     assert.ok(model.vals.has(member));

@@ -8,8 +8,11 @@ test('state methods', () => {
         setProp(val: number) { this.prop = val; }
         getProp() { return this.prop; }
     }
-
-    const model = track(new C);
+    
+    const tr = new Tracker;
+    const tx = tr.startTransaction();
+    
+    const model = tr.track(new C);
 
     model.setProp(7);
     assert.equal(model.getProp(), 7);
@@ -17,7 +20,7 @@ test('state methods', () => {
     model.setProp(12);
     assert.equal(model.getProp(), 12);
 
-    tracker.undo();
+    tr.undo();
     assert.equal(model.getProp(), 7);
 });
 
@@ -56,6 +59,7 @@ test('compound setter records only leaf operations', () => {
 
 test('auto transact', () => {
     const tr = new Tracker({ autoTransactionalize: true });
+    const tx = tr.startTransaction();
 
     class C {
         a = 1;

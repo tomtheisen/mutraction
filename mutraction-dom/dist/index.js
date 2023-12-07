@@ -770,12 +770,8 @@ var Tracker = class {
   #transaction;
   #redos = [];
   #dependencyTrackers = [];
+  #subscribers = /* @__PURE__ */ new Set();
   options = defaultTrackerOptions;
-  // If defined this will be the prop reference for the "history" property of this Tracker instance
-  // If so, it should be notified whenever the history is affected
-  //      mutations outside of transactions
-  //      non-nested transaction committed
-  #historyPropRef;
   constructor(options = {}) {
     this.setOptions(options);
   }
@@ -840,8 +836,17 @@ var Tracker = class {
       this.#transaction = void 0;
     }
     if (this.#transaction == null) {
-      this.#historyPropRef?.notifySubscribers();
+      this.#notifySubscribers();
     }
+  }
+  subscribe(callback) {
+    this.#subscribers.add(callback);
+    const dispose = () => this.#subscribers.delete(callback);
+    return { dispose };
+  }
+  #notifySubscribers(change) {
+    for (const s of this.#subscribers)
+      s(change);
   }
   /** undo all operations done since the beginning of the most recent trasaction
    * remove it from the transaction stack
@@ -864,7 +869,7 @@ var Tracker = class {
     this.#undoOperation(mutation);
     this.#redos.unshift(mutation);
     if (this.#transaction == null) {
-      this.#historyPropRef?.notifySubscribers();
+      this.#notifySubscribers();
     }
   }
   #undoOperation(mutation) {
@@ -926,7 +931,7 @@ var Tracker = class {
     this.#redoOperation(mutation);
     this.#transaction?.operations.push(mutation);
     if (this.#transaction == null) {
-      this.#historyPropRef?.notifySubscribers();
+      this.#notifySubscribers();
     }
   }
   #redoOperation(mutation) {
@@ -1001,7 +1006,7 @@ var Tracker = class {
       if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
         createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
       }
-      this.#historyPropRef?.notifySubscribers();
+      this.#notifySubscribers();
     }
   }
   /** Run the callback without calling any subscribers */

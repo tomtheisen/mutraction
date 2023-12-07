@@ -99,7 +99,7 @@ export function jsx() {
                 <p>These are static, and don't change automatically.</p>
             </li>
             <li>
-                Value expression - e.g. <code>&lt;input disabled=&#x7B; model.disabled &#x7D; &gt;</code>
+                Value expression - e.g. <code>&lt;input disabled=&#x7B; model.disabled &#x7D; /&gt;</code>
                 <p>
                     If these include a <a href="#topics/tracking">tracked model property</a>, the
                     element property will be automatically updated as necessary.
@@ -174,7 +174,7 @@ export function jsx() {
         { codeSample(`
             const model = track({ items: [{ name: "bongo" }] });
             
-            function FC(item: typeof model.items[number]) {
+            function FC(item: { name: string }) {
               return <>Name: { item.name }</>;
             }
 

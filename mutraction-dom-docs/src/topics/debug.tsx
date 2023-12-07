@@ -17,9 +17,8 @@ export function debug() {
 
             <ul>
                 <li>A count of active <a href="#ref/effect">effects</a> is listed.  This includes implicit effects used by mutraction internally.</li>
-                <li>Undo and redo buttons provide <a href="#topics/history">control over the mutation history</a>.</li>
                 <li>An element inspector lets you inspect which <a href="#topics/tracking">tracked properties</a> are dependencies of a selected document element.  Click the magnifying glass, then click an element that has a data dependency.</li>
-                <li>Finally, there is a list of all property references.  Each is an object property contained in a tracked object.  Each one lists a count of how many dependencies it has.</li>
+                <li>A list of all encountered property references is shown.  Each is an object property contained in a tracked object.  Each one lists a count of how many dependencies it has.</li>
             </ul>
         </>
     )

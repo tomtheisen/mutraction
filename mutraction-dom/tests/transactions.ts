@@ -22,20 +22,23 @@ test('nested transaction works', () => {
 });
 
 test('array push and transaction', () => {
-    const model = track([] as any);
+    const tr = new Tracker;
+    const tx = tr.startTransaction();
 
-    tracker.startTransaction();
+    const model = tr.track([] as any);
+
+    tr.startTransaction();
     model.push(4);
-    tracker.commit();
-    tracker.startTransaction();
+    tr.commit();
+    tr.startTransaction();
     model.push(7);
-    tracker.commit();
+    tr.commit();
     assert.equal(model, [4,7], "two pushes");
 
-    tracker.undo();
+    tr.undo();
     assert.equal(model, [4], "undo push");
 
-    tracker.undo();
+    tr.undo();
     assert.equal(model, [], "undo another push");
 });
 
@@ -52,12 +55,15 @@ test('committed transaction has no parent', () => {
 });
 
 test('array length 0 rollback test', () => {
-    const model = track(['a','b','c'] as any);
+    const tr = new Tracker;
+    const tx = tr.startTransaction();
+
+    const model = tr.track(['a','b','c'] as any);
 
     model.length = 0;
     assert.equal(model, [], "was emptied");
     
-    tracker.rollback();
+    tr.rollback();
     assert.equal(model, ['a', 'b', 'c'], "came back");
 });
 
@@ -127,9 +133,8 @@ test('compact into nothing', () => {
 test('compound noop', () => {
     const tr = new Tracker;
     const model = tr.track({foo: 45} as any);
-    const tx = tr.startTransaction();
 
-    tr.startTransaction("noop2");
+    const tx = tr.startTransaction("noop2");
     model.foo = 99;
     model.x = 1;
     model.x = 2;

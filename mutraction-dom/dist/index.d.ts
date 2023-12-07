@@ -158,6 +158,7 @@ export declare class Tracker {
 	  * throws if no transactions are active
 	  */
 	commit(transaction?: Transaction): void;
+	subscribe(callback: (change?: Mutation) => void): Subscription;
 	/** undo all operations done since the beginning of the most recent trasaction
 	 * remove it from the transaction stack
 	 * if no transactions are active, undo all mutations

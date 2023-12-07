@@ -163,17 +163,19 @@ test('transaction affects history length', () => {
     let historyLength = 0;
     let runs = 0;
 
-    effect(() => {
+    tr.subscribe(() => {
         ++runs;
         historyLength = tx.operations.length;
-    }, { tracker: tr });
+    });
 
-    assert.equal(runs, 1, "initial effect");
-    assert.equal(historyLength, 0, "no history");
-    
     model.method();
 
-    assert.equal(runs, 2, "next effect");
+    assert.equal(runs, 0, "initial notification");
+    assert.equal(historyLength, 0, "no history");
+
+    tr.commit(tx);
+    
+    assert.equal(runs, 1, "first notification");
     assert.equal(historyLength, 1, "had history");
 });
 

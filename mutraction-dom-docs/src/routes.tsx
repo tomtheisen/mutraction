@@ -8,7 +8,6 @@ import { notFound } from "./topics/notFound.js";
 import { tracking } from "./topics/tracking.js";
 import { jsx } from "./topics/jsx.js";
 import { events } from "./topics/events.js";
-import { history } from "./topics/history.js";
 import { styles } from "./topics/styles.js";
 import { debug } from "./topics/debug.js";
 
@@ -43,7 +42,6 @@ export const routes = Router(
     { pattern: '#topics/one-way', element: oneWay },
     { pattern: '#topics/two-way', element: twoWay },
     { pattern: '#topics/events', element: events },
-    { pattern: '#topics/history', element: history },
     { pattern: '#topics/styles', element: styles },
     { pattern: '#topics/debug', element: debug },
 
