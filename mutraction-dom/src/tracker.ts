@@ -225,18 +225,12 @@ export class Tracker {
         }
     }
 
-    /** Clear the redo stack. Any direct mutation implicitly does this.
-     */
-    clearRedos() {
-        this.#redos.length = 0;
-    }
-    
     /** record a mutation, if you have the secret key  */
     [RecordMutation](mutation: SingleMutation) {
         if (isDebugMode) mutation.targetPath = getAccessPath(mutation.target);
         this.#transaction?.operations.push(Object.freeze(mutation));
 
-        this.clearRedos();
+        this.#redos.length = 0;
 
         if (this.#transaction) {
             this.#transaction.dependencies.add(createOrRetrievePropRef(mutation.target, mutation.name));

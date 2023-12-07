@@ -168,9 +168,6 @@ export declare class Tracker {
 	undo(): void;
 	/** Repeat last undone mutation  */
 	redo(): void;
-	/** Clear the redo stack. Any direct mutation implicitly does this.
-	 */
-	clearRedos(): void;
 	/** record a mutation, if you have the secret key  */
 	[RecordMutation](mutation: SingleMutation): void;
 	/** Run the callback without calling any subscribers */

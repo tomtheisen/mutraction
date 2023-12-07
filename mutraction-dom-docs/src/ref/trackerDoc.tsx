@@ -122,12 +122,6 @@ export function trackerDoc() {
                         the redo buffer, causing this to have no effect.
                     </p>
                 </li>
-                <li>
-                    <code>clearRedos()</code>
-                    <p>
-                        This empties the redo buffer.
-                    </p>
-                </li>
             </ul>
         </>
     );
