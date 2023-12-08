@@ -434,249 +434,6 @@ function createOrRetrievePropRef(object, prop) {
   return result;
 }
 
-// out/debug.js
-var debugModeKey = "mu:debugMode";
-var debugUpdateDebounce = 250;
-var isDebugMode = "sessionStorage" in globalThis && !!sessionStorage.getItem(debugModeKey);
-if ("sessionStorage" in globalThis) {
-  let enableDebugMode = function() {
-    sessionStorage.setItem(debugModeKey, "true");
-    location.reload();
-  }, disableDebugMode = function() {
-    sessionStorage.removeItem(debugModeKey);
-    location.reload();
-  };
-  enableDebugMode2 = enableDebugMode, disableDebugMode2 = disableDebugMode;
-  Object.assign(window, { [Symbol.for("mutraction.debug")]: enableDebugMode });
-  if (["localhost", "127.0.0.1", "[::1]"].includes(location.hostname) && !isDebugMode) {
-    console.info(`[\xB5] Try the mutraction diagnostic tool.  This message is only shown from localhost, but the tool is always available.`);
-    console.info("\xBB window[Symbol.for('mutraction.debug')]()");
-  }
-  if (isDebugMode) {
-    let valueString = function(val) {
-      if (Array.isArray(val))
-        return `Array(${val.length})`;
-      if (typeof val === "object")
-        return "{ ... }";
-      if (typeof val === "function")
-        return val.name ? `${val.name}() { ... }` : "() => { ... }";
-      return JSON.stringify(val);
-    }, el = function(tag, styles, ...nodes) {
-      const node = document.createElement(tag);
-      node.style.all = "revert";
-      Object.assign(node.style, styles);
-      node.append(...nodes);
-      return node;
-    }, getNodeAndTextDependencies = function(node) {
-      const textDeps = Array.from(node.childNodes).filter((n) => n instanceof Text).flatMap((n) => getNodeDependencies(n)).filter(Boolean).map((n) => n);
-      return (getNodeDependencies(node) ?? []).concat(...textDeps);
-    }, getPropRefListItem = function(propRef) {
-      const objPath = getAccessPath(propRef.object);
-      const fullPath = objPath ? objPath + "." + String(propRef.prop) : String(propRef.prop);
-      const value = propRef.current;
-      const serialized = valueString(value);
-      const editable = !value || typeof value !== "object" && typeof value !== "function";
-      const valueSpan = el("span", editable ? { cursor: "pointer", textDecoration: "underline" } : {}, serialized);
-      const subCount = propRef.subscribers.size;
-      const subCountMessage = `(${subCount} ${subCount === 1 ? "subscriber" : "subscribers"})`;
-      const li = el("li", {}, el("code", {}, fullPath), ": ", valueSpan, " ", subCountMessage);
-      if (editable)
-        valueSpan.addEventListener("click", () => {
-          const result = prompt(`Update ${String(propRef.prop)}`, serialized);
-          try {
-            if (result)
-              propRef.current = JSON.parse(result);
-            refreshPropRefList();
-          } catch {
-          }
-        });
-      return li;
-    }, refreshPropRefList = function() {
-      const propRefListItems = [];
-      for (const propRef of allPropRefs2) {
-        propRefListItems.push(getPropRefListItem(propRef));
-      }
-      propRefList.replaceChildren(...propRefListItems);
-    }, startInspectPick = function() {
-      inspectButton.disabled = true;
-      inspectButton.textContent = "\u2026";
-      inspectedName.textContent = "(choose)";
-      let inspectedElement;
-      let originalBoxShadow = "";
-      function moveHandler(ev) {
-        if (ev.target instanceof HTMLElement) {
-          let target = ev.target;
-          while (target && (getNodeAndTextDependencies(target)?.length ?? 0) === 0) {
-            target = target.parentElement;
-          }
-          if (target != inspectedElement) {
-            if (inspectedElement)
-              inspectedElement.style.boxShadow = originalBoxShadow;
-            originalBoxShadow = target?.style.boxShadow ?? "";
-            if (target) {
-              if (target.style.boxShadow)
-                target.style.boxShadow += ", inset #f0f4 0 99vmax";
-              else
-                target.style.boxShadow += "inset #f0f4 0 99vmax";
-            }
-            inspectedElement = target;
-          }
-        }
-        ev.stopPropagation();
-      }
-      document.addEventListener("mousemove", moveHandler, { capture: true });
-      document.addEventListener("click", (ev) => {
-        ev.stopPropagation();
-        ev.preventDefault();
-        inspectButton.disabled = false;
-        inspectButton.textContent = "\u{1F50D}";
-        document.removeEventListener("mousemove", moveHandler, { capture: true });
-        if (inspectedElement) {
-          inspectedElement.style.boxShadow = originalBoxShadow;
-          inspectedName.textContent = inspectedElement.tagName.toLowerCase();
-          const deps = getNodeAndTextDependencies(inspectedElement);
-          const trackedProps = new Set(deps.flatMap((d) => d.trackedProperties));
-          const trackedPropItems = [];
-          for (const propRef of trackedProps) {
-            trackedPropItems.push(getPropRefListItem(propRef));
-          }
-          inspectedPropList.replaceChildren(...trackedPropItems);
-        } else {
-          inspectedName.textContent = "(none)";
-          inspectedPropList.replaceChildren();
-        }
-      }, { capture: true, once: true });
-    }, clampIntoView = function() {
-      const { x, y, width, height } = container.getBoundingClientRect();
-      const top = Math.max(0, Math.min(window.innerHeight - height, y));
-      const left = Math.max(0, Math.min(window.innerWidth - width, x));
-      container.style.top = top + "px";
-      container.style.left = left + "px";
-    };
-    valueString2 = valueString, el2 = el, getNodeAndTextDependencies2 = getNodeAndTextDependencies, getPropRefListItem2 = getPropRefListItem, refreshPropRefList2 = refreshPropRefList, startInspectPick2 = startInspectPick, clampIntoView2 = clampIntoView;
-    const updateCallbacks = [];
-    let handle = 0;
-    throw Error("NIE");
-    queueMicrotask(() => {
-      effect(function historyChanged(dl) {
-        if (handle === 0) {
-          handle = setTimeout(function updateDiagnostics() {
-            for (const cb of updateCallbacks)
-              cb();
-            handle = 0;
-          }, debugUpdateDebounce);
-        }
-      });
-    });
-    const container = el("div", {
-      position: "fixed",
-      top: "50px",
-      left: "50px",
-      width: "30em",
-      height: "20em",
-      resize: "both",
-      minHeight: "1.6em",
-      minWidth: "15em",
-      zIndex: "2147483647",
-      background: "#eee",
-      color: "#123",
-      boxShadow: "#000 0em 0.5em 1em",
-      border: "solid #345 0.4em",
-      fontSize: "16px",
-      display: "flex",
-      flexDirection: "column",
-      overflow: "auto"
-    });
-    const toggle = el("button", { marginRight: "1em" }, "_");
-    let minimized = false;
-    toggle.addEventListener("click", (ev) => {
-      if (minimized = !minimized) {
-        container.style.maxHeight = "1.6em";
-        container.style.maxWidth = "15em";
-      } else {
-        container.style.maxHeight = "";
-        container.style.maxWidth = "";
-      }
-      clampIntoView();
-    });
-    const closeButton = el("button", { float: "right" }, "\xD7");
-    closeButton.addEventListener("click", disableDebugMode);
-    const head = el("div", {
-      fontWeight: "bold",
-      background: "#123",
-      color: "#eee",
-      padding: "0.1em 1em",
-      cursor: "grab"
-    }, closeButton, toggle, "\u03BC diagnostics");
-    const effectDetails = el("div", { whiteSpace: "pre" });
-    const effectCount = el("span", {}, "0");
-    const effectSummary = el("details", { cursor: "pointer", marginBottom: "1em" }, el("summary", {}, el("strong", {}, "Active effects: "), effectCount), effectDetails);
-    let activeEffectsGeneration2 = -1;
-    updateCallbacks.push(() => {
-      let { activeEffects: activeEffects2, generation } = getActiveEffects();
-      if (generation !== activeEffectsGeneration2) {
-        activeEffectsGeneration2 = generation;
-        effectDetails.innerText = [...activeEffects2.entries()].map((e) => `${e[0]}\xD7${e[1]}`).join("\n");
-        effectCount.innerText = String(Array.from(activeEffects2.values()).reduce((a, b) => a + b, 0));
-      }
-    });
-    const propRefCountNumber = el("span", {}, "0");
-    const allPropRefs2 = getAllPropRefs();
-    const propRefRefreshButton = el("button", {}, "\u21BB");
-    propRefRefreshButton.addEventListener("click", refreshPropRefList);
-    const propRefList = el("ol", {});
-    const propRefSummary = el("details", {}, el("summary", { cursor: "pointer" }, el("strong", {}, "Live PropRefs: "), propRefCountNumber, " ", propRefRefreshButton), propRefList);
-    let seenGeneration = -1;
-    updateCallbacks.push(() => {
-      if (allPropRefs2.generation !== seenGeneration) {
-        propRefCountNumber.replaceChildren(String(allPropRefs2.sizeBound));
-        refreshPropRefList();
-        seenGeneration = allPropRefs2.generation;
-      }
-    });
-    const inspectButton = el("button", {}, "\u{1F50D}");
-    inspectButton.addEventListener("click", startInspectPick);
-    const inspectedName = el("span", {}, "(none)");
-    const inspectedPropList = el("ol", {});
-    const content = el("div", { padding: "1em", overflow: "auto" }, inspectButton, " ", el("strong", {}, "Inspected node:"), " ", inspectedName, inspectedPropList, effectSummary, propRefSummary);
-    container.append(head, content);
-    document.body.append(container);
-    let xOffset = 0, yOffset = 0;
-    head.addEventListener("mousedown", (ev) => {
-      const rect = container.getBoundingClientRect();
-      xOffset = ev.x - rect.x;
-      yOffset = ev.y - rect.y;
-      window.addEventListener("mousemove", moveHandler);
-      document.body.addEventListener("mouseup", upHandler, { once: true });
-      ev.preventDefault();
-      function upHandler(ev2) {
-        window.removeEventListener("mousemove", moveHandler);
-      }
-      function moveHandler(ev2) {
-        const buttonPressed = (ev2.buttons & 1) > 0;
-        if (buttonPressed) {
-          container.style.left = ev2.x - xOffset + "px";
-          container.style.top = ev2.y - yOffset + "px";
-          clampIntoView();
-        } else {
-          window.removeEventListener("mousemove", moveHandler);
-          window.removeEventListener("mouseup", upHandler);
-        }
-      }
-    });
-    window.addEventListener("resize", clampIntoView);
-  }
-}
-var valueString2;
-var el2;
-var getNodeAndTextDependencies2;
-var getPropRefListItem2;
-var refreshPropRefList2;
-var startInspectPick2;
-var clampIntoView2;
-var enableDebugMode2;
-var disableDebugMode2;
-
 // out/dependency.js
 var DependencyList = class {
   #trackedProperties = /* @__PURE__ */ new Map();
@@ -1094,6 +851,245 @@ function prepareForTracking(value, tracker) {
     }
   }
 }
+
+// out/debug.js
+var debugModeKey = "mu:debugMode";
+var debugUpdateDebounce = 250;
+var isDebugMode = "sessionStorage" in globalThis && !!sessionStorage.getItem(debugModeKey);
+if ("sessionStorage" in globalThis) {
+  let enableDebugMode = function() {
+    sessionStorage.setItem(debugModeKey, "true");
+    location.reload();
+  }, disableDebugMode = function() {
+    sessionStorage.removeItem(debugModeKey);
+    location.reload();
+  };
+  enableDebugMode2 = enableDebugMode, disableDebugMode2 = disableDebugMode;
+  Object.assign(window, { [Symbol.for("mutraction.debug")]: enableDebugMode });
+  if (["localhost", "127.0.0.1", "[::1]"].includes(location.hostname) && !isDebugMode) {
+    console.info(`[\xB5] Try the mutraction diagnostic tool.  This message is only shown from localhost, but the tool is always available.`);
+    console.info("\xBB window[Symbol.for('mutraction.debug')]()");
+  }
+  if (isDebugMode) {
+    let valueString = function(val) {
+      if (Array.isArray(val))
+        return `Array(${val.length})`;
+      if (typeof val === "object")
+        return "{ ... }";
+      if (typeof val === "function")
+        return val.name ? `${val.name}() { ... }` : "() => { ... }";
+      return JSON.stringify(val);
+    }, el = function(tag, styles, ...nodes) {
+      const node = document.createElement(tag);
+      node.style.all = "revert";
+      Object.assign(node.style, styles);
+      node.append(...nodes);
+      return node;
+    }, getNodeAndTextDependencies = function(node) {
+      const textDeps = Array.from(node.childNodes).filter((n) => n instanceof Text).flatMap((n) => getNodeDependencies(n)).filter(Boolean).map((n) => n);
+      return (getNodeDependencies(node) ?? []).concat(...textDeps);
+    }, getPropRefListItem = function(propRef) {
+      const objPath = getAccessPath(propRef.object);
+      const fullPath = objPath ? objPath + "." + String(propRef.prop) : String(propRef.prop);
+      const value = propRef.current;
+      const serialized = valueString(value);
+      const editable = !value || typeof value !== "object" && typeof value !== "function";
+      const valueSpan = el("span", editable ? { cursor: "pointer", textDecoration: "underline" } : {}, serialized);
+      const subCount = propRef.subscribers.size;
+      const subCountMessage = `(${subCount} ${subCount === 1 ? "subscriber" : "subscribers"})`;
+      const li = el("li", {}, el("code", {}, fullPath), ": ", valueSpan, " ", subCountMessage);
+      if (editable)
+        valueSpan.addEventListener("click", () => {
+          const result = prompt(`Update ${String(propRef.prop)}`, serialized);
+          try {
+            if (result)
+              propRef.current = JSON.parse(result);
+            refreshPropRefList();
+          } catch {
+          }
+        });
+      return li;
+    }, refreshPropRefList = function() {
+      const propRefListItems = [];
+      for (const propRef of allPropRefs2) {
+        propRefListItems.push(getPropRefListItem(propRef));
+      }
+      propRefList.replaceChildren(...propRefListItems);
+    }, startInspectPick = function() {
+      inspectButton.disabled = true;
+      inspectButton.textContent = "\u2026";
+      inspectedName.textContent = "(choose)";
+      let inspectedElement;
+      let originalBackground = "";
+      function moveHandler(ev) {
+        if (ev.target instanceof HTMLElement) {
+          let target = ev.target;
+          while (target && (getNodeAndTextDependencies(target)?.length ?? 0) === 0) {
+            target = target.parentElement;
+          }
+          if (target != inspectedElement) {
+            if (inspectedElement)
+              inspectedElement.style.background = originalBackground;
+            originalBackground = target?.style.background ?? "";
+            console.log({ originalBackground });
+            if (target)
+              target.style.background = "#f0f4";
+            inspectedElement = target;
+          }
+        }
+        ev.stopPropagation();
+      }
+      document.addEventListener("mousemove", moveHandler, { capture: true });
+      document.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        ev.preventDefault();
+        inspectButton.disabled = false;
+        inspectButton.textContent = "\u{1F50D}";
+        document.removeEventListener("mousemove", moveHandler, { capture: true });
+        if (inspectedElement) {
+          inspectedElement.style.background = originalBackground;
+          inspectedName.textContent = inspectedElement.tagName.toLowerCase();
+          const deps = getNodeAndTextDependencies(inspectedElement);
+          const trackedProps = new Set(deps.flatMap((d) => d.trackedProperties));
+          const trackedPropItems = [];
+          for (const propRef of trackedProps) {
+            trackedPropItems.push(getPropRefListItem(propRef));
+          }
+          inspectedPropList.replaceChildren(...trackedPropItems);
+        } else {
+          inspectedName.textContent = "(none)";
+          inspectedPropList.replaceChildren();
+        }
+      }, { capture: true, once: true });
+    }, clampIntoView = function() {
+      const { x, y, width, height } = container.getBoundingClientRect();
+      const top = Math.max(0, Math.min(window.innerHeight - height, y));
+      const left = Math.max(0, Math.min(window.innerWidth - width, x));
+      container.style.top = top + "px";
+      container.style.left = left + "px";
+    };
+    valueString2 = valueString, el2 = el, getNodeAndTextDependencies2 = getNodeAndTextDependencies, getPropRefListItem2 = getPropRefListItem, refreshPropRefList2 = refreshPropRefList, startInspectPick2 = startInspectPick, clampIntoView2 = clampIntoView;
+    const updateCallbacks = [];
+    let handle = 0;
+    queueMicrotask(() => {
+      defaultTracker.subscribe(function historyChanged() {
+        if (handle === 0) {
+          handle = setTimeout(function updateDiagnostics() {
+            for (const cb of updateCallbacks)
+              cb();
+            handle = 0;
+          }, debugUpdateDebounce);
+        }
+      });
+    });
+    const container = el("div", {
+      position: "fixed",
+      top: "50px",
+      left: "50px",
+      width: "30em",
+      height: "20em",
+      resize: "both",
+      minHeight: "1.6em",
+      minWidth: "15em",
+      zIndex: "2147483647",
+      background: "#eee",
+      color: "#123",
+      boxShadow: "#000 0em 0.5em 1em",
+      border: "solid #345 0.4em",
+      fontSize: "16px",
+      display: "flex",
+      flexDirection: "column",
+      overflow: "auto"
+    });
+    const toggle = el("button", { marginRight: "1em" }, "_");
+    let minimized = false;
+    toggle.addEventListener("click", (ev) => {
+      if (minimized = !minimized) {
+        container.style.maxHeight = "1.6em";
+        container.style.maxWidth = "15em";
+      } else {
+        container.style.maxHeight = "";
+        container.style.maxWidth = "";
+      }
+      clampIntoView();
+    });
+    const closeButton = el("button", { float: "right" }, "\xD7");
+    closeButton.addEventListener("click", disableDebugMode);
+    const head = el("div", {
+      fontWeight: "bold",
+      background: "#123",
+      color: "#eee",
+      padding: "0.1em 1em",
+      cursor: "grab"
+    }, closeButton, toggle, "\u03BC diagnostics");
+    const effectDetails = el("div", { whiteSpace: "pre" });
+    const effectCount = el("span", {}, "0");
+    const effectSummary = el("details", { cursor: "pointer", marginBottom: "1em" }, el("summary", {}, el("strong", {}, "Active effects: "), effectCount), effectDetails);
+    let activeEffectsGeneration2 = -1;
+    updateCallbacks.push(() => {
+      let { activeEffects: activeEffects2, generation } = getActiveEffects();
+      if (generation !== activeEffectsGeneration2) {
+        activeEffectsGeneration2 = generation;
+        effectDetails.innerText = [...activeEffects2.entries()].map((e) => `${e[0]}\xD7${e[1]}`).join("\n");
+        effectCount.innerText = String(Array.from(activeEffects2.values()).reduce((a, b) => a + b, 0));
+      }
+    });
+    const propRefCountNumber = el("span", {}, "0");
+    const allPropRefs2 = getAllPropRefs();
+    const propRefRefreshButton = el("button", {}, "\u21BB");
+    propRefRefreshButton.addEventListener("click", refreshPropRefList);
+    const propRefList = el("ol", {});
+    const propRefSummary = el("details", {}, el("summary", { cursor: "pointer" }, el("strong", {}, "Live PropRefs: "), propRefCountNumber, " ", propRefRefreshButton), propRefList);
+    let seenGeneration = -1;
+    updateCallbacks.push(() => {
+      if (allPropRefs2.generation !== seenGeneration) {
+        propRefCountNumber.replaceChildren(String(allPropRefs2.sizeBound));
+        refreshPropRefList();
+        seenGeneration = allPropRefs2.generation;
+      }
+    });
+    const inspectButton = el("button", {}, "\u{1F50D}");
+    inspectButton.addEventListener("click", startInspectPick);
+    const inspectedName = el("span", {}, "(none)");
+    const inspectedPropList = el("ol", {});
+    const content = el("div", { padding: "1em", overflow: "auto" }, inspectButton, " ", el("strong", {}, "Inspected node:"), " ", inspectedName, inspectedPropList, effectSummary, propRefSummary);
+    container.append(head, content);
+    document.body.append(container);
+    let xOffset = 0, yOffset = 0;
+    head.addEventListener("mousedown", (ev) => {
+      const rect = container.getBoundingClientRect();
+      xOffset = ev.x - rect.x;
+      yOffset = ev.y - rect.y;
+      window.addEventListener("mousemove", moveHandler);
+      document.body.addEventListener("mouseup", upHandler, { once: true });
+      ev.preventDefault();
+      function upHandler(ev2) {
+        window.removeEventListener("mousemove", moveHandler);
+      }
+      function moveHandler(ev2) {
+        const buttonPressed = (ev2.buttons & 1) > 0;
+        if (buttonPressed) {
+          container.style.left = ev2.x - xOffset + "px";
+          container.style.top = ev2.y - yOffset + "px";
+          clampIntoView();
+        } else {
+          window.removeEventListener("mousemove", moveHandler);
+          window.removeEventListener("mouseup", upHandler);
+        }
+      }
+    });
+    window.addEventListener("resize", clampIntoView);
+  }
+}
+var valueString2;
+var el2;
+var getNodeAndTextDependencies2;
+var getPropRefListItem2;
+var refreshPropRefList2;
+var startInspectPick2;
+var clampIntoView2;
+var enableDebugMode2;
+var disableDebugMode2;
 
 // out/effect.js
 var emptyEffect = { dispose: () => {

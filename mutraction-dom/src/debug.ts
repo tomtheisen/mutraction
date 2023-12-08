@@ -32,10 +32,8 @@ if ("sessionStorage" in globalThis) {
         const updateCallbacks: (() => void)[] = [];
 
         let handle = 0;
-        // TODO find a way to track all changes
-        throw Error("NIE");
         queueMicrotask(() => {
-            effect(function historyChanged(dl) {
+            defaultTracker.subscribe(function historyChanged() {
                 if (handle === 0) {
                     handle = setTimeout(function updateDiagnostics() {
                         for (const cb of updateCallbacks) cb();
@@ -194,7 +192,7 @@ if ("sessionStorage" in globalThis) {
             inspectedName.textContent = "(choose)";
 
             let inspectedElement: HTMLElement | undefined | null;
-            let originalBoxShadow = "";
+            let originalBackground = "";
 
             function moveHandler(ev: MouseEvent) {
                 if (ev.target instanceof HTMLElement) {
@@ -204,13 +202,11 @@ if ("sessionStorage" in globalThis) {
                     }
 
                     if (target != inspectedElement) {
-                        if (inspectedElement) inspectedElement.style.boxShadow = originalBoxShadow;
+                        if (inspectedElement) inspectedElement.style.background = originalBackground;
 
-                        originalBoxShadow = target?.style.boxShadow ?? "";
-                        if (target) {
-                            if (target.style.boxShadow) target.style.boxShadow += ", inset #f0f4 0 99vmax";
-                            else target.style.boxShadow += "inset #f0f4 0 99vmax";
-                        }
+                        originalBackground = target?.style.background ?? "";
+                        console.log({ originalBackground });
+                        if (target) target.style.background = "#f0f4";
                         inspectedElement = target;
                     }
                 }
@@ -226,7 +222,7 @@ if ("sessionStorage" in globalThis) {
                 inspectButton.textContent = "🔍";
                 document.removeEventListener("mousemove", moveHandler, { capture: true });
                 if (inspectedElement) {
-                    inspectedElement.style.boxShadow = originalBoxShadow;
+                    inspectedElement.style.background = originalBackground;
                     inspectedName.textContent = inspectedElement.tagName.toLowerCase();
 
                     const deps = getNodeAndTextDependencies(inspectedElement);
