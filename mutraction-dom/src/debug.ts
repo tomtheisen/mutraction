@@ -7,9 +7,20 @@ import { Mutation } from "./types.js";
 
 const debugModeKey = "mu:debugMode";
 const debugUpdateDebounce = 250;
-const historyDepth = 10;
 
 export const isDebugMode = ("sessionStorage" in globalThis) && !!sessionStorage.getItem(debugModeKey);
+
+const updateCallbacks: (() => void)[] = [];
+
+let handle = 0;
+export function pendUpdate() {
+    if (handle === 0) {
+        handle = setTimeout(function updateDiagnostics() {
+            for (const cb of updateCallbacks) cb();
+            handle = 0;
+        }, debugUpdateDebounce);
+    }
+}
 
 if ("sessionStorage" in globalThis) {
     function enableDebugMode() {
@@ -29,19 +40,7 @@ if ("sessionStorage" in globalThis) {
     }
 
     if (isDebugMode) {
-        const updateCallbacks: (() => void)[] = [];
-
-        let handle = 0;
-        queueMicrotask(() => {
-            defaultTracker.subscribe(function historyChanged() {
-                if (handle === 0) {
-                    handle = setTimeout(function updateDiagnostics() {
-                        for (const cb of updateCallbacks) cb();
-                        handle = 0;
-                    }, debugUpdateDebounce);
-                }
-            });
-        });
+        queueMicrotask(() => defaultTracker.subscribe(pendUpdate));
 
         function valueString(val: unknown): string {
             if (Array.isArray(val)) return `Array(${ val.length })`;

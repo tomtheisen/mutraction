@@ -3,6 +3,7 @@ import { ProxyOf } from "./symbols.js";
 import { isTracked } from "./proxy.js";
 import { DependencyList } from "./dependency.js";
 import { LiveCollection } from "./liveCollection.js";
+import { isDebugMode, pendUpdate } from "./debug.js";
 
 const allPropRefs = new LiveCollection<PropReference>;
 export function getAllPropRefs() {
@@ -81,6 +82,9 @@ export function createOrRetrievePropRef(object: object, prop: Key) {
     if (!objectPropRefs) propRefRegistry.set(object, objectPropRefs = new Map);
 
     let result = objectPropRefs.get(prop);
-    if (!result) objectPropRefs.set(prop, result = new PropReference(object, prop));
+    if (!result) {
+        objectPropRefs.set(prop, result = new PropReference(object, prop));
+        if (isDebugMode) pendUpdate();
+    }
     return result;
 };

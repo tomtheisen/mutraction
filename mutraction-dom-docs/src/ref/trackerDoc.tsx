@@ -29,7 +29,7 @@ export function trackerDoc() {
                             </p>
                         </li>
                         <li>
-                            <code>compactOnCommit</code> - default <code>true</code>
+                            <code>compactOnCommit</code> - default <code>false</code>
                             <p>
                                 Transactions often have series of mutations that
                                 "cancel out".  Imagine changing a property, and then changing it right back.

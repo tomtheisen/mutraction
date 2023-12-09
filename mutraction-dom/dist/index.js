@@ -429,8 +429,11 @@ function createOrRetrievePropRef(object, prop) {
   if (!objectPropRefs)
     propRefRegistry.set(object, objectPropRefs = /* @__PURE__ */ new Map());
   let result = objectPropRefs.get(prop);
-  if (!result)
+  if (!result) {
     objectPropRefs.set(prop, result = new PropReference(object, prop));
+    if (isDebugMode)
+      pendUpdate();
+  }
   return result;
 }
 
@@ -521,13 +524,14 @@ function compactTransaction({ operations }) {
 // out/tracker.js
 var defaultTrackerOptions = {
   autoTransactionalize: true,
-  compactOnCommit: true
+  compactOnCommit: false
 };
 var Tracker = class {
   #transaction;
   #redos = [];
   #dependencyTrackers = [];
   #subscribers = /* @__PURE__ */ new Set();
+  // mutation subscribers
   options = defaultTrackerOptions;
   constructor(options = {}) {
     this.setOptions(options);
@@ -596,6 +600,11 @@ var Tracker = class {
       this.#notifySubscribers();
     }
   }
+  /**
+   * Subscribe to be notified when a tracked object is mutated.
+   * @param callback
+   * @returns a subscription with a dispose() method that can canel the subscription
+   */
   subscribe(callback) {
     this.#subscribers.add(callback);
     const dispose = () => this.#subscribers.delete(callback);
@@ -856,6 +865,17 @@ function prepareForTracking(value, tracker) {
 var debugModeKey = "mu:debugMode";
 var debugUpdateDebounce = 250;
 var isDebugMode = "sessionStorage" in globalThis && !!sessionStorage.getItem(debugModeKey);
+var updateCallbacks = [];
+var handle = 0;
+function pendUpdate() {
+  if (handle === 0) {
+    handle = setTimeout(function updateDiagnostics() {
+      for (const cb of updateCallbacks)
+        cb();
+      handle = 0;
+    }, debugUpdateDebounce);
+  }
+}
 if ("sessionStorage" in globalThis) {
   let enableDebugMode = function() {
     sessionStorage.setItem(debugModeKey, "true");
@@ -969,19 +989,7 @@ if ("sessionStorage" in globalThis) {
       container.style.left = left + "px";
     };
     valueString2 = valueString, el2 = el, getNodeAndTextDependencies2 = getNodeAndTextDependencies, getPropRefListItem2 = getPropRefListItem, refreshPropRefList2 = refreshPropRefList, startInspectPick2 = startInspectPick, clampIntoView2 = clampIntoView;
-    const updateCallbacks = [];
-    let handle = 0;
-    queueMicrotask(() => {
-      defaultTracker.subscribe(function historyChanged() {
-        if (handle === 0) {
-          handle = setTimeout(function updateDiagnostics() {
-            for (const cb of updateCallbacks)
-              cb();
-            handle = 0;
-          }, debugUpdateDebounce);
-        }
-      });
-    });
+    queueMicrotask(() => defaultTracker.subscribe(pendUpdate));
     const container = el("div", {
       position: "fixed",
       top: "50px",

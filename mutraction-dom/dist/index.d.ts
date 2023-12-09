@@ -158,6 +158,11 @@ export declare class Tracker {
 	  * throws if no transactions are active
 	  */
 	commit(transaction?: Transaction): void;
+	/**
+	 * Subscribe to be notified when a tracked object is mutated.
+	 * @param callback
+	 * @returns a subscription with a dispose() method that can canel the subscription
+	 */
 	subscribe(callback: (change?: Mutation) => void): Subscription;
 	/** undo all operations done since the beginning of the most recent trasaction
 	 * remove it from the transaction stack

@@ -10,7 +10,7 @@ import { assertSafeMapKey } from "./proxy.map.js";
 
 const defaultTrackerOptions = {
     autoTransactionalize: true,
-    compactOnCommit: true,
+    compactOnCommit: false,
 };
 
 export type TrackerOptions = Partial<typeof defaultTrackerOptions>;
@@ -23,7 +23,7 @@ export class Tracker {
     #transaction?: Transaction;
     #redos: Mutation[] = [];
     #dependencyTrackers: DependencyList[] = [];
-    #subscribers = new Set<(change?: Mutation) => void>;
+    #subscribers = new Set<(change?: Mutation) => void>; // mutation subscribers
 
     options: Readonly<Required<TrackerOptions>> = defaultTrackerOptions;
 
@@ -105,6 +105,11 @@ export class Tracker {
         }
     }
 
+    /**
+     * Subscribe to be notified when a tracked object is mutated.
+     * @param callback 
+     * @returns a subscription with a dispose() method that can canel the subscription
+     */
     subscribe(callback: (change?: Mutation) => void): Subscription {
         this.#subscribers.add(callback);
         const dispose = () => this.#subscribers.delete(callback);
