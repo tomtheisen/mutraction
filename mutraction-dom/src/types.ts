@@ -1,42 +1,14 @@
 import { PropReference } from "./propref.js";
 
 export type Key = string | symbol;
-export type BaseSingleMutation = { target: object, name: Key, timestamp: Date };
-export type CreateProperty = BaseSingleMutation & { type: "create", newValue: any };
-export type DeleteProperty = BaseSingleMutation & { type: "delete", oldValue: any };
-export type ChangeProperty = BaseSingleMutation & { type: "change", oldValue: any, newValue: any };
-
-// set changes
-export type SetAdd = BaseSingleMutation & { type: "setadd", newValue: any };
-export type SetDelete = BaseSingleMutation & { type: "setdelete", oldValue: any };
-export type SetClear = BaseSingleMutation & { type: "setclear", oldValues: any[] };
-type SetMutation = SetAdd | SetDelete | SetClear;
-
-// map changes
-export type MapCreate = BaseSingleMutation & { type: "mapcreate", key: any, newValue: any };
-export type MapChange = BaseSingleMutation & { type: "mapchange", key: any, oldValue: any, newValue: any };
-export type MapDelete = BaseSingleMutation & { type: "mapdelete", key: any, oldValue: any };
-export type MapClear = BaseSingleMutation & { type: "mapclear", oldEntries: [key: any, value: any][] };
-type MapMutation = MapCreate | MapChange | MapDelete | MapClear;
-
-// adds a single element OOB to an array
-export type ArrayExtend = BaseSingleMutation & { type: "arrayextend", oldLength: number, newIndex: number, newValue: any };
-
-// shorten an array using the length setter
-export type ArrayShorten = BaseSingleMutation & { type: "arrayshorten", oldLength: number, newLength: number, removed: ReadonlyArray<any> };
-
-type ArrayMutation = ArrayExtend | ArrayShorten;
-export type SingleMutation = { targetPath?: string } & (CreateProperty | DeleteProperty | ChangeProperty | ArrayMutation | SetMutation | MapMutation);
 
 export type Transaction = {
     type: "transaction", 
     transactionName?: string, 
-    parent?: Transaction, 
-    operations: Mutation[],
+    depth: number,
     dependencies: Set<PropReference>,
     timestamp: Date,
 };
-export type Mutation = SingleMutation | Transaction;
 
 export type ReadonlyDeep<T extends object> = {
     readonly [K in keyof T]:

@@ -160,23 +160,23 @@ test('transaction affects history length', () => {
         }
     });
 
-    let historyLength = 0;
+    let depCount = -1;
     let runs = 0;
 
     tr.subscribe(() => {
         ++runs;
-        historyLength = tx.operations.length;
+        depCount = tx.dependencies.size;
     });
 
     model.method();
 
     assert.equal(runs, 0, "initial notification");
-    assert.equal(historyLength, 0, "no history");
+    assert.equal(depCount, -1, "no deps");
 
     tr.commit(tx);
     
     assert.equal(runs, 1, "first notification");
-    assert.equal(historyLength, 1, "had history");
+    assert.equal(depCount, 1, "single dep");
 });
 
 test('effects run only after transaction commitment', () => {
@@ -200,32 +200,6 @@ test('effects run only after transaction commitment', () => {
 
     defaultTracker.commit();
     assert.equal(runs, 2);
-});
-
-test('effects never run for uncommitted transaction', () => {
-    const model = track({ foo: 1 });
-
-    let runs = 0;
-    effect(() => {
-        [model.foo];
-        ++runs;
-    });
-    assert.equal(runs, 1);
-
-    defaultTracker.startTransaction();
-    model.foo = 3;
-    assert.equal(runs, 1);
-
-    defaultTracker.undo();
-    assert.equal(model.foo, 1);
-    assert.equal(runs, 1);
-
-    defaultTracker.redo();
-    assert.equal(model.foo, 3);
-    assert.equal(runs, 1);
-
-    defaultTracker.rollback();
-    assert.equal(runs, 1);
 });
 
 test.run();

@@ -1,6 +1,6 @@
 import { Tracker } from "./tracker.js";
 import { TrackerOf, RecordDependency, RecordMutation, ProxyOf, GetOriginal, AccessPath } from "./symbols.js";
-import type { ArrayExtend, ArrayShorten, DeleteProperty, Key, SingleMutation } from "./types.js";
+import type { Key } from "./types.js";
 import { createOrRetrievePropRef } from "./propref.js";
 import { isDebugMode } from "./debug.js";
 import { getSetProxyHandler } from "./proxy.set.js";
@@ -114,13 +114,7 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
                     return original.apply(receiver, arguments);
                 }
                 finally {
-                    if (autoTransaction.operations.length > 0) {
-                        tracker.commit(autoTransaction);
-                    }
-                    else {
-                        // don't commit auto transactions in which nothing changed
-                        tracker.rollback(autoTransaction);
-                    }
+                    tracker.commit(autoTransaction);
                 }
             }
             return proxyWrapped;
@@ -159,16 +153,12 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
 
         newValue = maybeGetProxy(newValue, tracker) ?? newValue;
 
-        const mutation: SingleMutation = name in target
-            ? { type: "change", target, name, oldValue: model[name], newValue, timestamp: new Date }
-            : { type: "create", target, name,                        newValue, timestamp: new Date };
-        
         const initialSets = setsCompleted;
         const wasSet = Reflect.set(target, name, newValue, receiver);
         if (wasSet && initialSets == setsCompleted++) {
             // no other set operation completed while this one was being executed
             // if there *was* one or more, we want to record those instead of this
-            tracker[RecordMutation](mutation);
+            tracker[RecordMutation](target, name);
         }
         return wasSet;
     }
@@ -177,33 +167,13 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
         if (!Array.isArray(target)) {
             throw Error('This object used to be an array.  Expected an array.');
         }
-        if (name === "length") {
-            if (!isArrayLength(newValue)) target.length = newValue; // let it throw ❄️
-            
-            const oldLength = target.length;
-            const newLength = parseInt(newValue, 10);
-            
-            if (newLength < oldLength) {
-                const removed = Object.freeze(target.slice(newLength, oldLength));
-                const shorten: ArrayShorten = {
-                    type: "arrayshorten", target, name, oldLength, newLength, removed, timestamp: new Date
-                };
-                const wasSet = Reflect.set(target, name, newValue, receiver);
-                tracker[RecordMutation](shorten);
-                ++setsCompleted;
-                return wasSet;
-            }
-        }
         
         if (isArrayIndex(name)) {
             const index = parseInt(name, 10);
             if (index >= target.length) {
-                // assignment to array index will lengthen array    
-                const extension: ArrayExtend = { 
-                    type: "arrayextend", target, name, oldLength: target.length, newIndex: index, newValue, timestamp: new Date
-                };
                 const wasSet = Reflect.set(target, name, newValue, receiver);
-                tracker[RecordMutation](extension);
+                // tracker[RecordMutation](target, name);
+                tracker[RecordMutation](target, "length");
                 ++setsCompleted;
                 return wasSet;
             }
@@ -213,11 +183,8 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
     }
 
     function deleteProperty(target: TModel, name: TKey) {
-        const mutation: DeleteProperty = { type: "delete", target, name, oldValue: model[name], timestamp: new Date };
         const wasDeleted = Reflect.deleteProperty(target, name);
-        if (wasDeleted) {
-            tracker[RecordMutation](mutation);
-        }
+        if (wasDeleted) tracker[RecordMutation](target, name);
         return wasDeleted;
     }
 

@@ -10,7 +10,6 @@ test('state methods', () => {
     }
     
     const tr = new Tracker;
-    const tx = tr.startTransaction();
     
     const model = tr.track(new C);
 
@@ -19,47 +18,10 @@ test('state methods', () => {
 
     model.setProp(12);
     assert.equal(model.getProp(), 12);
-
-    tr.undo();
-    assert.equal(model.getProp(), 7);
-});
-
-test('compound setter records only leaf operations', () => {
-    const tr = new Tracker;
-    const tx = tr.startTransaction();
-    class C {
-        _maxProp: number;
-        _prop: number;
-
-        constructor(value: number) {
-            this._prop = this._maxProp = value;
-        }
-
-        get prop() { return this._prop; }
-        set prop(value: number) {
-            this._maxProp = Math.max(value, this._maxProp);
-            this._prop = value;
-        }
-    }
-
-    const model = tr.track(new C(4));
-
-    tr.startTransaction();
-    model.prop = 5;
-    tr.commit();
-    assert.equal(model._maxProp, 5);
-
-    assert.equal(tx.operations.length, 1);
-    assert.equal(tx.operations[0].type, "transaction");
-    assert.equal(tx.operations[0].type === "transaction" && tx.operations[0].operations.length, 2);
-
-    tr.undo();
-    assert.equal(model._maxProp, 4);
 });
 
 test('auto transact', () => {
     const tr = new Tracker({ autoTransactionalize: true });
-    const tx = tr.startTransaction();
 
     class C {
         a = 1;
@@ -73,9 +35,6 @@ test('auto transact', () => {
     model.b = 12;
     model.incrementAll();
     assert.equal({ ...model }, { a:2, b:13, c:4 });
-
-    tr.undo();
-    assert.equal({ ...model }, { a:1, b:12, c:3 });
 });
 
 test('no promises', () => {

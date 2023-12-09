@@ -2,33 +2,6 @@ import { track, isTracked, effect, defaultTracker as tracker, Tracker } from '..
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
-test('array sort undo', () => {
-    const tr = new Tracker;
-    const tx = tr.startTransaction();
-    
-    const arr = tr.track(["a","c","b"]);
-
-    tr.startTransaction();
-    arr.sort();
-    tr.commit();
-    assert.equal(arr, ["a", "b", "c"]);
-
-    tr.undo();
-    assert.equal(arr, ["a", "c", "b"]);
-});
-
-test('array atomicity', () => {
-    const tr = new Tracker;
-    const tx = tr.startTransaction();
-
-    const arr = tr.track([3, 4]);
-
-    arr.push(8);
-    arr.push(6, 7);
-    tr.undo();
-    assert.equal(arr, [3, 4, 8]);
-});
-
 test('array detection', () => {
     const arr = track([]);
 
@@ -65,10 +38,8 @@ test('action log recipe', () => {
 
     model.add(5);
 
-    const operation = tx.operations[0];
-    assert.equal(operation.type, "transaction");
-    assert.equal(operation.type === "transaction" && operation.transactionName, "add");
-
+    assert.equal(tx.dependencies.size, 1);
+    assert.equal([...tx.dependencies][0].prop, "length");
 });
 
 test('array pop length visible in effect', () => {

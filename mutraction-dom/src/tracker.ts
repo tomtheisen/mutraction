@@ -1,7 +1,6 @@
-import type { Mutation, ReadonlyDeep, SingleMutation, Subscription, Transaction } from "./types.js";
+import type { Key, ReadonlyDeep, Subscription, Transaction } from "./types.js";
 import { RecordDependency, RecordMutation } from "./symbols.js";
 import { DependencyList } from "./dependency.js";
-import { compactTransaction } from "./compactTransaction.js";
 import { PropReference, createOrRetrievePropRef } from "./propref.js";
 import { getAccessPath, isTracked, linkProxyToObject, makeProxyHandler } from "./proxy.js";
 import { isDebugMode } from "./debug.js";
@@ -10,7 +9,6 @@ import { assertSafeMapKey } from "./proxy.map.js";
 
 const defaultTrackerOptions = {
     autoTransactionalize: true,
-    compactOnCommit: false,
 };
 
 export type TrackerOptions = Partial<typeof defaultTrackerOptions>;
@@ -21,9 +19,8 @@ export type TrackerOptions = Partial<typeof defaultTrackerOptions>;
  */
 export class Tracker {
     #transaction?: Transaction;
-    #redos: Mutation[] = [];
     #dependencyTrackers: DependencyList[] = [];
-    #subscribers = new Set<(change?: Mutation) => void>; // mutation subscribers
+    #subscribers = new Set<(propRef?: PropReference) => void>; // mutation subscribers
 
     options: Readonly<Required<TrackerOptions>> = defaultTrackerOptions;
 
@@ -62,8 +59,13 @@ export class Tracker {
     
     /** Add another transaction to the stack  */
     startTransaction(name?: string): Transaction {
-        this.#transaction = { type: "transaction", parent: this.#transaction, operations: [], dependencies: new Set, timestamp: new Date };
-        if (name) this.#transaction.transactionName = name;
+        if (this.#transaction) {
+            ++this.#transaction.depth;
+        }
+        else {
+            this.#transaction = { type: "transaction", depth: 1, dependencies: new Set, timestamp: new Date };
+            if (name) this.#transaction.transactionName = name;
+        }
         return this.#transaction;
     }
 
@@ -74,20 +76,13 @@ export class Tracker {
         if (!this.#transaction) 
             throw Error('Attempted to commit transaction when none were open.');
 
-        if (transaction && transaction !== this.#transaction)
-            throw Error('Attempted to commit wrong transaction. Transactions must be resolved in stack order.');
-
-        if (this.options.compactOnCommit) compactTransaction(this.#transaction);
-
-        if (this.#transaction.parent) {
-            this.#transaction.parent.operations.push(this.#transaction);
-            this.#transaction.dependencies.forEach(d => this.#transaction!.parent!.dependencies.add(d));
-            this.#transaction = this.#transaction.parent;
+        if (this.#transaction.depth > 1) {
+            --this.#transaction.depth;
         }
         else {
             // dedupe
             const allDependencyLists = new Set<DependencyList>;
-                for (const propRef of this.#transaction.dependencies) {
+            for (const propRef of this.#transaction.dependencies) {
                 for (const dependencyList of propRef.subscribers) {
                     allDependencyLists.add(dependencyList);
                 }
@@ -97,10 +92,6 @@ export class Tracker {
             }
 
             this.#transaction = undefined;
-        }
-
-        if (this.#transaction == null) {
-            // top level transaction, notify any history dependency
             this.#notifySubscribers();
         }
     }
@@ -110,145 +101,24 @@ export class Tracker {
      * @param callback 
      * @returns a subscription with a dispose() method that can canel the subscription
      */
-    subscribe(callback: (change?: Mutation) => void): Subscription {
+    subscribe(callback: (prop?: PropReference) => void): Subscription {
         this.#subscribers.add(callback);
         const dispose = () => this.#subscribers.delete(callback);
         return { dispose };
     }
 
-    #notifySubscribers(change?: Mutation) {
-        for (const s of this.#subscribers) s(change);
-    }
-
-    /** undo all operations done since the beginning of the most recent trasaction
-     * remove it from the transaction stack
-     * if no transactions are active, undo all mutations
-     */
-    rollback(transaction?: Transaction) {
-        if (transaction && transaction !== this.#transaction)
-            throw Error('Attempted to commit wrong transaction. Transactions must be resolved in stack order.');
-
-        if (!this.#transaction)
-            throw Error('No transaction to rollback.');
-
-        while (this.#transaction.operations.length) this.undo();
-        this.#transaction = this.#transaction.parent;
-    }
-
-    /** undo last mutation or transaction and push into the redo stack  */
-    undo() {
-        const mutation = this.#transaction?.operations?.pop();
-        if (!mutation) throw Error("There must be an open transaction to undo.");
-
-        this.#undoOperation(mutation);
-        this.#redos.unshift(mutation);
-
-        if (this.#transaction == null) { // top-level transaction
-            this.#notifySubscribers();
-        }
-    }
-    #undoOperation(mutation: Mutation) {
-        if (mutation.type === "transaction") {
-            for (let i = mutation.operations.length; i-- > 0;) {
-                this.#undoOperation(mutation.operations[i]);
-            }
-        }
-        else {
-            const targetAny = mutation.target as any;
-            switch (mutation.type) {
-                case 'change':
-                case 'delete': targetAny[mutation.name] = mutation.oldValue; break;
-                case 'create': delete targetAny[mutation.name]; break;
-
-                case 'arrayextend': targetAny.length = mutation.oldLength; break;
-                case 'arrayshorten': targetAny.push(...mutation.removed); break;
-                
-                case 'setadd': targetAny.delete(mutation.newValue); break;
-                case 'setdelete': targetAny.add(mutation.oldValue); break;
-                case 'setclear': mutation.oldValues.forEach(targetAny.add.bind(targetAny)); break;
-                
-                case 'mapcreate': targetAny.delete(mutation.key); break;
-                case 'mapchange': 
-                case 'mapdelete': targetAny.set(mutation.key, mutation.oldValue); break;
-                case 'mapclear': mutation.oldEntries.forEach(([k, v]) => targetAny.set(k, v)); break;
-
-                default: mutation satisfies never;
-            }
-            if (!this.#transaction) {
-                createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
-                if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
-                    createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
-                }
-            }
-        }
-    }
-
-    /** Repeat last undone mutation  */
-    redo() {
-        const mutation = this.#redos.shift();
-        if (!mutation) return;
-        this.#redoOperation(mutation);
-        this.#transaction?.operations.push(mutation);
-
-        if (this.#transaction == null) { // top-level transaction
-            this.#notifySubscribers();
-        }
-    }
-    #redoOperation(mutation: Mutation) {
-        if (mutation.type === "transaction") {
-            for (const operation of mutation.operations) {
-                this.#redoOperation(operation);
-            }
-        }
-        else {
-            const targetAny = mutation.target as any;
-            switch (mutation.type) {
-                case 'change':
-                case 'create': targetAny[mutation.name] = mutation.newValue; break;
-                case 'delete': delete targetAny[mutation.name]; break;
-
-                case 'arrayextend': targetAny[mutation.newIndex] = mutation.newValue; break;
-                case 'arrayshorten': targetAny.length = mutation.newLength; break;
-                
-                case 'setadd': targetAny.add(mutation.newValue); break;
-                case 'setdelete': targetAny.delete(mutation.oldValue); break;
-                case 'setclear': targetAny.clear(); break;
-                
-                case 'mapcreate':
-                case 'mapchange': targetAny.set(mutation.key, mutation.newValue); break;
-                case 'mapdelete': targetAny.delete(mutation.key); break;
-                case 'mapclear': targetAny.clear(); break;
-
-                default: mutation satisfies never;
-            }
-            if (!this.#transaction) {
-                createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
-                if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
-                    createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
-                }
-            }
-        }
+    #notifySubscribers(prop?: PropReference) {
+        for (const s of this.#subscribers) s(prop);
     }
 
     /** record a mutation, if you have the secret key  */
-    [RecordMutation](mutation: SingleMutation) {
-        if (isDebugMode) mutation.targetPath = getAccessPath(mutation.target);
-        this.#transaction?.operations.push(Object.freeze(mutation));
-
-        this.#redos.length = 0;
-
+    [RecordMutation](target: object, name: Key) {
         if (this.#transaction) {
-            this.#transaction.dependencies.add(createOrRetrievePropRef(mutation.target, mutation.name));
-            if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
-                this.#transaction.dependencies.add(createOrRetrievePropRef(mutation.target, "length"));
-            }
+            this.#transaction.dependencies.add(createOrRetrievePropRef(target, name));
         }
         else {
             // notify granular prop subscribers
-            createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
-            if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
-                createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
-            }
+            createOrRetrievePropRef(target, name).notifySubscribers();
             this.#notifySubscribers();
         }
     }

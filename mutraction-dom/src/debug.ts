@@ -3,7 +3,6 @@ import { PropReference, getAllPropRefs } from "./propref.js";
 import { getAccessPath } from "./proxy.js";
 import { getNodeDependencies } from "./runtime.js";
 import { defaultTracker } from "./tracker.js";
-import { Mutation } from "./types.js";
 
 const debugModeKey = "mu:debugMode";
 const debugUpdateDebounce = 250;
@@ -292,26 +291,5 @@ if ("sessionStorage" in globalThis) {
         }
         window.addEventListener("resize", clampIntoView);
     }
-}
-
-function describeMutation(mut: Readonly<Mutation>): string {
-    switch (mut.type) {
-        case "transaction":  return `Transaction ${ mut.transactionName }`;
-        case "create":       return `Create property ${ String(mut.name) }: ${ mut.newValue }`;
-        case "change":       return `Modify property ${ String(mut.name) }: ${ mut.newValue }`;
-        case "delete":       return `Delete property ${ String(mut.name) }`;
-        case "arrayextend":  return `Extend array to [${ mut.newIndex }] = ${ mut.newValue }`;
-        case "arrayshorten": return `Shorten array to ${ mut.newLength}`;
-        case "setadd":       return `Add to set: ${ mut.newValue }`;
-        case "setdelete":    return `Delete from set: ${ mut.oldValue }`;
-        case "setclear":     return `Clear set`;
-        case "mapcreate":    return `Add new entry to map [${ mut.key }, ${ mut.newValue }]`;
-        case "mapchange":    return `Change entry in map [${ mut.key }, ${ mut.newValue }]`;
-        case "mapdelete":    return `Remove key from map ${ mut.key }`;
-        case "mapclear":     return `Clear map`;
-
-        default: mut satisfies never;
-    }
-    throw new Error("Function not implemented.");
 }
 

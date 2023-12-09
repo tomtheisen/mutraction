@@ -92,28 +92,4 @@ test('only top dependency notified', () => {
     assert.equal(d2.trackedProperties.length, 1);
 });
 
-test('array extend undo length dep', () => {
-    const tr = new Tracker;
-
-    const model = tr.track([99]);
-
-    let runs = 0;
-    effect(() => {
-        [model.length];
-        ++runs;
-    }, { tracker: tr });
-    assert.equal(runs, 1);
-
-    const tx = tr.startTransaction();
-    model[1] = 77;
-    tr.undo();
-    assert.equal(model, [99]);
-
-    tr.redo();
-    tr.commit(tx);
-
-    assert.equal(model, [99, 77]);
-    assert.equal(runs, 2);
-});
-
 test.run();

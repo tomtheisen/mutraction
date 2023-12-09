@@ -39,19 +39,6 @@ test('set membership effect', () => {
     assert.not.ok(has);
 });
 
-test('set clear undo', () => {
-    const tr = new Tracker;
-    const tx = tr.startTransaction();
-
-    const model = tr.track(new Set<number>([66, 77]));
-
-    model.clear();
-    assert.equal(model, new Set<number>);
-
-    tr.undo();
-    assert.equal(model, new Set<number>([66, 77]));
-});
-
 test('set member track', () => {
     const tr = new Tracker;
     const tx = tr.startTransaction();
@@ -64,9 +51,6 @@ test('set member track', () => {
 
     member.current = "changed"
     assert.equal(member, {current: "changed"});
-
-    tr.undo();
-    assert.equal(member, {current: "original"});
 
     assert.ok(model.has(member));
 });
@@ -87,9 +71,6 @@ test('set addition track', () => {
 
     member.current = "changed"
     assert.equal(member, {current: "changed"});
-
-    tr.undo();
-    assert.equal(member, {current: "original"});
 
     assert.ok(model.vals.has(member));
 });
