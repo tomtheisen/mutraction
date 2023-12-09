@@ -72,7 +72,7 @@ export class Tracker {
     /** resolve and close the most recent transaction  
       * throws if no transactions are active 
       */
-    commit(transaction?: Transaction) {
+    commit() {
         if (!this.#transaction) 
             throw Error('Attempted to commit transaction when none were open.');
 

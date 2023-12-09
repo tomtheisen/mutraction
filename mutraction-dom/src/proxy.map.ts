@@ -2,6 +2,7 @@ import { Tracker } from "./tracker.js";
 import { TrackerOf, RecordDependency, RecordMutation, GetOriginal, ItemsSymbol } from "./symbols.js";
 import { createOrRetrievePropRef } from "./propref.js";
 import { isTracked, setAccessPath, getAccessPath, maybeGetProxy } from "./proxy.js";
+import { isDebugMode } from "./debug.js";
 
 export function getMapProxyHandler<K, V>(tracker: Tracker): ProxyHandler<Map<K, V>> {
     return {
@@ -30,7 +31,7 @@ export function getMapProxyHandler<K, V>(tracker: Tracker): ProxyHandler<Map<K, 
                     return function get(key: K) {
                         tracker[RecordDependency](itemsPropRef);
                         const result = target.get(key);
-                        if (typeof result === "object" && result && isTracked(result)) {
+                        if (typeof result === "object" && result && isTracked(result) && isDebugMode) {
                             setAccessPath(result, getAccessPath(target), `get(${key})`);
                         }
                         return result;
@@ -41,7 +42,7 @@ export function getMapProxyHandler<K, V>(tracker: Tracker): ProxyHandler<Map<K, 
                         assertSafeMapKey(key);
 
                         const proxy = maybeGetProxy(val, tracker);
-                        if (proxy) setAccessPath(proxy, getAccessPath(target), `get(${key})`);
+                        if (proxy && isDebugMode) setAccessPath(proxy, getAccessPath(target), `get(${key})`);
 
                         target.set(key, val = proxy ?? val);
                         tracker[RecordMutation](target, ItemsSymbol);

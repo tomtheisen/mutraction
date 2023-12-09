@@ -129,7 +129,8 @@ export function effectDoc() {
             <h2>Composite mutations</h2>
             <p>
                 If you have several properties you want to change, you might want to avoid notifying dependencies
-                until all the changes are complete.  In that case, you can put the changes in a transaction.
+                until all the changes are complete.  In that case, you can put the changes in a 
+                <a href="#ref/Tracker">transaction</a>.
                 Subscribers won't be notified until all the open transactions are committed.  By default, tracked functions
                 implicitly create and commit transactions.
             </p>

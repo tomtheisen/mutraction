@@ -35,11 +35,12 @@ function getSetProxyHandler(tracker) {
         case "add":
           return function add(value) {
             value = maybeGetProxy(value, tracker) ?? value;
-            setAccessPath(value, getAccessPath(target), "\u2203");
+            if (isDebugMode)
+              setAccessPath(value, getAccessPath(target), "\u2203");
             if (target.has(value))
               return;
             const result = target.add(value);
-            tracker[RecordMutation]({ type: "setadd", name: ItemsSymbol, target, timestamp: /* @__PURE__ */ new Date(), newValue: value });
+            tracker[RecordMutation](target, ItemsSymbol);
             return result;
           };
         case "delete":
@@ -48,16 +49,15 @@ function getSetProxyHandler(tracker) {
             if (!target.has(value))
               return;
             const result = target.delete(value);
-            tracker[RecordMutation]({ type: "setdelete", name: ItemsSymbol, target, timestamp: /* @__PURE__ */ new Date(), oldValue: value });
+            tracker[RecordMutation](target, ItemsSymbol);
             return result;
           };
         case "clear":
           return function clear() {
             if (target.size === 0)
               return;
-            const oldValues = Array.from(target.values());
             target.clear();
-            tracker[RecordMutation]({ type: "setclear", name: ItemsSymbol, target, timestamp: /* @__PURE__ */ new Date(), oldValues });
+            tracker[RecordMutation](target, ItemsSymbol);
           };
         default:
           return Reflect.get(target, name, receiver);
@@ -94,7 +94,7 @@ function getMapProxyHandler(tracker) {
           return function get(key) {
             tracker[RecordDependency](itemsPropRef);
             const result = target.get(key);
-            if (typeof result === "object" && result && isTracked(result)) {
+            if (typeof result === "object" && result && isTracked(result) && isDebugMode) {
               setAccessPath(result, getAccessPath(target), `get(${key})`);
             }
             return result;
@@ -102,32 +102,24 @@ function getMapProxyHandler(tracker) {
         case "set":
           return function set(key, val) {
             assertSafeMapKey(key);
-            const isChange = target.has(key);
-            const oldValue = isChange && target.get(key);
             const proxy = maybeGetProxy(val, tracker);
-            if (proxy) {
+            if (proxy && isDebugMode)
               setAccessPath(proxy, getAccessPath(target), `get(${key})`);
-            }
             target.set(key, val = proxy ?? val);
-            const mutation = isChange ? { target, name: ItemsSymbol, timestamp: /* @__PURE__ */ new Date(), type: "mapchange", key, newValue: val, oldValue } : { target, name: ItemsSymbol, timestamp: /* @__PURE__ */ new Date(), type: "mapcreate", key, newValue: val };
-            tracker[RecordMutation](mutation);
+            tracker[RecordMutation](target, ItemsSymbol);
             return receiver;
           };
         case "delete":
           return function delete$(key) {
-            const oldValue = target.get(key);
             if (!target.delete(key))
               return false;
-            const mutation = { target, name: ItemsSymbol, timestamp: /* @__PURE__ */ new Date(), type: "mapdelete", key, oldValue };
-            tracker[RecordMutation](mutation);
+            tracker[RecordMutation](target, ItemsSymbol);
             return true;
           };
         case "clear":
           return function clear() {
-            const oldEntries = Array.from(target.entries());
             target.clear();
-            const mutation = { target, name: ItemsSymbol, timestamp: /* @__PURE__ */ new Date(), type: "mapclear", oldEntries };
-            tracker[RecordMutation](mutation);
+            tracker[RecordMutation](target, ItemsSymbol);
           };
         default:
           return Reflect.get(target, name, receiver);
@@ -143,11 +135,6 @@ function assertSafeMapKey(key) {
 
 // out/proxy.js
 var mutatingArrayMethods = ["copyWithin", "fill", "pop", "push", "reverse", "shift", "sort", "splice", "unshift"];
-function isArrayLength(value) {
-  if (typeof value === "string")
-    return isArrayIndex(value);
-  return typeof value === "number" && (value & 2147483647) === value;
-}
 function isArrayIndex(name) {
   if (typeof name !== "string")
     return false;
@@ -173,15 +160,9 @@ var unproxyableConstructors = /* @__PURE__ */ new Set([RegExp, Promise]);
 if ("window" in globalThis)
   unproxyableConstructors.add(globalThis.window.constructor);
 function canBeProxied(val) {
-  if (val == null)
+  if (val == null || typeof val !== "object" || isTracked(val))
     return false;
-  if (typeof val !== "object")
-    return false;
-  if (isTracked(val))
-    return false;
-  if (!Object.isExtensible(val))
-    return false;
-  if (unproxyableConstructors.has(val.constructor))
+  if (!Object.isExtensible(val) || unproxyableConstructors.has(val.constructor))
     return false;
   return true;
 }
@@ -235,11 +216,7 @@ function makeProxyHandler(model, tracker) {
         try {
           return original.apply(receiver, arguments);
         } finally {
-          if (autoTransaction.operations.length > 0) {
-            tracker.commit(autoTransaction);
-          } else {
-            tracker.rollback(autoTransaction);
-          }
+          tracker.commit();
         }
       };
       var proxyWrapped = proxyWrapped2;
@@ -251,10 +228,12 @@ function makeProxyHandler(model, tracker) {
   function getArrayTransactionShim(target, name, receiver) {
     if (typeof name === "string" && mutatingArrayMethods.includes(name)) {
       let proxyWrapped2 = function() {
-        const arrayTransaction = tracker.startTransaction(String(name));
-        const arrayResult = arrayFunction.apply(receiver, arguments);
-        tracker.commit(arrayTransaction);
-        return arrayResult;
+        tracker.startTransaction(String(name));
+        try {
+          return arrayFunction.apply(receiver, arguments);
+        } finally {
+          tracker.commit();
+        }
       };
       var proxyWrapped = proxyWrapped2;
       const arrayFunction = target[name];
@@ -272,11 +251,10 @@ function makeProxyHandler(model, tracker) {
       setAccessPath(newValue, getAccessPath(target), name);
     }
     newValue = maybeGetProxy(newValue, tracker) ?? newValue;
-    const mutation = name in target ? { type: "change", target, name, oldValue: model[name], newValue, timestamp: /* @__PURE__ */ new Date() } : { type: "create", target, name, newValue, timestamp: /* @__PURE__ */ new Date() };
     const initialSets = setsCompleted;
     const wasSet = Reflect.set(target, name, newValue, receiver);
     if (wasSet && initialSets == setsCompleted++) {
-      tracker[RecordMutation](mutation);
+      tracker[RecordMutation](target, name);
     }
     return wasSet;
   }
@@ -284,42 +262,11 @@ function makeProxyHandler(model, tracker) {
     if (!Array.isArray(target)) {
       throw Error("This object used to be an array.  Expected an array.");
     }
-    if (name === "length") {
-      if (!isArrayLength(newValue))
-        target.length = newValue;
-      const oldLength = target.length;
-      const newLength = parseInt(newValue, 10);
-      if (newLength < oldLength) {
-        const removed = Object.freeze(target.slice(newLength, oldLength));
-        const shorten = {
-          type: "arrayshorten",
-          target,
-          name,
-          oldLength,
-          newLength,
-          removed,
-          timestamp: /* @__PURE__ */ new Date()
-        };
-        const wasSet = Reflect.set(target, name, newValue, receiver);
-        tracker[RecordMutation](shorten);
-        ++setsCompleted;
-        return wasSet;
-      }
-    }
     if (isArrayIndex(name)) {
       const index = parseInt(name, 10);
       if (index >= target.length) {
-        const extension = {
-          type: "arrayextend",
-          target,
-          name,
-          oldLength: target.length,
-          newIndex: index,
-          newValue,
-          timestamp: /* @__PURE__ */ new Date()
-        };
         const wasSet = Reflect.set(target, name, newValue, receiver);
-        tracker[RecordMutation](extension);
+        tracker[RecordMutation](target, "length");
         ++setsCompleted;
         return wasSet;
       }
@@ -327,11 +274,9 @@ function makeProxyHandler(model, tracker) {
     return setOrdinary(target, name, newValue, receiver);
   }
   function deleteProperty(target, name) {
-    const mutation = { type: "delete", target, name, oldValue: model[name], timestamp: /* @__PURE__ */ new Date() };
     const wasDeleted = Reflect.deleteProperty(target, name);
-    if (wasDeleted) {
-      tracker[RecordMutation](mutation);
-    }
+    if (wasDeleted)
+      tracker[RecordMutation](target, name);
     return wasDeleted;
   }
   let set = setOrdinary, get = getOrdinary;
@@ -476,59 +421,12 @@ var DependencyList = class {
   }
 };
 
-// out/compactTransaction.js
-function compactTransaction({ operations }) {
-  for (let i = 0; i < operations.length; ) {
-    const currOp = operations[i];
-    if (currOp.type === "transaction") {
-      operations.splice(i, 1, ...currOp.operations);
-    } else if (currOp.type === "change" && Object.is(currOp.oldValue, currOp.newValue)) {
-      operations.splice(i, 1);
-    } else if (i > 0) {
-      const prevOp = operations[i - 1];
-      if (prevOp.type === "transaction") {
-        throw Error("Internal mutraction error.  Found internal transaction on look-back during packTransaction.");
-      } else if (prevOp.target !== currOp.target || prevOp.name !== currOp.name) {
-        ++i;
-      } else if (prevOp.type === "create" && currOp.type === "change") {
-        operations.splice(--i, 2, { ...prevOp, newValue: currOp.newValue });
-      } else if (prevOp.type === "create" && currOp.type === "delete") {
-        operations.splice(--i, 2);
-      } else if (prevOp.type === "change" && currOp.type === "change") {
-        operations.splice(--i, 2, { ...prevOp, newValue: currOp.newValue });
-      } else if (prevOp.type === "change" && currOp.type === "delete") {
-        operations.splice(--i, 2, { ...currOp, oldValue: prevOp.oldValue });
-      } else if (prevOp.type === "delete" && currOp.type === "create") {
-        operations.splice(--i, 2, { ...currOp, ...prevOp, type: "change" });
-      } else if (prevOp.type === "setadd" && currOp.type === "setdelete" && Object.is(prevOp.newValue, currOp.oldValue)) {
-        operations.splice(--i, 2);
-      } else if (prevOp.type === "setdelete" && currOp.type === "setadd" && Object.is(prevOp.oldValue, currOp.newValue)) {
-        operations.splice(--i, 2);
-      } else if (prevOp.type === "mapcreate" && currOp.type === "mapchange" && prevOp.key === currOp.key) {
-        operations.splice(--i, 2, { ...prevOp, newValue: currOp.newValue });
-      } else if (prevOp.type === "mapcreate" && currOp.type === "mapdelete" && prevOp.key === currOp.key) {
-        operations.splice(--i, 2);
-      } else if (prevOp.type === "mapchange" && currOp.type === "mapchange" && prevOp.key === currOp.key) {
-        operations.splice(--i, 2, { ...currOp, newValue: currOp.newValue });
-      } else if (prevOp.type === "mapchange" && currOp.type === "mapdelete" && prevOp.key === currOp.key) {
-        operations.splice(--i, 2, { ...currOp, oldValue: prevOp.oldValue });
-      } else if (prevOp.type === "mapdelete" && currOp.type === "mapcreate" && prevOp.key === currOp.key) {
-        operations.splice(--i, 2, { ...currOp, ...prevOp, type: "mapchange" });
-      } else
-        ++i;
-    } else
-      ++i;
-  }
-}
-
 // out/tracker.js
 var defaultTrackerOptions = {
-  autoTransactionalize: true,
-  compactOnCommit: false
+  autoTransactionalize: true
 };
 var Tracker = class {
   #transaction;
-  #redos = [];
   #dependencyTrackers = [];
   #subscribers = /* @__PURE__ */ new Set();
   // mutation subscribers
@@ -565,25 +463,23 @@ var Tracker = class {
   }
   /** Add another transaction to the stack  */
   startTransaction(name) {
-    this.#transaction = { type: "transaction", parent: this.#transaction, operations: [], dependencies: /* @__PURE__ */ new Set(), timestamp: /* @__PURE__ */ new Date() };
-    if (name)
-      this.#transaction.transactionName = name;
+    if (this.#transaction) {
+      ++this.#transaction.depth;
+    } else {
+      this.#transaction = { type: "transaction", depth: 1, dependencies: /* @__PURE__ */ new Set(), timestamp: /* @__PURE__ */ new Date() };
+      if (name)
+        this.#transaction.transactionName = name;
+    }
     return this.#transaction;
   }
   /** resolve and close the most recent transaction
     * throws if no transactions are active
     */
-  commit(transaction) {
+  commit() {
     if (!this.#transaction)
       throw Error("Attempted to commit transaction when none were open.");
-    if (transaction && transaction !== this.#transaction)
-      throw Error("Attempted to commit wrong transaction. Transactions must be resolved in stack order.");
-    if (this.options.compactOnCommit)
-      compactTransaction(this.#transaction);
-    if (this.#transaction.parent) {
-      this.#transaction.parent.operations.push(this.#transaction);
-      this.#transaction.dependencies.forEach((d) => this.#transaction.parent.dependencies.add(d));
-      this.#transaction = this.#transaction.parent;
+    if (this.#transaction.depth > 1) {
+      --this.#transaction.depth;
     } else {
       const allDependencyLists = /* @__PURE__ */ new Set();
       for (const propRef of this.#transaction.dependencies) {
@@ -595,8 +491,6 @@ var Tracker = class {
         depList.notifySubscribers();
       }
       this.#transaction = void 0;
-    }
-    if (this.#transaction == null) {
       this.#notifySubscribers();
     }
   }
@@ -610,163 +504,16 @@ var Tracker = class {
     const dispose = () => this.#subscribers.delete(callback);
     return { dispose };
   }
-  #notifySubscribers(change) {
+  #notifySubscribers(prop) {
     for (const s of this.#subscribers)
-      s(change);
-  }
-  /** undo all operations done since the beginning of the most recent trasaction
-   * remove it from the transaction stack
-   * if no transactions are active, undo all mutations
-   */
-  rollback(transaction) {
-    if (transaction && transaction !== this.#transaction)
-      throw Error("Attempted to commit wrong transaction. Transactions must be resolved in stack order.");
-    if (!this.#transaction)
-      throw Error("No transaction to rollback.");
-    while (this.#transaction.operations.length)
-      this.undo();
-    this.#transaction = this.#transaction.parent;
-  }
-  /** undo last mutation or transaction and push into the redo stack  */
-  undo() {
-    const mutation = this.#transaction?.operations?.pop();
-    if (!mutation)
-      throw Error("There must be an open transaction to undo.");
-    this.#undoOperation(mutation);
-    this.#redos.unshift(mutation);
-    if (this.#transaction == null) {
-      this.#notifySubscribers();
-    }
-  }
-  #undoOperation(mutation) {
-    if (mutation.type === "transaction") {
-      for (let i = mutation.operations.length; i-- > 0; ) {
-        this.#undoOperation(mutation.operations[i]);
-      }
-    } else {
-      const targetAny = mutation.target;
-      switch (mutation.type) {
-        case "change":
-        case "delete":
-          targetAny[mutation.name] = mutation.oldValue;
-          break;
-        case "create":
-          delete targetAny[mutation.name];
-          break;
-        case "arrayextend":
-          targetAny.length = mutation.oldLength;
-          break;
-        case "arrayshorten":
-          targetAny.push(...mutation.removed);
-          break;
-        case "setadd":
-          targetAny.delete(mutation.newValue);
-          break;
-        case "setdelete":
-          targetAny.add(mutation.oldValue);
-          break;
-        case "setclear":
-          mutation.oldValues.forEach(targetAny.add.bind(targetAny));
-          break;
-        case "mapcreate":
-          targetAny.delete(mutation.key);
-          break;
-        case "mapchange":
-        case "mapdelete":
-          targetAny.set(mutation.key, mutation.oldValue);
-          break;
-        case "mapclear":
-          mutation.oldEntries.forEach(([k, v]) => targetAny.set(k, v));
-          break;
-        default:
-          mutation;
-      }
-      if (!this.#transaction) {
-        createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
-        if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
-          createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
-        }
-      }
-    }
-  }
-  /** Repeat last undone mutation  */
-  redo() {
-    const mutation = this.#redos.shift();
-    if (!mutation)
-      return;
-    this.#redoOperation(mutation);
-    this.#transaction?.operations.push(mutation);
-    if (this.#transaction == null) {
-      this.#notifySubscribers();
-    }
-  }
-  #redoOperation(mutation) {
-    if (mutation.type === "transaction") {
-      for (const operation of mutation.operations) {
-        this.#redoOperation(operation);
-      }
-    } else {
-      const targetAny = mutation.target;
-      switch (mutation.type) {
-        case "change":
-        case "create":
-          targetAny[mutation.name] = mutation.newValue;
-          break;
-        case "delete":
-          delete targetAny[mutation.name];
-          break;
-        case "arrayextend":
-          targetAny[mutation.newIndex] = mutation.newValue;
-          break;
-        case "arrayshorten":
-          targetAny.length = mutation.newLength;
-          break;
-        case "setadd":
-          targetAny.add(mutation.newValue);
-          break;
-        case "setdelete":
-          targetAny.delete(mutation.oldValue);
-          break;
-        case "setclear":
-          targetAny.clear();
-          break;
-        case "mapcreate":
-        case "mapchange":
-          targetAny.set(mutation.key, mutation.newValue);
-          break;
-        case "mapdelete":
-          targetAny.delete(mutation.key);
-          break;
-        case "mapclear":
-          targetAny.clear();
-          break;
-        default:
-          mutation;
-      }
-      if (!this.#transaction) {
-        createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
-        if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
-          createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
-        }
-      }
-    }
+      s(prop);
   }
   /** record a mutation, if you have the secret key  */
-  [RecordMutation](mutation) {
-    if (isDebugMode)
-      mutation.targetPath = getAccessPath(mutation.target);
-    this.#transaction?.operations.push(Object.freeze(mutation));
-    this.#redos.length = 0;
+  [RecordMutation](target, name) {
     if (this.#transaction) {
-      this.#transaction.dependencies.add(createOrRetrievePropRef(mutation.target, mutation.name));
-      if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
-        this.#transaction.dependencies.add(createOrRetrievePropRef(mutation.target, "length"));
-      }
+      this.#transaction.dependencies.add(createOrRetrievePropRef(target, name));
     } else {
-      createOrRetrievePropRef(mutation.target, mutation.name).notifySubscribers();
-      if (mutation.type === "arrayextend" || mutation.type === "arrayshorten") {
-        createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
-      }
+      createOrRetrievePropRef(target, name).notifySubscribers();
       this.#notifySubscribers();
     }
   }

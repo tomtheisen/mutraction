@@ -9,11 +9,6 @@ import { getMapProxyHandler } from "./proxy.map.js";
 const mutatingArrayMethods 
     = ["copyWithin","fill","pop","push","reverse","shift","sort","splice","unshift"];
 
-function isArrayLength(value: string | symbol | number) {
-    if (typeof value === "string") return isArrayIndex(value);
-    return typeof value === "number" && (value & 0x7fff_ffff) === value;
-}
-
 function isArrayIndex(name: string | symbol): name is string {
     // ES 6.1.7 https://tc39.es/ecma262/#array-index
     if (typeof name !== "string") return false;
@@ -45,13 +40,8 @@ const unproxyableConstructors: Set<Function> = new Set([RegExp, Promise]);
 if ("window" in globalThis) unproxyableConstructors.add(globalThis.window.constructor)
 
 export function canBeProxied(val: unknown): val is object {
-    if (val == null) return false;
-    if (typeof val !== "object") return false;
-    if (isTracked(val)) return false;
-    if (!Object.isExtensible(val)) return false;
-
-    if (unproxyableConstructors.has(val.constructor)) return false;
-
+    if (val == null || typeof val !== "object" || isTracked(val)) return false;
+    if (!Object.isExtensible(val) || unproxyableConstructors.has(val.constructor)) return false;
     return true;
 }
 
@@ -114,7 +104,7 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
                     return original.apply(receiver, arguments);
                 }
                 finally {
-                    tracker.commit(autoTransaction);
+                    tracker.commit();
                 }
             }
             return proxyWrapped;
@@ -126,10 +116,13 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
         if (typeof name === "string" && mutatingArrayMethods.includes(name)) {
             const arrayFunction = target[name] as Function;
             function proxyWrapped() {
-                const arrayTransaction = tracker.startTransaction(String(name));
-                const arrayResult = arrayFunction.apply(receiver, arguments);
-                tracker.commit(arrayTransaction);
-                return arrayResult;
+                tracker.startTransaction(String(name));
+                try {
+                    return arrayFunction.apply(receiver, arguments);
+                }
+                finally {
+                    tracker.commit();
+                }
             }
             return proxyWrapped;
         }
@@ -172,7 +165,7 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
             const index = parseInt(name, 10);
             if (index >= target.length) {
                 const wasSet = Reflect.set(target, name, newValue, receiver);
-                // tracker[RecordMutation](target, name);
+                // record mutation for name instead of index because nothing can rely on index yet
                 tracker[RecordMutation](target, "length");
                 ++setsCompleted;
                 return wasSet;
@@ -195,8 +188,6 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
     }
     
     if (isArguments(model)) throw Error('Tracking of exotic arguments objects not supported');
-
-    // possibly unhandled exotic objects: integer-indexed, module namespaces, immutable prototypes
 
     return { get, set, deleteProperty };
 }

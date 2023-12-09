@@ -2,6 +2,7 @@ import { Tracker } from "./tracker.js";
 import { TrackerOf, RecordDependency, RecordMutation, GetOriginal, ItemsSymbol } from "./symbols.js";
 import { createOrRetrievePropRef } from "./propref.js";
 import { maybeGetProxy, setAccessPath, getAccessPath } from "./proxy.js";
+import { isDebugMode } from "./debug.js";
 
 export function getSetProxyHandler<T>(tracker: Tracker): ProxyHandler<Set<T>> {
     return {
@@ -30,7 +31,7 @@ export function getSetProxyHandler<T>(tracker: Tracker): ProxyHandler<Set<T>> {
                 case "add":
                     return function add(value: any) {
                         value = maybeGetProxy(value, tracker) ?? value;
-                        setAccessPath(value, getAccessPath(target), "∃");
+                        if (isDebugMode) setAccessPath(value, getAccessPath(target), "∃");
 
                         if (target.has(value)) return;
                         const result = target.add(value);

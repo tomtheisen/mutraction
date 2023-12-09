@@ -28,15 +28,6 @@ export function trackerDoc() {
                                 the whole thing atomically.
                             </p>
                         </li>
-                        <li>
-                            <code>compactOnCommit</code> - default <code>false</code>
-                            <p>
-                                Transactions often have series of mutations that
-                                "cancel out".  Imagine changing a property, and then changing it right back.
-                                This option will memory-optimize the representation
-                                of committed transactions by simplifying the list of mutations.
-                            </p>
-                        </li>
                     </ul>
                 </ul>
             </ul>
@@ -89,37 +80,13 @@ export function trackerDoc() {
                     </p>
                 </li>
                 <li>
-                    <code>commit(transaction)</code>
+                    <code>commit()</code>
                     <p>
-                        This commits a transaction.  The argument is optional.
+                        This commits a transaction.
                         If provided, it must be the top unresolved transaction in the stack.
                         This will convert the top-most open transaction into an atomic operation
                         inside the enclosing transaction.
                         If there is no enclosing transaction, it will add an item to <code>history</code>.
-                    </p>
-                </li>
-                <li>
-                    <code>rollback(transaction)</code>
-                    <p>
-                        The counterpart to <code>commit()</code>.
-                        This will undo all the mutations applied during the top open transaction.
-                    </p>
-                </li>
-                <li>
-                    <code>undo()</code>
-                    <p>
-                        This reverts the most recent mutation or committed inner transaction.
-                        This is only possible when one or more transactions are open.
-                        When all transactions are resolved, they can no longer be undone.
-                    </p>
-                </li>
-                <li>
-                    <code>redo()</code>
-                    <p>
-                        As long as nothing has changed, this will re-perform
-                        the most recently undone mutation.
-                        Making any mutation to any tracked property will clear
-                        the redo buffer, causing this to have no effect.
                     </p>
                 </li>
             </ul>
