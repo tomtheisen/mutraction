@@ -9,11 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- History is no longer tracked when there are no transactions open.
+- History is no longer tracked.
+    - Tracker instances no longer have `rollback()`, `undo()`, `redo()`, or `history` members.
 
 ### Fixed
 
 - `ForEachPersist()` allows its generated document elements to be garbage collected if the corresponding key objects are no longer referenced.
+
+### Changed
+
+- Some cleanup tasks are now performed asynchronously to minimize UI jank.
 
 ## [0.24.0] - 2023-11-25
 

@@ -2,14 +2,15 @@ import { Key, Subscription } from "./types.js";
 import { ProxyOf } from "./symbols.js";
 import { isTracked } from "./proxy.js";
 import { DependencyList } from "./dependency.js";
-import { LiveCollection } from "./liveCollection.js";
 import { isDebugMode, pendUpdate } from "./debug.js";
 
-const allPropRefs = new LiveCollection<PropReference>;
-export function getAllPropRefs() {
-    if (!allPropRefs) throw Error("Only allowed in debug mode");
-    return allPropRefs;
-}
+// TODO debug
+// import { LiveCollection } from "./liveCollection.js";
+// const allPropRefs = undefined; // new LiveCollection<PropReference>;
+// export function getAllPropRefs() {
+//     if (!allPropRefs) throw Error("Only allowed in debug mode");
+//     return allPropRefs;
+// }
 
 /**
  * Represents a particular named property on a particular object.
@@ -32,7 +33,8 @@ export class PropReference<T = any> {
         this.object = object;
         this.prop = prop;
 
-        allPropRefs?.add(this);
+        // TODO debug
+        // allPropRefs?.add(this);
     }
 
     subscribe(dependencyList: DependencyList): Subscription {

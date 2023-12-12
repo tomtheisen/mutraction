@@ -1,9 +1,13 @@
+import { scheduleCleanup } from "./cleanup.js";
 import { effect } from "./effect.js"
 import { ElementSpan } from './elementSpan.js';
 import { Swapper } from "./swapper.js";
 import { isNodeOptions, type Subscription, type NodeOptions } from "./types.js";
 
 const suppress = { suppressUntrackedWarning: true };
+
+type ForEachOutput = { container: ElementSpan, subscription?: Subscription, cleanup?: () => void };
+type ForEachPersistOutput = { container: ElementSpan, subscription?: Subscription };
 
 /**
  * Generates DOM nodes for an array of values.  The resulting nodes track the array indices.
@@ -17,14 +21,13 @@ export function ForEach<TIn>(array: TIn[] | (() => TIn[]) | undefined, map: (ite
     if (typeof array === "function") return Swapper(() => ForEach(array(), map));
 
     const result = new ElementSpan();
-    type Output = { container: ElementSpan, subscription?: Subscription, cleanup?: () => void };
-    const outputs: Output[] = [];
+    const outputs: ForEachOutput[] = [];
 
     const arrayDefined = array ?? [];
     const lengthSubscription = effect(function forEachLengthEffect(lengthDep) {
         // i is scoped to each loop body invocation
         for (let i = outputs.length; i < arrayDefined.length; i++) {
-            const output: Output = { container: new ElementSpan() };
+            const output: ForEachOutput = { container: new ElementSpan() };
             outputs.push(output);
 
             output.subscription = effect(function forEachItemEffect(dep) {
@@ -49,21 +52,21 @@ export function ForEach<TIn>(array: TIn[] | (() => TIn[]) | undefined, map: (ite
         }
 
         while (outputs.length > arrayDefined.length) {
-            cleanupOutput(outputs.pop()!);
+            scheduleCleanup(forEachCleanupOutput, outputs.pop()!);
         }
     }, suppress);
 
-    result.registerCleanup({ dispose() { outputs.forEach(cleanupOutput); }});
+    result.registerCleanup({ dispose() { outputs.forEach(forEachCleanupOutput); }});
     result.registerCleanup(lengthSubscription);
 
     return result.removeAsFragment();
+}
 
-    function cleanupOutput({ cleanup, container, subscription }: Output) {
-        cleanup?.();
-        subscription?.dispose();
-        container.removeAsFragment();
-        container.cleanup();
-    }
+function forEachCleanupOutput({ cleanup, container, subscription }: ForEachOutput) {
+    cleanup?.();
+    subscription?.dispose();
+    container.removeAsFragment();
+    container.cleanup();
 }
 
 /**
@@ -77,15 +80,14 @@ export function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]) 
     if (typeof array === "function") return Swapper(() => ForEachPersist(array(), map));
 
     const result = new ElementSpan();
-    type Output = { container: ElementSpan, subscription?: Subscription };
-    const outputs: Output[] = [];
+    const outputs: ForEachPersistOutput[] = [];
     const outputMap = new WeakMap<TIn, HTMLElement | ElementSpan>;
 
     const arrayDefined = array ?? [];
     const lengthSubscription = effect(function forEachPersistLengthEffect(lengthDep) {
         // i is scoped to each loop body invocation
         for (let i = outputs.length; i < arrayDefined.length; i++) {
-            const output: Output = { container: new ElementSpan };
+            const output: ForEachPersistOutput = { container: new ElementSpan };
             outputs.push(output);
 
             output.subscription = effect(function forEachPersistItemEffect(dep) {
@@ -126,20 +128,19 @@ export function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]) 
         }
 
         while (outputs.length > arrayDefined.length) {
-            cleanupOutput(outputs.pop()!);
+            scheduleCleanup(forEachPersistCleanupOutput, outputs.pop()!);
         }
     }, suppress);
 
-    result.registerCleanup({ dispose() { outputs.forEach(cleanupOutput); } })
+    result.registerCleanup({ dispose() { outputs.forEach(forEachPersistCleanupOutput); } })
     result.registerCleanup(lengthSubscription);
 
     return result.removeAsFragment();
-
-    function cleanupOutput(output: Output) {
-        const { container, subscription } = output;
-        subscription?.dispose();
-        container.removeAsFragment();
-        container.cleanup();
-    }
 }
 
+function forEachPersistCleanupOutput(output: ForEachPersistOutput) {
+    const { container, subscription } = output;
+    subscription?.dispose();
+    container.removeAsFragment();
+    container.cleanup();
+}

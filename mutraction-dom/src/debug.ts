@@ -1,5 +1,4 @@
-import { effect, getActiveEffects } from "./effect.js";
-import { PropReference, getAllPropRefs } from "./propref.js";
+import { PropReference } from "./propref.js";
 import { getAccessPath } from "./proxy.js";
 import { getNodeDependencies } from "./runtime.js";
 import { defaultTracker } from "./tracker.js";
@@ -23,15 +22,12 @@ export function pendUpdate() {
 
 if ("sessionStorage" in globalThis) {
     function enableDebugMode() {
+        console.warn("debug mode is incomplete.")
         sessionStorage.setItem(debugModeKey, "true");
         location.reload();
     }
 
     Object.assign(window, { [Symbol.for("mutraction.debug")]: enableDebugMode });
-    if (["localhost", "127.0.0.1", "[::1]"].includes(location.hostname) && !isDebugMode) {
-        console.info(`[µ] Try the mutraction diagnostic tool.  This message is only shown from localhost, but the tool is always available.`);
-        console.info("» window[Symbol.for('mutraction.debug')]()");
-    }
 
     function disableDebugMode() {
         sessionStorage.removeItem(debugModeKey);
@@ -81,7 +77,7 @@ if ("sessionStorage" in globalThis) {
                 const result = prompt(`Update ${ String(propRef.prop) }`, serialized);
                 try {
                     if (result) propRef.current = JSON.parse(result);
-                    refreshPropRefList();
+                    // refreshPropRefList();
                 }
                 catch {}
             });
@@ -145,28 +141,28 @@ if ("sessionStorage" in globalThis) {
             effectDetails
         );
         let activeEffectsGeneration = -1;
-        updateCallbacks.push(() => {
-            let { activeEffects, generation } = getActiveEffects();
-            if (generation !== activeEffectsGeneration) {
-                activeEffectsGeneration = generation;
-                effectDetails.innerText = [...activeEffects.entries()].map(e => `${e[0]}×${e[1]}`).join("\n");
-                effectCount.innerText = String(Array.from(activeEffects.values()).reduce((a, b) => a + b, 0));
-            }
-        });
+        // updateCallbacks.push(() => {
+        //     let { activeEffects, generation } = getActiveEffects();
+        //     if (generation !== activeEffectsGeneration) {
+        //         activeEffectsGeneration = generation;
+        //         effectDetails.innerText = [...activeEffects.entries()].map(e => `${e[0]}×${e[1]}`).join("\n");
+        //         effectCount.innerText = String(Array.from(activeEffects.values()).reduce((a, b) => a + b, 0));
+        //     }
+        // });
 
         const propRefCountNumber = el("span", {}, "0");
 
-        const allPropRefs = getAllPropRefs();
-        function refreshPropRefList() {
-            const propRefListItems = [];
-            for (const propRef of allPropRefs) {
-                propRefListItems.push(getPropRefListItem(propRef));
-            }
-            propRefList.replaceChildren(...propRefListItems);
-        }
+        // const allPropRefs = getAllPropRefs();
+        // function refreshPropRefList() {
+        //     const propRefListItems = [];
+        //     for (const propRef of allPropRefs) {
+        //         propRefListItems.push(getPropRefListItem(propRef));
+        //     }
+        //     propRefList.replaceChildren(...propRefListItems);
+        // }
 
         const propRefRefreshButton = el("button", {}, "↻");
-        propRefRefreshButton.addEventListener("click", refreshPropRefList);
+        // propRefRefreshButton.addEventListener("click", refreshPropRefList);
         const propRefList = el("ol", {});
         const propRefSummary = el("details", {},
             el("summary", { cursor: "pointer" }, 
@@ -176,13 +172,13 @@ if ("sessionStorage" in globalThis) {
         )
 
         let seenGeneration = -1;
-        updateCallbacks.push(() => {
-            if (allPropRefs!.generation !== seenGeneration) {
-                propRefCountNumber.replaceChildren(String(allPropRefs!.sizeBound));
-                refreshPropRefList();
-                seenGeneration = allPropRefs!.generation;
-            }
-        });
+        // updateCallbacks.push(() => {
+        //     if (allPropRefs!.generation !== seenGeneration) {
+        //         propRefCountNumber.replaceChildren(String(allPropRefs!.sizeBound));
+        //         refreshPropRefList();
+        //         seenGeneration = allPropRefs!.generation;
+        //     }
+        // });
 
         function startInspectPick() {
             inspectButton.disabled = true;

@@ -11,27 +11,29 @@ type EffectOptions = {
     tracker?: Tracker;
 }
 
-let activeEffectsGeneration = 0;
-const activeEffects = new Map<string, number>();
-function recordActiveEffect(sideEffect: SideEffect) {
-    const name = sideEffect.name || "(anonymous)";
-    const current = activeEffects.get(name);
-    if (current) activeEffects.set(name, current + 1);
-    else activeEffects.set(name, 1);
-    ++activeEffectsGeneration;
-}
+// TODO debug
 
-function removeActiveEffect(sideEffect: SideEffect) {
-    const name = sideEffect.name || "(anonymous)";
-    const current = activeEffects.get(name);
-    if (!current || current <= 1) activeEffects.delete(name);
-    else activeEffects.set(name, current - 1);
-    ++activeEffectsGeneration;
-}
+// let activeEffectsGeneration = 0;
+// const activeEffects = new Map<string, number>();
+// function recordActiveEffect(sideEffect: SideEffect) {
+//     const name = sideEffect.name || "(anonymous)";
+//     const current = activeEffects.get(name);
+//     if (current) activeEffects.set(name, current + 1);
+//     else activeEffects.set(name, 1);
+//     ++activeEffectsGeneration;
+// }
 
-export function getActiveEffects() {
-    return { activeEffects, generation: activeEffectsGeneration };
-}
+// function removeActiveEffect(sideEffect: SideEffect) {
+//     const name = sideEffect.name || "(anonymous)";
+//     const current = activeEffects.get(name);
+//     if (!current || current <= 1) activeEffects.delete(name);
+//     else activeEffects.set(name, current - 1);
+//     ++activeEffectsGeneration;
+// }
+
+// export function getActiveEffects() {
+//     return { activeEffects, generation: activeEffectsGeneration };
+// }
 
 type SideEffect = (dep: DependencyList, trigger?: PropReference) => (void | (() => void));
 /**
@@ -61,7 +63,8 @@ export function effect(sideEffect: SideEffect, options: EffectOptions = {}): Sub
         return emptyEffect;
     }
 
-    if (isDebugMode) recordActiveEffect(sideEffect);
+    // TODO debug
+    // if (isDebugMode) recordActiveEffect(sideEffect);
     let subscription = dep.subscribe(effectDependencyChanged);
 
     // tear down old subscriptions
@@ -73,7 +76,8 @@ export function effect(sideEffect: SideEffect, options: EffectOptions = {}): Sub
 
         dep.untrackAll();
         subscription.dispose();
-        if (!changing && isDebugMode) removeActiveEffect(sideEffect);
+        // TODO debug
+        // if (!changing && isDebugMode) removeActiveEffect(sideEffect);
     };
 
     function effectDependencyChanged(trigger?: PropReference) {

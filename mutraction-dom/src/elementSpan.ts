@@ -73,8 +73,12 @@ export class ElementSpan {
     /** empties the contents of the span, and invokes cleanup on each child node */
     cleanup() {
         cleanup(this.startMarker);
-        for (const node of this.emptyAsFragment().childNodes) {
-            cleanup(node);
+
+        while (this.startMarker.nextSibling !== this.endMarker) {
+            const next = this.startMarker.nextSibling;
+            if (!next) throw Error("End marker not found as subsequent document sibling as start marker");
+            cleanup(next);
+            next.remove();
         }
     }
 }
