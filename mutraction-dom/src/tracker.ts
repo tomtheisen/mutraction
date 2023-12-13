@@ -63,7 +63,7 @@ export class Tracker {
             ++this.#transaction.depth;
         }
         else {
-            this.#transaction = { type: "transaction", depth: 1, dependencies: new Set, timestamp: new Date };
+            this.#transaction = { type: "transaction", depth: 1, changes: new Set };
             if (name) this.#transaction.transactionName = name;
         }
         return this.#transaction;
@@ -80,15 +80,14 @@ export class Tracker {
             --this.#transaction.depth;
         }
         else {
-            // dedupe
-            const allDependencyLists = new Set<DependencyList>;
-            for (const propRef of this.#transaction.dependencies) {
+            const notified = new Set<DependencyList>;
+            for (const propRef of this.#transaction.changes) {
                 for (const dependencyList of propRef.subscribers) {
-                    allDependencyLists.add(dependencyList);
+                    if (!notified.has(dependencyList)) {
+                        dependencyList.notifySubscribers();
+                        notified.add(dependencyList);
+                    }
                 }
-            }
-            for (const depList of allDependencyLists) {
-                depList.notifySubscribers();
             }
 
             this.#transaction = undefined;
@@ -114,7 +113,7 @@ export class Tracker {
     /** record a mutation, if you have the secret key  */
     [RecordMutation](target: object, name: Key) {
         if (this.#transaction) {
-            this.#transaction.dependencies.add(createOrRetrievePropRef(target, name));
+            this.#transaction.changes.add(createOrRetrievePropRef(target, name));
         }
         else {
             // notify granular prop subscribers

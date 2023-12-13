@@ -113,9 +113,13 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
     }
 
     function getArrayTransactionShim(target: TModel, name: TKey, receiver: TModel) {
+        if (!Array.isArray(target)) {
+            throw Error('This object used to be an array.  Expected an array.');
+        }
+
         if (typeof name === "string" && mutatingArrayMethods.includes(name)) {
             const arrayFunction = target[name] as Function;
-            function proxyWrapped() {
+            return function proxyWrapped() {
                 tracker.startTransaction(String(name));
                 try {
                     return arrayFunction.apply(receiver, arguments);
@@ -124,7 +128,6 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
                     tracker.commit();
                 }
             }
-            return proxyWrapped;
         }
         else {
             return getOrdinary(target, name, receiver);

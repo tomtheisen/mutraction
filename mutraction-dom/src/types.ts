@@ -6,8 +6,7 @@ export type Transaction = {
     type: "transaction", 
     transactionName?: string, 
     depth: number,
-    dependencies: Set<PropReference>,
-    timestamp: Date,
+    changes: Set<PropReference>,
 };
 
 export type ReadonlyDeep<T extends object> = {
