@@ -1,9 +1,8 @@
 import type { Key, ReadonlyDeep, Subscription, Transaction } from "./types.js";
-import { RecordDependency, RecordMutation } from "./symbols.js";
-import { DependencyList } from "./dependency.js";
+import { RecordDependency, RecordMutation, RecordSplice } from "./symbols.js";
+import { DependencyList, PropRefChangeInfo } from "./dependency.js";
 import { PropReference, createOrRetrievePropRef } from "./propref.js";
-import { getAccessPath, isTracked, linkProxyToObject, makeProxyHandler } from "./proxy.js";
-import { isDebugMode } from "./debug.js";
+import { isArrayIndex, isTracked, linkProxyToObject, makeProxyHandler } from "./proxy.js";
 import { getExistingProxy, canBeProxied } from "./proxy.js";
 import { assertSafeMapKey } from "./proxy.map.js";
 
@@ -63,7 +62,7 @@ export class Tracker {
             ++this.#transaction.depth;
         }
         else {
-            this.#transaction = { type: "transaction", depth: 1, changes: new Set };
+            this.#transaction = { type: "transaction", depth: 1, ordinaryChanges: new Set, arrayChanges: new Map };
             if (name) this.#transaction.transactionName = name;
         }
         return this.#transaction;
@@ -81,7 +80,7 @@ export class Tracker {
         }
         else {
             const notified = new Set<DependencyList>;
-            for (const propRef of this.#transaction.changes) {
+            for (const propRef of this.#transaction.ordinaryChanges) {
                 for (const dependencyList of propRef.subscribers) {
                     if (!notified.has(dependencyList)) {
                         dependencyList.notifySubscribers();
@@ -110,15 +109,51 @@ export class Tracker {
         for (const s of this.#subscribers) s(prop);
     }
 
-    /** record a mutation, if you have the secret key  */
-    [RecordMutation](target: object, name: Key) {
+    /** 
+     * Record an array splice, if you have the secret key.
+     * A splice consists of a start index, a number of items to delete, and an array of new items to insert
+     */
+    [RecordSplice](target: Array<unknown>, start: number, deleteCount: number, insert: any[]) {
         if (this.#transaction) {
-            this.#transaction.changes.add(createOrRetrievePropRef(target, name));
+            let layers = this.#transaction.arrayChanges.get(target);
+            if (!layers) this.#transaction.arrayChanges.set(target, layers = [{ elements: new Map }]);
+            let lastLayer = layers.at(-1)!;
+
+            if (deleteCount != insert.length) {
+                lastLayer.finalSplice = { newLength: target.length, suffixLength: target.length - start - insert.length };
+            }
+                
+            layers.push(lastLayer = { elements: new Map });
+            insert.forEach((item, i) => lastLayer.elements.set(start + i, item));
         }
         else {
             // notify granular prop subscribers
-            createOrRetrievePropRef(target, name).notifySubscribers();
-            this.#notifySubscribers();
+            const lengthPropRef = createOrRetrievePropRef(target, "length");
+            const suffixLength = target.length - insert.length - start;
+            lengthPropRef.notifySubscribers({ suffixLength });
+            this.#notifySubscribers(lengthPropRef);
+        }
+    }
+
+    /** record a mutation, if you have the secret key  */
+    [RecordMutation](target: object, name: Key) {
+        const propRef = createOrRetrievePropRef(target, name);
+        if (!this.#transaction) {
+            // notify granular prop subscribers
+            propRef.notifySubscribers();
+            this.#notifySubscribers(propRef);
+        }
+        else if (Array.isArray(target) && isArrayIndex(name)) {
+            // array change to index, record in layer
+            let layers = this.#transaction.arrayChanges.get(target);
+            if (!layers) this.#transaction.arrayChanges.set(target, layers = [{ elements: new Map }]);
+            let lastLayer = layers.at(-1)!;
+            const idx = parseInt(name as string);
+            lastLayer.elements.set(idx, target[idx])
+        }
+        else {
+            // ordinary propref transaction
+            this.#transaction.ordinaryChanges.add(propRef);
         }
     }
 

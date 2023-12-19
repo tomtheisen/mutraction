@@ -1,7 +1,7 @@
 import { Key, Subscription } from "./types.js";
 import { ProxyOf } from "./symbols.js";
 import { isTracked } from "./proxy.js";
-import { DependencyList } from "./dependency.js";
+import { DependencyList, PropRefChangeInfo } from "./dependency.js";
 import { isDebugMode, pendUpdate } from "./debug.js";
 
 // TODO debug
@@ -45,7 +45,7 @@ export class PropReference<T = any> {
         };
     }
 
-    notifySubscribers() {
+    notifySubscribers(changeInfo?: PropRefChangeInfo) {
         if (this.#notifying) 
             console.warn(`Re-entrant property subscription for '${ String(this.prop) }'`);
 
@@ -54,7 +54,7 @@ export class PropReference<T = any> {
         const subscriberSnapshot = Array.from(this.#subscribers);
 
         this.#notifying = true;
-        for (const dep of subscriberSnapshot) dep.notifySubscribers(this);
+        for (const dep of subscriberSnapshot) dep.notifySubscribers(this, changeInfo);
         this.#notifying = false;
     }
 

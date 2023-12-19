@@ -18,9 +18,10 @@ export class ElementSpan {
 
     /** extracts the entire span as a fragment */
     removeAsFragment(): DocumentFragment {
-        if (this.startMarker.parentNode instanceof DocumentFragment) {
-            // TODO: this is only true if this ElementSpan is the entire contents
-            return this.startMarker.parentNode;
+        const parent = this.startMarker.parentNode;
+        if (parent instanceof DocumentFragment && parent.firstChild === this.startMarker && parent.lastChild === this.endMarker) {
+            // this span is already isolated, this is a no-op
+            return parent;
         }
         const nodes: Node[] = [];
         for (let walk: ChildNode | null | undefined = this.startMarker; ; walk = walk?.nextSibling) {

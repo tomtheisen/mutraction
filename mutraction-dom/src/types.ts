@@ -2,11 +2,27 @@ import { PropReference } from "./propref.js";
 
 export type Key = string | symbol;
 
+/*
+during transaction
+all array mutations must be completely play-back-able (not just propref, but new value)
+length changes have `suffixlen` property, describing how many elements "stick" to the end
+any length change with a non-zero `suffixlen` starts a new "layer" of proprefs
+*/
+
+type ArrayChangeLayer = {
+    elements: Map<number, any>;
+    finalSplice?: {
+        newLength: number,
+        suffixLength: number,
+    }
+}
+
 export type Transaction = {
     type: "transaction", 
     transactionName?: string, 
     depth: number,
-    changes: Set<PropReference>,
+    ordinaryChanges: Set<PropReference>,
+    arrayChanges: Map<Array<unknown>, ArrayChangeLayer[]>
 };
 
 export type ReadonlyDeep<T extends object> = {

@@ -1,5 +1,5 @@
 import { Tracker } from "./tracker.js";
-import { TrackerOf, RecordDependency, RecordMutation, ProxyOf, GetOriginal, AccessPath } from "./symbols.js";
+import { TrackerOf, RecordDependency, RecordMutation, ProxyOf, GetOriginal, AccessPath, RecordSplice } from "./symbols.js";
 import type { Key } from "./types.js";
 import { createOrRetrievePropRef } from "./propref.js";
 import { isDebugMode } from "./debug.js";
@@ -9,7 +9,7 @@ import { getMapProxyHandler } from "./proxy.map.js";
 const mutatingArrayMethods 
     = ["copyWithin","fill","pop","push","reverse","shift","sort","splice","unshift"];
 
-function isArrayIndex(name: string | symbol): name is string {
+export function isArrayIndex(name: string | symbol): name is string {
     // ES 6.1.7 https://tc39.es/ecma262/#array-index
     if (typeof name !== "string") return false;
     if (!/^\d{1,10}$/.test(name)) return false;
@@ -80,7 +80,7 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
 
     type TKey = (keyof TModel) & Key;
     
-    function getOrdinary(target: TModel, name: TKey, receiver: TModel) {
+    function getOrdinary(target: TModel, name: TKey, receiver: TModel): unknown {
         if (name === TrackerOf) return tracker;
         if (name === GetOriginal) return target;
         if (name === AccessPath) return target[name];
@@ -98,8 +98,8 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
         }
         else if (typeof result === 'function' && tracker.options.autoTransactionalize && name !== "constructor") {
             const original = result as Function;
-            function proxyWrapped() {
-                const autoTransaction = tracker.startTransaction(original.name ?? "auto");
+            return function proxyWrapped() {
+                tracker.startTransaction(original.name ?? "auto");
                 try {
                     return original.apply(receiver, arguments);
                 }
@@ -107,7 +107,6 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
                     tracker.commit();
                 }
             }
-            return proxyWrapped;
         }
         return result;
     }
@@ -117,7 +116,38 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
             throw Error('This object used to be an array.  Expected an array.');
         }
 
-        if (typeof name === "string" && mutatingArrayMethods.includes(name)) {
+        if (name === "shift") {
+            return function proxyShift() {
+                try {
+                    return target.shift();
+                }
+                finally {
+                    tracker[RecordSplice](target, 0, 1, []);
+                }
+            }
+        }
+        else if (name === "unshift") {
+            return function proxyUnshift() {
+                try {
+                    return target.unshift(...arguments);
+                }
+                finally {
+                    tracker[RecordSplice](target, 0, 0, [...arguments]);
+                }
+            }
+        }
+        else if (name === "splice") {
+            return function proxySplice(start: number, deleteCount?: number, ...items: unknown[]) {
+                if (deleteCount === undefined) deleteCount = target.length - start;
+                try {
+                    return target.splice(start, deleteCount, ...items);
+                }
+                finally {
+                    tracker[RecordSplice](target, start, deleteCount, items);
+                }
+            }
+        }
+        else if (typeof name === "string" && mutatingArrayMethods.includes(name)) {
             const arrayFunction = target[name] as Function;
             return function proxyWrapped() {
                 tracker.startTransaction(String(name));

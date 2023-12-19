@@ -1,8 +1,12 @@
-import { PropReference, createOrRetrievePropRef } from "./propref.js";
+import { PropReference } from "./propref.js";
 import { Tracker } from "./tracker.js";
 import { Subscription } from "./types.js";
 
-type Subscriber = (trigger?: PropReference) => void;
+/**  */
+export type PropRefChangeInfo = {
+    suffixLength?: number; // size of "sticky" suffix in array length change
+}
+type Subscriber = (trigger?: PropReference, info?: PropRefChangeInfo) => void;
 
 /**
  * Accumulates a list of properties that are read from.  
@@ -38,11 +42,11 @@ export class DependencyList {
         return { dispose: () => this.#subscribers.delete(callback) };
     }
 
-    notifySubscribers(trigger?: PropReference) {
+    notifySubscribers(trigger?: PropReference, info?: PropRefChangeInfo) {
         // we only want to notify subscribers that existed at the 
         // beginning of the notification cycle
         const subscriberSnapshot = Array.from(this.#subscribers);
-        for (const callback of subscriberSnapshot) callback(trigger);
+        for (const callback of subscriberSnapshot) callback(trigger, info);
     }
 
     endDependencyTrack() {

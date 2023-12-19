@@ -31,7 +31,7 @@ export default function(_: Babel): PluginObj {
             );
         }
         else if (type === "JSXSpreadChild") {
-            return t.stringLiteral("NIE spread child");
+            throw "JSX child spread like <div>{...arr}</div> not implemented yet"; // TODO
         }
         else {
             // some of these children have already been transformed into unexpected types
@@ -65,7 +65,7 @@ export default function(_: Babel): PluginObj {
             return [true, attrVal.expression];
         }
         else {
-            return [false, attrVal]; // process later / TODO?
+            return [false, attrVal];
         }
     }
     
