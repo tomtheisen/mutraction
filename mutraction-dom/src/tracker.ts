@@ -89,6 +89,8 @@ export class Tracker {
                 }
             }
 
+            if (this.#transaction.arrayChanges.size) throw "TODO";
+
             this.#transaction = undefined;
             this.#notifySubscribers();
         }
@@ -132,6 +134,13 @@ export class Tracker {
             const suffixLength = target.length - insert.length - start;
             lengthPropRef.notifySubscribers({ suffixLength });
             this.#notifySubscribers(lengthPropRef);
+
+            for (let i = 0; i < insert.length; i++) {
+                const key = (start + i).toString();
+                const itemPropRef = createOrRetrievePropRef(target, key);
+                itemPropRef.notifySubscribers();
+                this.#notifySubscribers(itemPropRef);
+            }
         }
     }
 

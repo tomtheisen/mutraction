@@ -1,18 +1,18 @@
-import { ForEach, ForEachPersist, track } from "mutraction-dom";
+import { ForEach, /*ForEachPersist,*/ track } from "mutraction-dom";
 import { codeSample } from "../codesample.js";
 
 function ex1() {
     const model = track([{ label: "X" }, { label: "Y" }, { label: "Z" }]);
 
     const app = (
-        <>
-            <ul>
-                { ForEachPersist(model, item => <li>{ item.label } <input /></li>) }
-            </ul>
+        // <>
+        //     <ul>
+        //         { ForEachPersist(model, item => <li>{ item.label } <input /></li>) }
+        //     </ul>
             <button onclick={() => model.reverse() }>
                 Reverse
             </button>
-        </>
+        // </>
     );
 
     return app;

@@ -1,11 +1,261 @@
 // out/symbols.js
 var RecordMutation = Symbol("RecordMutation");
+var RecordSplice = Symbol("RecordSplice");
 var TrackerOf = Symbol("TrackerOf");
 var ProxyOf = Symbol("ProxyOf");
 var RecordDependency = Symbol("RecordDependency");
 var GetOriginal = Symbol("GetOriginal");
 var AccessPath = Symbol("AccessPath");
 var ItemsSymbol = Symbol("items");
+
+// out/dependency.js
+var DependencyList = class {
+  #trackedProperties = /* @__PURE__ */ new Map();
+  #tracker;
+  #subscribers = /* @__PURE__ */ new Set();
+  active = true;
+  constructor(tracker) {
+    this.#tracker = tracker;
+  }
+  get trackedProperties() {
+    return Array.from(this.#trackedProperties.keys());
+  }
+  addDependency(propRef) {
+    if (this.active) {
+      if (this.#trackedProperties.has(propRef))
+        return;
+      const propSubscription = propRef.subscribe(this);
+      this.#trackedProperties.set(propRef, propSubscription);
+    }
+  }
+  subscribe(callback) {
+    this.#subscribers.add(callback);
+    return { dispose: () => this.#subscribers.delete(callback) };
+  }
+  notifySubscribers(trigger, info) {
+    const subscriberSnapshot = Array.from(this.#subscribers);
+    for (const callback of subscriberSnapshot)
+      callback(trigger, info);
+  }
+  endDependencyTrack() {
+    this.#tracker.endDependencyTrack(this);
+  }
+  untrackAll() {
+    for (const sub of this.#trackedProperties.values())
+      sub.dispose();
+    this.#trackedProperties.clear();
+  }
+};
+
+// out/debug.js
+var debugModeKey = "mu:debugMode";
+var debugUpdateDebounce = 250;
+var isDebugMode = "sessionStorage" in globalThis && !!sessionStorage.getItem(debugModeKey);
+var updateCallbacks = [];
+var handle = 0;
+function pendUpdate() {
+  if (handle === 0) {
+    handle = setTimeout(function updateDiagnostics() {
+      for (const cb of updateCallbacks)
+        cb();
+      handle = 0;
+    }, debugUpdateDebounce);
+  }
+}
+if ("sessionStorage" in globalThis) {
+  let enableDebugMode = function() {
+    console.warn("debug mode is incomplete.");
+    sessionStorage.setItem(debugModeKey, "true");
+    location.reload();
+  }, disableDebugMode = function() {
+    sessionStorage.removeItem(debugModeKey);
+    location.reload();
+  };
+  enableDebugMode2 = enableDebugMode, disableDebugMode2 = disableDebugMode;
+  Object.assign(window, { [Symbol.for("mutraction.debug")]: enableDebugMode });
+  if (isDebugMode) {
+    let valueString = function(val) {
+      if (Array.isArray(val))
+        return `Array(${val.length})`;
+      if (typeof val === "object")
+        return "{ ... }";
+      if (typeof val === "function")
+        return val.name ? `${val.name}() { ... }` : "() => { ... }";
+      return JSON.stringify(val);
+    }, el = function(tag, styles, ...nodes) {
+      const node = document.createElement(tag);
+      node.style.all = "revert";
+      Object.assign(node.style, styles);
+      node.append(...nodes);
+      return node;
+    }, getNodeAndTextDependencies = function(node) {
+      const textDeps = Array.from(node.childNodes).filter((n) => n instanceof Text).flatMap((n) => getNodeDependencies(n)).filter(Boolean).map((n) => n);
+      return (getNodeDependencies(node) ?? []).concat(...textDeps);
+    }, getPropRefListItem = function(propRef) {
+      const objPath = getAccessPath(propRef.object);
+      const fullPath = objPath ? objPath + "." + String(propRef.prop) : String(propRef.prop);
+      const value = propRef.current;
+      const serialized = valueString(value);
+      const editable = !value || typeof value !== "object" && typeof value !== "function";
+      const valueSpan = el("span", editable ? { cursor: "pointer", textDecoration: "underline" } : {}, serialized);
+      const subCount = propRef.subscribers.size;
+      const subCountMessage = `(${subCount} ${subCount === 1 ? "subscriber" : "subscribers"})`;
+      const li = el("li", {}, el("code", {}, fullPath), ": ", valueSpan, " ", subCountMessage);
+      if (editable)
+        valueSpan.addEventListener("click", () => {
+          const result = prompt(`Update ${String(propRef.prop)}`, serialized);
+          try {
+            if (result)
+              propRef.current = JSON.parse(result);
+          } catch {
+          }
+        });
+      return li;
+    }, startInspectPick = function() {
+      inspectButton.disabled = true;
+      inspectButton.textContent = "\u2026";
+      inspectedName.textContent = "(choose)";
+      let inspectedElement;
+      let originalBackground = "";
+      function moveHandler(ev) {
+        if (ev.target instanceof HTMLElement) {
+          let target = ev.target;
+          while (target && (getNodeAndTextDependencies(target)?.length ?? 0) === 0) {
+            target = target.parentElement;
+          }
+          if (target != inspectedElement) {
+            if (inspectedElement)
+              inspectedElement.style.background = originalBackground;
+            originalBackground = target?.style.background ?? "";
+            console.log({ originalBackground });
+            if (target)
+              target.style.background = "#f0f4";
+            inspectedElement = target;
+          }
+        }
+        ev.stopPropagation();
+      }
+      document.addEventListener("mousemove", moveHandler, { capture: true });
+      document.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        ev.preventDefault();
+        inspectButton.disabled = false;
+        inspectButton.textContent = "\u{1F50D}";
+        document.removeEventListener("mousemove", moveHandler, { capture: true });
+        if (inspectedElement) {
+          inspectedElement.style.background = originalBackground;
+          inspectedName.textContent = inspectedElement.tagName.toLowerCase();
+          const deps = getNodeAndTextDependencies(inspectedElement);
+          const trackedProps = new Set(deps.flatMap((d) => d.trackedProperties));
+          const trackedPropItems = [];
+          for (const propRef of trackedProps) {
+            trackedPropItems.push(getPropRefListItem(propRef));
+          }
+          inspectedPropList.replaceChildren(...trackedPropItems);
+        } else {
+          inspectedName.textContent = "(none)";
+          inspectedPropList.replaceChildren();
+        }
+      }, { capture: true, once: true });
+    }, clampIntoView = function() {
+      const { x, y, width, height } = container.getBoundingClientRect();
+      const top = Math.max(0, Math.min(window.innerHeight - height, y));
+      const left = Math.max(0, Math.min(window.innerWidth - width, x));
+      container.style.top = top + "px";
+      container.style.left = left + "px";
+    };
+    valueString2 = valueString, el2 = el, getNodeAndTextDependencies2 = getNodeAndTextDependencies, getPropRefListItem2 = getPropRefListItem, startInspectPick2 = startInspectPick, clampIntoView2 = clampIntoView;
+    queueMicrotask(() => defaultTracker.subscribe(pendUpdate));
+    const container = el("div", {
+      position: "fixed",
+      top: "50px",
+      left: "50px",
+      width: "30em",
+      height: "20em",
+      resize: "both",
+      minHeight: "1.6em",
+      minWidth: "15em",
+      zIndex: "2147483647",
+      background: "#eee",
+      color: "#123",
+      boxShadow: "#000 0em 0.5em 1em",
+      border: "solid #345 0.4em",
+      fontSize: "16px",
+      display: "flex",
+      flexDirection: "column",
+      overflow: "auto"
+    });
+    const toggle = el("button", { marginRight: "1em" }, "_");
+    let minimized = false;
+    toggle.addEventListener("click", (ev) => {
+      if (minimized = !minimized) {
+        container.style.maxHeight = "1.6em";
+        container.style.maxWidth = "15em";
+      } else {
+        container.style.maxHeight = "";
+        container.style.maxWidth = "";
+      }
+      clampIntoView();
+    });
+    const closeButton = el("button", { float: "right" }, "\xD7");
+    closeButton.addEventListener("click", disableDebugMode);
+    const head = el("div", {
+      fontWeight: "bold",
+      background: "#123",
+      color: "#eee",
+      padding: "0.1em 1em",
+      cursor: "grab"
+    }, closeButton, toggle, "\u03BC diagnostics");
+    const effectDetails = el("div", { whiteSpace: "pre" });
+    const effectCount = el("span", {}, "0");
+    const effectSummary = el("details", { cursor: "pointer", marginBottom: "1em" }, el("summary", {}, el("strong", {}, "Active effects: "), effectCount), effectDetails);
+    let activeEffectsGeneration = -1;
+    const propRefCountNumber = el("span", {}, "0");
+    const propRefRefreshButton = el("button", {}, "\u21BB");
+    const propRefList = el("ol", {});
+    const propRefSummary = el("details", {}, el("summary", { cursor: "pointer" }, el("strong", {}, "Live PropRefs: "), propRefCountNumber, " ", propRefRefreshButton), propRefList);
+    let seenGeneration = -1;
+    const inspectButton = el("button", {}, "\u{1F50D}");
+    inspectButton.addEventListener("click", startInspectPick);
+    const inspectedName = el("span", {}, "(none)");
+    const inspectedPropList = el("ol", {});
+    const content = el("div", { padding: "1em", overflow: "auto" }, inspectButton, " ", el("strong", {}, "Inspected node:"), " ", inspectedName, inspectedPropList, effectSummary, propRefSummary);
+    container.append(head, content);
+    document.body.append(container);
+    let xOffset = 0, yOffset = 0;
+    head.addEventListener("mousedown", (ev) => {
+      const rect = container.getBoundingClientRect();
+      xOffset = ev.x - rect.x;
+      yOffset = ev.y - rect.y;
+      window.addEventListener("mousemove", moveHandler);
+      document.body.addEventListener("mouseup", upHandler, { once: true });
+      ev.preventDefault();
+      function upHandler(ev2) {
+        window.removeEventListener("mousemove", moveHandler);
+      }
+      function moveHandler(ev2) {
+        const buttonPressed = (ev2.buttons & 1) > 0;
+        if (buttonPressed) {
+          container.style.left = ev2.x - xOffset + "px";
+          container.style.top = ev2.y - yOffset + "px";
+          clampIntoView();
+        } else {
+          window.removeEventListener("mousemove", moveHandler);
+          window.removeEventListener("mouseup", upHandler);
+        }
+      }
+    });
+    window.addEventListener("resize", clampIntoView);
+  }
+}
+var valueString2;
+var el2;
+var getNodeAndTextDependencies2;
+var getPropRefListItem2;
+var startInspectPick2;
+var clampIntoView2;
+var enableDebugMode2;
+var disableDebugMode2;
 
 // out/proxy.set.js
 function getSetProxyHandler(tracker) {
@@ -211,23 +461,51 @@ function makeProxyHandler(model, tracker) {
     if (maybeProxy) {
       result = target[name] = maybeProxy;
     } else if (typeof result === "function" && tracker.options.autoTransactionalize && name !== "constructor") {
-      let proxyWrapped2 = function() {
-        const autoTransaction = tracker.startTransaction(original.name ?? "auto");
+      const original = result;
+      return function proxyWrapped() {
+        tracker.startTransaction(original.name ?? "auto");
         try {
           return original.apply(receiver, arguments);
         } finally {
           tracker.commit();
         }
       };
-      var proxyWrapped = proxyWrapped2;
-      const original = result;
-      return proxyWrapped2;
     }
     return result;
   }
   function getArrayTransactionShim(target, name, receiver) {
-    if (typeof name === "string" && mutatingArrayMethods.includes(name)) {
-      let proxyWrapped2 = function() {
+    if (!Array.isArray(target)) {
+      throw Error("This object used to be an array.  Expected an array.");
+    }
+    if (name === "shift") {
+      return function proxyShift() {
+        try {
+          return target.shift();
+        } finally {
+          tracker[RecordSplice](target, 0, 1, []);
+        }
+      };
+    } else if (name === "unshift") {
+      return function proxyUnshift() {
+        try {
+          return target.unshift(...arguments);
+        } finally {
+          tracker[RecordSplice](target, 0, 0, [...arguments]);
+        }
+      };
+    } else if (name === "splice") {
+      return function proxySplice(start, deleteCount, ...items) {
+        if (deleteCount === void 0)
+          deleteCount = target.length - start;
+        try {
+          return target.splice(start, deleteCount, ...items);
+        } finally {
+          tracker[RecordSplice](target, start, deleteCount, items);
+        }
+      };
+    } else if (typeof name === "string" && mutatingArrayMethods.includes(name)) {
+      const arrayFunction = target[name];
+      return function proxyWrapped() {
         tracker.startTransaction(String(name));
         try {
           return arrayFunction.apply(receiver, arguments);
@@ -235,9 +513,6 @@ function makeProxyHandler(model, tracker) {
           tracker.commit();
         }
       };
-      var proxyWrapped = proxyWrapped2;
-      const arrayFunction = target[name];
-      return proxyWrapped2;
     } else {
       return getOrdinary(target, name, receiver);
     }
@@ -292,44 +567,7 @@ function isTracked(obj) {
   return typeof obj === "object" && !!obj[TrackerOf];
 }
 
-// out/liveCollection.js
-var LiveCollection = class {
-  /* upper bound for live object count */
-  get sizeBound() {
-    return this.#sizeBound;
-  }
-  #sizeBound = 0;
-  get generation() {
-    return this.#generation;
-  }
-  #generation = 0;
-  items = /* @__PURE__ */ new Map();
-  registry = new FinalizationRegistry((idx) => {
-    --this.#sizeBound;
-    this.items.delete(idx);
-    ++this.#generation;
-  });
-  add(t) {
-    this.registry.register(t, this.#sizeBound);
-    this.items.set(this.#sizeBound++, new WeakRef(t));
-    ++this.#generation;
-  }
-  *[Symbol.iterator]() {
-    for (const ref of this.items.values()) {
-      const t = ref.deref();
-      if (t)
-        yield t;
-    }
-  }
-};
-
 // out/propref.js
-var allPropRefs = new LiveCollection();
-function getAllPropRefs() {
-  if (!allPropRefs)
-    throw Error("Only allowed in debug mode");
-  return allPropRefs;
-}
 var PropReference = class {
   object;
   prop;
@@ -344,7 +582,6 @@ var PropReference = class {
     }
     this.object = object;
     this.prop = prop;
-    allPropRefs?.add(this);
   }
   subscribe(dependencyList) {
     this.#subscribers.add(dependencyList);
@@ -352,13 +589,13 @@ var PropReference = class {
       dispose: () => this.#subscribers.delete(dependencyList)
     };
   }
-  notifySubscribers() {
+  notifySubscribers(changeInfo) {
     if (this.#notifying)
       console.warn(`Re-entrant property subscription for '${String(this.prop)}'`);
     const subscriberSnapshot = Array.from(this.#subscribers);
     this.#notifying = true;
     for (const dep of subscriberSnapshot)
-      dep.notifySubscribers(this);
+      dep.notifySubscribers(this, changeInfo);
     this.#notifying = false;
   }
   get current() {
@@ -381,45 +618,6 @@ function createOrRetrievePropRef(object, prop) {
   }
   return result;
 }
-
-// out/dependency.js
-var DependencyList = class {
-  #trackedProperties = /* @__PURE__ */ new Map();
-  #tracker;
-  #subscribers = /* @__PURE__ */ new Set();
-  active = true;
-  constructor(tracker) {
-    this.#tracker = tracker;
-  }
-  get trackedProperties() {
-    return Array.from(this.#trackedProperties.keys());
-  }
-  addDependency(propRef) {
-    if (this.active) {
-      if (this.#trackedProperties.has(propRef))
-        return;
-      const propSubscription = propRef.subscribe(this);
-      this.#trackedProperties.set(propRef, propSubscription);
-    }
-  }
-  subscribe(callback) {
-    this.#subscribers.add(callback);
-    return { dispose: () => this.#subscribers.delete(callback) };
-  }
-  notifySubscribers(trigger) {
-    const subscriberSnapshot = Array.from(this.#subscribers);
-    for (const callback of subscriberSnapshot)
-      callback(trigger);
-  }
-  endDependencyTrack() {
-    this.#tracker.endDependencyTrack(this);
-  }
-  untrackAll() {
-    for (const sub of this.#trackedProperties.values())
-      sub.dispose();
-    this.#trackedProperties.clear();
-  }
-};
 
 // out/tracker.js
 var defaultTrackerOptions = {
@@ -466,7 +664,7 @@ var Tracker = class {
     if (this.#transaction) {
       ++this.#transaction.depth;
     } else {
-      this.#transaction = { type: "transaction", depth: 1, dependencies: /* @__PURE__ */ new Set(), timestamp: /* @__PURE__ */ new Date() };
+      this.#transaction = { type: "transaction", depth: 1, ordinaryChanges: /* @__PURE__ */ new Set(), arrayChanges: /* @__PURE__ */ new Map() };
       if (name)
         this.#transaction.transactionName = name;
     }
@@ -481,15 +679,17 @@ var Tracker = class {
     if (this.#transaction.depth > 1) {
       --this.#transaction.depth;
     } else {
-      const allDependencyLists = /* @__PURE__ */ new Set();
-      for (const propRef of this.#transaction.dependencies) {
+      const notified = /* @__PURE__ */ new Set();
+      for (const propRef of this.#transaction.ordinaryChanges) {
         for (const dependencyList of propRef.subscribers) {
-          allDependencyLists.add(dependencyList);
+          if (!notified.has(dependencyList)) {
+            dependencyList.notifySubscribers();
+            notified.add(dependencyList);
+          }
         }
       }
-      for (const depList of allDependencyLists) {
-        depList.notifySubscribers();
-      }
+      if (this.#transaction.arrayChanges.size)
+        throw "TODO";
       this.#transaction = void 0;
       this.#notifySubscribers();
     }
@@ -508,13 +708,49 @@ var Tracker = class {
     for (const s of this.#subscribers)
       s(prop);
   }
+  /**
+   * Record an array splice, if you have the secret key.
+   * A splice consists of a start index, a number of items to delete, and an array of new items to insert
+   */
+  [RecordSplice](target, start, deleteCount, insert) {
+    if (this.#transaction) {
+      let layers = this.#transaction.arrayChanges.get(target);
+      if (!layers)
+        this.#transaction.arrayChanges.set(target, layers = [{ elements: /* @__PURE__ */ new Map() }]);
+      let lastLayer = layers.at(-1);
+      if (deleteCount != insert.length) {
+        lastLayer.finalSplice = { newLength: target.length, suffixLength: target.length - start - insert.length };
+      }
+      layers.push(lastLayer = { elements: /* @__PURE__ */ new Map() });
+      insert.forEach((item, i) => lastLayer.elements.set(start + i, item));
+    } else {
+      const lengthPropRef = createOrRetrievePropRef(target, "length");
+      const suffixLength = target.length - insert.length - start;
+      lengthPropRef.notifySubscribers({ suffixLength });
+      this.#notifySubscribers(lengthPropRef);
+      for (let i = 0; i < insert.length; i++) {
+        const key = (start + i).toString();
+        const itemPropRef = createOrRetrievePropRef(target, key);
+        itemPropRef.notifySubscribers();
+        this.#notifySubscribers(itemPropRef);
+      }
+    }
+  }
   /** record a mutation, if you have the secret key  */
   [RecordMutation](target, name) {
-    if (this.#transaction) {
-      this.#transaction.dependencies.add(createOrRetrievePropRef(target, name));
+    const propRef = createOrRetrievePropRef(target, name);
+    if (!this.#transaction) {
+      propRef.notifySubscribers();
+      this.#notifySubscribers(propRef);
+    } else if (Array.isArray(target) && isArrayIndex(name)) {
+      let layers = this.#transaction.arrayChanges.get(target);
+      if (!layers)
+        this.#transaction.arrayChanges.set(target, layers = [{ elements: /* @__PURE__ */ new Map() }]);
+      let lastLayer = layers.at(-1);
+      const idx = parseInt(name);
+      lastLayer.elements.set(idx, target[idx]);
     } else {
-      createOrRetrievePropRef(target, name).notifySubscribers();
-      this.#notifySubscribers();
+      this.#transaction.ordinaryChanges.add(propRef);
     }
   }
   /** Run the callback without calling any subscribers */
@@ -608,270 +844,9 @@ function prepareForTracking(value, tracker) {
   }
 }
 
-// out/debug.js
-var debugModeKey = "mu:debugMode";
-var debugUpdateDebounce = 250;
-var isDebugMode = "sessionStorage" in globalThis && !!sessionStorage.getItem(debugModeKey);
-var updateCallbacks = [];
-var handle = 0;
-function pendUpdate() {
-  if (handle === 0) {
-    handle = setTimeout(function updateDiagnostics() {
-      for (const cb of updateCallbacks)
-        cb();
-      handle = 0;
-    }, debugUpdateDebounce);
-  }
-}
-if ("sessionStorage" in globalThis) {
-  let enableDebugMode = function() {
-    sessionStorage.setItem(debugModeKey, "true");
-    location.reload();
-  }, disableDebugMode = function() {
-    sessionStorage.removeItem(debugModeKey);
-    location.reload();
-  };
-  enableDebugMode2 = enableDebugMode, disableDebugMode2 = disableDebugMode;
-  Object.assign(window, { [Symbol.for("mutraction.debug")]: enableDebugMode });
-  if (["localhost", "127.0.0.1", "[::1]"].includes(location.hostname) && !isDebugMode) {
-    console.info(`[\xB5] Try the mutraction diagnostic tool.  This message is only shown from localhost, but the tool is always available.`);
-    console.info("\xBB window[Symbol.for('mutraction.debug')]()");
-  }
-  if (isDebugMode) {
-    let valueString = function(val) {
-      if (Array.isArray(val))
-        return `Array(${val.length})`;
-      if (typeof val === "object")
-        return "{ ... }";
-      if (typeof val === "function")
-        return val.name ? `${val.name}() { ... }` : "() => { ... }";
-      return JSON.stringify(val);
-    }, el = function(tag, styles, ...nodes) {
-      const node = document.createElement(tag);
-      node.style.all = "revert";
-      Object.assign(node.style, styles);
-      node.append(...nodes);
-      return node;
-    }, getNodeAndTextDependencies = function(node) {
-      const textDeps = Array.from(node.childNodes).filter((n) => n instanceof Text).flatMap((n) => getNodeDependencies(n)).filter(Boolean).map((n) => n);
-      return (getNodeDependencies(node) ?? []).concat(...textDeps);
-    }, getPropRefListItem = function(propRef) {
-      const objPath = getAccessPath(propRef.object);
-      const fullPath = objPath ? objPath + "." + String(propRef.prop) : String(propRef.prop);
-      const value = propRef.current;
-      const serialized = valueString(value);
-      const editable = !value || typeof value !== "object" && typeof value !== "function";
-      const valueSpan = el("span", editable ? { cursor: "pointer", textDecoration: "underline" } : {}, serialized);
-      const subCount = propRef.subscribers.size;
-      const subCountMessage = `(${subCount} ${subCount === 1 ? "subscriber" : "subscribers"})`;
-      const li = el("li", {}, el("code", {}, fullPath), ": ", valueSpan, " ", subCountMessage);
-      if (editable)
-        valueSpan.addEventListener("click", () => {
-          const result = prompt(`Update ${String(propRef.prop)}`, serialized);
-          try {
-            if (result)
-              propRef.current = JSON.parse(result);
-            refreshPropRefList();
-          } catch {
-          }
-        });
-      return li;
-    }, refreshPropRefList = function() {
-      const propRefListItems = [];
-      for (const propRef of allPropRefs2) {
-        propRefListItems.push(getPropRefListItem(propRef));
-      }
-      propRefList.replaceChildren(...propRefListItems);
-    }, startInspectPick = function() {
-      inspectButton.disabled = true;
-      inspectButton.textContent = "\u2026";
-      inspectedName.textContent = "(choose)";
-      let inspectedElement;
-      let originalBackground = "";
-      function moveHandler(ev) {
-        if (ev.target instanceof HTMLElement) {
-          let target = ev.target;
-          while (target && (getNodeAndTextDependencies(target)?.length ?? 0) === 0) {
-            target = target.parentElement;
-          }
-          if (target != inspectedElement) {
-            if (inspectedElement)
-              inspectedElement.style.background = originalBackground;
-            originalBackground = target?.style.background ?? "";
-            console.log({ originalBackground });
-            if (target)
-              target.style.background = "#f0f4";
-            inspectedElement = target;
-          }
-        }
-        ev.stopPropagation();
-      }
-      document.addEventListener("mousemove", moveHandler, { capture: true });
-      document.addEventListener("click", (ev) => {
-        ev.stopPropagation();
-        ev.preventDefault();
-        inspectButton.disabled = false;
-        inspectButton.textContent = "\u{1F50D}";
-        document.removeEventListener("mousemove", moveHandler, { capture: true });
-        if (inspectedElement) {
-          inspectedElement.style.background = originalBackground;
-          inspectedName.textContent = inspectedElement.tagName.toLowerCase();
-          const deps = getNodeAndTextDependencies(inspectedElement);
-          const trackedProps = new Set(deps.flatMap((d) => d.trackedProperties));
-          const trackedPropItems = [];
-          for (const propRef of trackedProps) {
-            trackedPropItems.push(getPropRefListItem(propRef));
-          }
-          inspectedPropList.replaceChildren(...trackedPropItems);
-        } else {
-          inspectedName.textContent = "(none)";
-          inspectedPropList.replaceChildren();
-        }
-      }, { capture: true, once: true });
-    }, clampIntoView = function() {
-      const { x, y, width, height } = container.getBoundingClientRect();
-      const top = Math.max(0, Math.min(window.innerHeight - height, y));
-      const left = Math.max(0, Math.min(window.innerWidth - width, x));
-      container.style.top = top + "px";
-      container.style.left = left + "px";
-    };
-    valueString2 = valueString, el2 = el, getNodeAndTextDependencies2 = getNodeAndTextDependencies, getPropRefListItem2 = getPropRefListItem, refreshPropRefList2 = refreshPropRefList, startInspectPick2 = startInspectPick, clampIntoView2 = clampIntoView;
-    queueMicrotask(() => defaultTracker.subscribe(pendUpdate));
-    const container = el("div", {
-      position: "fixed",
-      top: "50px",
-      left: "50px",
-      width: "30em",
-      height: "20em",
-      resize: "both",
-      minHeight: "1.6em",
-      minWidth: "15em",
-      zIndex: "2147483647",
-      background: "#eee",
-      color: "#123",
-      boxShadow: "#000 0em 0.5em 1em",
-      border: "solid #345 0.4em",
-      fontSize: "16px",
-      display: "flex",
-      flexDirection: "column",
-      overflow: "auto"
-    });
-    const toggle = el("button", { marginRight: "1em" }, "_");
-    let minimized = false;
-    toggle.addEventListener("click", (ev) => {
-      if (minimized = !minimized) {
-        container.style.maxHeight = "1.6em";
-        container.style.maxWidth = "15em";
-      } else {
-        container.style.maxHeight = "";
-        container.style.maxWidth = "";
-      }
-      clampIntoView();
-    });
-    const closeButton = el("button", { float: "right" }, "\xD7");
-    closeButton.addEventListener("click", disableDebugMode);
-    const head = el("div", {
-      fontWeight: "bold",
-      background: "#123",
-      color: "#eee",
-      padding: "0.1em 1em",
-      cursor: "grab"
-    }, closeButton, toggle, "\u03BC diagnostics");
-    const effectDetails = el("div", { whiteSpace: "pre" });
-    const effectCount = el("span", {}, "0");
-    const effectSummary = el("details", { cursor: "pointer", marginBottom: "1em" }, el("summary", {}, el("strong", {}, "Active effects: "), effectCount), effectDetails);
-    let activeEffectsGeneration2 = -1;
-    updateCallbacks.push(() => {
-      let { activeEffects: activeEffects2, generation } = getActiveEffects();
-      if (generation !== activeEffectsGeneration2) {
-        activeEffectsGeneration2 = generation;
-        effectDetails.innerText = [...activeEffects2.entries()].map((e) => `${e[0]}\xD7${e[1]}`).join("\n");
-        effectCount.innerText = String(Array.from(activeEffects2.values()).reduce((a, b) => a + b, 0));
-      }
-    });
-    const propRefCountNumber = el("span", {}, "0");
-    const allPropRefs2 = getAllPropRefs();
-    const propRefRefreshButton = el("button", {}, "\u21BB");
-    propRefRefreshButton.addEventListener("click", refreshPropRefList);
-    const propRefList = el("ol", {});
-    const propRefSummary = el("details", {}, el("summary", { cursor: "pointer" }, el("strong", {}, "Live PropRefs: "), propRefCountNumber, " ", propRefRefreshButton), propRefList);
-    let seenGeneration = -1;
-    updateCallbacks.push(() => {
-      if (allPropRefs2.generation !== seenGeneration) {
-        propRefCountNumber.replaceChildren(String(allPropRefs2.sizeBound));
-        refreshPropRefList();
-        seenGeneration = allPropRefs2.generation;
-      }
-    });
-    const inspectButton = el("button", {}, "\u{1F50D}");
-    inspectButton.addEventListener("click", startInspectPick);
-    const inspectedName = el("span", {}, "(none)");
-    const inspectedPropList = el("ol", {});
-    const content = el("div", { padding: "1em", overflow: "auto" }, inspectButton, " ", el("strong", {}, "Inspected node:"), " ", inspectedName, inspectedPropList, effectSummary, propRefSummary);
-    container.append(head, content);
-    document.body.append(container);
-    let xOffset = 0, yOffset = 0;
-    head.addEventListener("mousedown", (ev) => {
-      const rect = container.getBoundingClientRect();
-      xOffset = ev.x - rect.x;
-      yOffset = ev.y - rect.y;
-      window.addEventListener("mousemove", moveHandler);
-      document.body.addEventListener("mouseup", upHandler, { once: true });
-      ev.preventDefault();
-      function upHandler(ev2) {
-        window.removeEventListener("mousemove", moveHandler);
-      }
-      function moveHandler(ev2) {
-        const buttonPressed = (ev2.buttons & 1) > 0;
-        if (buttonPressed) {
-          container.style.left = ev2.x - xOffset + "px";
-          container.style.top = ev2.y - yOffset + "px";
-          clampIntoView();
-        } else {
-          window.removeEventListener("mousemove", moveHandler);
-          window.removeEventListener("mouseup", upHandler);
-        }
-      }
-    });
-    window.addEventListener("resize", clampIntoView);
-  }
-}
-var valueString2;
-var el2;
-var getNodeAndTextDependencies2;
-var getPropRefListItem2;
-var refreshPropRefList2;
-var startInspectPick2;
-var clampIntoView2;
-var enableDebugMode2;
-var disableDebugMode2;
-
 // out/effect.js
 var emptyEffect = { dispose: () => {
 } };
-var activeEffectsGeneration = 0;
-var activeEffects = /* @__PURE__ */ new Map();
-function recordActiveEffect(sideEffect) {
-  const name = sideEffect.name || "(anonymous)";
-  const current = activeEffects.get(name);
-  if (current)
-    activeEffects.set(name, current + 1);
-  else
-    activeEffects.set(name, 1);
-  ++activeEffectsGeneration;
-}
-function removeActiveEffect(sideEffect) {
-  const name = sideEffect.name || "(anonymous)";
-  const current = activeEffects.get(name);
-  if (!current || current <= 1)
-    activeEffects.delete(name);
-  else
-    activeEffects.set(name, current - 1);
-  ++activeEffectsGeneration;
-}
-function getActiveEffects() {
-  return { activeEffects, generation: activeEffectsGeneration };
-}
 function effect(sideEffect, options = {}) {
   const { tracker = defaultTracker, suppressUntrackedWarning = false } = options;
   let dep = tracker.startDependencyTrack();
@@ -887,29 +862,22 @@ function effect(sideEffect, options = {}) {
     }
     return emptyEffect;
   }
-  if (isDebugMode)
-    recordActiveEffect(sideEffect);
   let subscription = dep.subscribe(effectDependencyChanged);
   let disposed = false;
-  let changing = false;
   function effectDispose() {
     if (disposed)
       console.error("Effect already disposed");
     disposed = true;
     dep.untrackAll();
     subscription.dispose();
-    if (!changing && isDebugMode)
-      removeActiveEffect(sideEffect);
   }
-  ;
-  function effectDependencyChanged(trigger) {
+  function effectDependencyChanged(trigger, changeInfo) {
     if (typeof lastResult === "function")
       lastResult();
-    changing = true;
     effectDispose();
-    changing = disposed = false;
+    disposed = false;
     dep = tracker.startDependencyTrack();
-    lastResult = sideEffect(dep, trigger);
+    lastResult = sideEffect(dep, trigger, changeInfo);
     dep.endDependencyTrack();
     subscription = dep.subscribe(effectDependencyChanged);
   }
@@ -926,11 +894,50 @@ function registerCleanup(node, subscription) {
     nodeCleanups.set(node, [subscription]);
   }
 }
-function cleanup(node) {
+var cleanup = scheduleCleanup.bind(null, doCleanup);
+function doCleanup(node) {
   const cleanups = nodeCleanups.get(node);
   cleanups?.forEach((s) => s.dispose());
-  if (node instanceof Element) {
+  if (node instanceof Element)
     node.childNodes.forEach(cleanup);
+}
+var pending = false;
+var queue = [];
+if (!("requestIdleCallback" in globalThis)) {
+  let requestIdleCallback = function(callback) {
+    requestAnimationFrame(() => processQueue(never));
+  };
+  requestIdleCallback2 = requestIdleCallback;
+  const never = {
+    didTimeout: false,
+    timeRemaining() {
+      return 1e3;
+    }
+  };
+  Object.assign(globalThis, { requestIdleCallback });
+}
+var requestIdleCallback2;
+function processQueue(deadline) {
+  let complete = 0;
+  let start = performance.now();
+  while (queue.length) {
+    const { task, data } = queue.shift();
+    task(data);
+    const elapsed = performance.now() - start;
+    const average = elapsed / ++complete;
+    if (average * 2 > deadline.timeRemaining())
+      break;
+  }
+  if (queue.length)
+    window.requestIdleCallback(processQueue);
+  else
+    pending = false;
+}
+function scheduleCleanup(task, data) {
+  queue.push({ task, data });
+  if (!pending) {
+    window.requestIdleCallback(processQueue);
+    pending = true;
   }
 }
 
@@ -1072,8 +1079,9 @@ var ElementSpan = class {
   }
   /** extracts the entire span as a fragment */
   removeAsFragment() {
-    if (this.startMarker.parentNode instanceof DocumentFragment) {
-      return this.startMarker.parentNode;
+    const parent = this.startMarker.parentNode;
+    if (parent instanceof DocumentFragment && parent.firstChild === this.startMarker && parent.lastChild === this.endMarker) {
+      return parent;
     }
     const nodes = [];
     for (let walk = this.startMarker; ; walk = walk?.nextSibling) {
@@ -1119,8 +1127,12 @@ var ElementSpan = class {
   /** empties the contents of the span, and invokes cleanup on each child node */
   cleanup() {
     cleanup(this.startMarker);
-    for (const node of this.emptyAsFragment().childNodes) {
-      cleanup(node);
+    while (this.startMarker.nextSibling !== this.endMarker) {
+      const next = this.startMarker.nextSibling;
+      if (!next)
+        throw Error("End marker not found as subsequent document sibling as start marker");
+      cleanup(next);
+      next.remove();
     }
   }
 };
@@ -1152,15 +1164,43 @@ function Swapper(nodeFactory) {
 
 // out/foreach.js
 var suppress2 = { suppressUntrackedWarning: true };
+function newForEachOutput() {
+  return { container: new ElementSpan() };
+}
 function ForEach(array, map) {
   if (typeof array === "function")
     return Swapper(() => ForEach(array(), map));
   const result = new ElementSpan();
   const outputs = [];
   const arrayDefined = array ?? [];
-  const lengthSubscription = effect(function forEachLengthEffect(lengthDep) {
-    for (let i = outputs.length; i < arrayDefined.length; i++) {
-      const output = { container: new ElementSpan() };
+  const lengthSubscription = effect(function forEachLengthEffect(lengthDep, propRef, info) {
+    if (info?.suffixLength) {
+      if (arrayDefined.length < outputs.length) {
+        const toRemove = outputs.length - arrayDefined.length;
+        const removed = outputs.splice(arrayDefined.length - info.suffixLength, toRemove);
+        for (const item of removed) {
+          scheduleCleanup(forEachCleanupOutput, item);
+        }
+      } else if (arrayDefined.length > outputs.length) {
+        const toInsert = arrayDefined.length - outputs.length;
+        const newOutputs = Array(toInsert).fill(null).map(newForEachOutput);
+        let insertIndex = outputs.length - info.suffixLength;
+        outputs.splice(insertIndex, 0, ...newOutputs);
+        const frag = document.createDocumentFragment();
+        for (const output of newOutputs)
+          frag.append(output.container.removeAsFragment());
+        const resultParent = result.startMarker.parentNode;
+        if (insertIndex === 0) {
+          resultParent.insertBefore(frag, result.startMarker.nextSibling);
+        } else {
+          const precedingContainer = outputs[insertIndex - 1].container;
+          resultParent.insertBefore(frag, precedingContainer.endMarker.nextSibling);
+        }
+      }
+    }
+    const arrayLen = arrayDefined.length;
+    for (let i = outputs.length; i < arrayLen; i++) {
+      const output = newForEachOutput();
       outputs.push(output);
       output.subscription = effect(function forEachItemEffect(dep) {
         const item = arrayDefined[i];
@@ -1179,80 +1219,28 @@ function ForEach(array, map) {
       }, suppress2);
       result.append(output.container.removeAsFragment());
     }
-    while (outputs.length > arrayDefined.length) {
-      cleanupOutput(outputs.pop());
-    }
+    if (outputs.length > 0 && arrayLen === 0) {
+      result.emptyAsFragment();
+      for (const output of outputs)
+        scheduleCleanup(forEachCleanupOutput, output);
+      outputs.length = 0;
+    } else
+      while (outputs.length > arrayLen) {
+        const output = outputs.pop();
+        output.container.removeAsFragment();
+        scheduleCleanup(forEachCleanupOutput, output);
+      }
   }, suppress2);
   result.registerCleanup({ dispose() {
-    outputs.forEach(cleanupOutput);
+    outputs.forEach(forEachCleanupOutput);
   } });
   result.registerCleanup(lengthSubscription);
   return result.removeAsFragment();
-  function cleanupOutput({ cleanup: cleanup2, container, subscription }) {
-    cleanup2?.();
-    subscription?.dispose();
-    container.removeAsFragment();
-    container.cleanup();
-  }
 }
-function ForEachPersist(array, map) {
-  if (typeof array === "function")
-    return Swapper(() => ForEachPersist(array(), map));
-  const result = new ElementSpan();
-  const outputs = [];
-  const outputMap = /* @__PURE__ */ new WeakMap();
-  const arrayDefined = array ?? [];
-  const lengthSubscription = effect(function forEachPersistLengthEffect(lengthDep) {
-    for (let i = outputs.length; i < arrayDefined.length; i++) {
-      const output = { container: new ElementSpan() };
-      outputs.push(output);
-      output.subscription = effect(function forEachPersistItemEffect(dep) {
-        const item = arrayDefined[i];
-        if (item == null)
-          return;
-        if (typeof item !== "object")
-          throw Error("Elements must be object in ForEachPersist");
-        let newContents = outputMap.get(item);
-        if (newContents == null) {
-          if (dep)
-            dep.active = false;
-          try {
-            const newNode = map(item);
-            newContents = newNode instanceof HTMLElement ? newNode : new ElementSpan(newNode);
-            outputMap.set(item, newContents);
-          } finally {
-            if (dep)
-              dep.active = true;
-          }
-        } else {
-          const connected = newContents instanceof HTMLElement ? newContents.isConnected : newContents.startMarker.isConnected;
-          if (connected)
-            console.error("ForEachPersist encountered the same object twice in the same array.");
-        }
-        if (newContents instanceof HTMLElement) {
-          output.container.replaceWith(newContents);
-        } else if (newContents != null) {
-          output.container.replaceWith(newContents.removeAsFragment());
-        }
-        return () => output.container.emptyAsFragment();
-      }, suppress2);
-      result.append(output.container.removeAsFragment());
-    }
-    while (outputs.length > arrayDefined.length) {
-      cleanupOutput(outputs.pop());
-    }
-  }, suppress2);
-  result.registerCleanup({ dispose() {
-    outputs.forEach(cleanupOutput);
-  } });
-  result.registerCleanup(lengthSubscription);
-  return result.removeAsFragment();
-  function cleanupOutput(output) {
-    const { container, subscription } = output;
-    subscription?.dispose();
-    container.removeAsFragment();
-    container.cleanup();
-  }
+function forEachCleanupOutput({ cleanup: cleanup2, container, subscription }) {
+  cleanup2?.();
+  subscription?.dispose();
+  container.cleanup();
 }
 
 // out/choose.js
@@ -1396,10 +1384,9 @@ function untrackedCloneImpl(obj, maxDepth) {
 }
 
 // out/index.js
-var version = "0.24.0";
+var version = "0.25.0";
 export {
   ForEach,
-  ForEachPersist,
   PromiseLoader,
   PropReference,
   Router,

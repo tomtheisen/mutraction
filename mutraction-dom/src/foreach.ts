@@ -48,19 +48,21 @@ export function ForEach<TIn>(array: TIn[] | (() => TIn[]) | undefined, map: (ite
 
                 const frag = document.createDocumentFragment();
                 for (const output of newOutputs) frag.append(output.container.removeAsFragment());
+
+                const resultParent = result.startMarker.parentNode!;
                 if (insertIndex === 0) {
-                    result.startMarker.parentNode.insertBefore(frag, result.startMarker.nextSibling);
-                    throw "NIE TODO check if this is right seems funny";
+                    resultParent.insertBefore(frag, result.startMarker.nextSibling);
                 }
                 else {
-                    result.startMarker.parentNode.insertBefore(frag, outputs[insertIndex].container.endMarker.nextSibling)
-                    throw "NIE TODO check if this is right seems funny";
+                    const precedingContainer = outputs[insertIndex - 1].container;
+                    resultParent.insertBefore(frag, precedingContainer.endMarker.nextSibling)
                 }
             }
         }
 
+        const arrayLen = arrayDefined.length;
         // i is scoped to each loop body invocation
-        for (let i = outputs.length; i < arrayDefined.length; i++) {
+        for (let i = outputs.length; i < arrayLen; i++) {
             const output: ForEachOutput = newForEachOutput();
             outputs.push(output);
 
@@ -85,8 +87,16 @@ export function ForEach<TIn>(array: TIn[] | (() => TIn[]) | undefined, map: (ite
             result.append(output.container.removeAsFragment());
         }
 
-        while (outputs.length > arrayDefined.length) {
-            scheduleCleanup(forEachCleanupOutput, outputs.pop()!);
+        if (outputs.length > 0 && arrayLen === 0) { 
+            // special case perf optimization
+            result.emptyAsFragment();
+            for (const output of outputs) scheduleCleanup(forEachCleanupOutput, output);
+            outputs.length = 0;
+        }
+        else while (outputs.length > arrayLen) {
+            const output = outputs.pop()!;
+            output.container.removeAsFragment();
+            scheduleCleanup(forEachCleanupOutput, output);
         }
     }, suppress);
 
@@ -99,7 +109,6 @@ export function ForEach<TIn>(array: TIn[] | (() => TIn[]) | undefined, map: (ite
 function forEachCleanupOutput({ cleanup, container, subscription }: ForEachOutput) {
     cleanup?.();
     subscription?.dispose();
-    container.removeAsFragment();
     container.cleanup();
 }
 

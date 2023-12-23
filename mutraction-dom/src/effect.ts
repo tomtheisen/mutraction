@@ -78,14 +78,15 @@ export function effect(sideEffect: SideEffect, options: EffectOptions = {}): Sub
         subscription.dispose();
         // TODO debug
         // if (!changing && isDebugMode) removeActiveEffect(sideEffect);
-    };
+    }
 
     function effectDependencyChanged(trigger?: PropReference, changeInfo?: PropRefChangeInfo) {
         if (typeof lastResult === "function") lastResult(); // user cleanup
 
         // changing = true;
         effectDispose();
-        // changing = disposed = false;
+        // changing = 
+        disposed = false;
         
         dep = tracker.startDependencyTrack();
         lastResult = sideEffect(dep, trigger, changeInfo);

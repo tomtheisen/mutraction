@@ -1,5 +1,5 @@
 export { element, child } from './runtime.js';
-export { ForEach, ForEachPersist } from './foreach.js';
+export { ForEach, /* ForEachPersist */ } from './foreach.js';
 export { choose } from './choose.js';
 export { isTracked } from './proxy.js';
 export { PromiseLoader } from './promiseLoader.js';
