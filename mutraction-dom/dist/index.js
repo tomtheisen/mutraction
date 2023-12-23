@@ -1326,11 +1326,15 @@ function addNodeDependency(node, depList) {
 function getNodeDependencies(node) {
   return nodeDependencyMap.get(node);
 }
+var propRedirects = {
+  class: "className"
+};
 function element(tagName, staticAttrs, dynamicAttrs, ...children) {
   const el = document.createElement(tagName);
   el.append(...children);
   let syncEvents;
   for (let [name, value] of Object.entries(staticAttrs)) {
+    name = propRedirects[name] ?? name;
     switch (name) {
       case "mu:syncEvent":
         syncEvents = value;
@@ -1345,6 +1349,7 @@ function element(tagName, staticAttrs, dynamicAttrs, ...children) {
   }
   const syncedProps = syncEvents ? [] : void 0;
   for (let [name, getter] of Object.entries(dynamicAttrs)) {
+    name = propRedirects[name] ?? name;
     if (syncedProps && name in el) {
       const propRef = defaultTracker.getPropRefTolerant(getter);
       if (propRef) {

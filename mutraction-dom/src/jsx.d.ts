@@ -10,6 +10,7 @@ type MutractionElement<ElementType extends keyof HTMLElementTagNameMap> = {
         HTMLElementTagNameMap[ElementType][Prop];
 }
 & {
+    "class"?: string;
     "mu:if"?: boolean;
     "mu:else"?: true;
     "mu:syncEvent"?: (keyof HTMLElementEventMap) | string;

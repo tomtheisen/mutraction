@@ -50,6 +50,10 @@ export function getNodeDependencies(node: ChildNode) : DependencyList[] | undefi
     return nodeDependencyMap.get(node);
 }
 
+const propRedirects: Record<string, string> = {
+    class: "className"
+};
+
 export function element<E extends keyof HTMLElementTagNameMap>(
     tagName: E, 
     staticAttrs: ElementStringProps<E>,
@@ -62,6 +66,8 @@ export function element<E extends keyof HTMLElementTagNameMap>(
     let syncEvents: string | undefined;
 
     for (let [name, value] of Object.entries(staticAttrs) as [string, string][]) {
+        name = propRedirects[name] ?? name;
+        
         switch (name) {
             case "mu:syncEvent":
                 syncEvents = value;
@@ -79,6 +85,8 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 
     const syncedProps = syncEvents ? [] as [prop: keyof typeof el, ref: PropReference][] : undefined;
     for (let [name, getter] of Object.entries(dynamicAttrs)) {
+        name = propRedirects[name] ?? name;
+
         if (syncedProps && name in el) {
             const propRef = defaultTracker.getPropRefTolerant(getter);
             if (propRef) {

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added 
+
+- `class` is usable instead of `className`.  Use of both is not recommended.
+
 ## [0.24.0] - 2023-11-25
 
 ### Changed
