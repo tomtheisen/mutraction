@@ -51,8 +51,8 @@ export function getMapProxyHandler<K, V>(tracker: Tracker): ProxyHandler<Map<K, 
 
                         target.set(key, val = proxy ?? val);
                         const mutation: SingleMutation = isChange
-                            ? { target, name: ItemsSymbol, timestamp: new Date, type: "mapchange", key, newValue: val, oldValue }
-                            : { target, name: ItemsSymbol, timestamp: new Date, type: "mapcreate", key, newValue: val };
+                            ? { target, name: ItemsSymbol, type: "mapchange", key, newValue: val, oldValue }
+                            : { target, name: ItemsSymbol, type: "mapcreate", key, newValue: val };
                         tracker[RecordMutation](mutation);
 
                         return receiver;
@@ -64,7 +64,7 @@ export function getMapProxyHandler<K, V>(tracker: Tracker): ProxyHandler<Map<K, 
 
                         if (!target.delete(key)) return false;
 
-                        const mutation: MapDelete = { target, name: ItemsSymbol, timestamp: new Date, type: "mapdelete", key, oldValue };
+                        const mutation: MapDelete = { target, name: ItemsSymbol, type: "mapdelete", key, oldValue };
                         tracker[RecordMutation](mutation);
 
                         return true;
@@ -76,7 +76,7 @@ export function getMapProxyHandler<K, V>(tracker: Tracker): ProxyHandler<Map<K, 
 
                         target.clear();
 
-                        const mutation: MapClear = { target, name: ItemsSymbol, timestamp: new Date, type: "mapclear", oldEntries };
+                        const mutation: MapClear = { target, name: ItemsSymbol, type: "mapclear", oldEntries };
                         tracker[RecordMutation](mutation);
                     };
 

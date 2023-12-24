@@ -13,9 +13,7 @@ export function Swapper(nodeFactory: () => Node | NodeOptions) {
     const span = new ElementSpan;
 
     const swapperSubscription = effect(function swapperEffect(dep) {
-        for (const node of span.emptyAsFragment().childNodes) {
-            cleanup(node);
-        }
+        span.empty();
         const output = nodeFactory();
 
         if (isNodeOptions(output)) {

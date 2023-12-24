@@ -18,7 +18,7 @@ function doCleanup(node: ChildNode) {
     const cleanups = nodeCleanups.get(node);
     cleanups?.forEach(s => s.dispose());
 
-    if (node instanceof Element) node.childNodes.forEach(cleanup);
+    if (node instanceof Element) node.childNodes.forEach(doCleanup);
 }
 
 type CleanupItem<T = any> = {
@@ -36,10 +36,11 @@ if (!("requestIdleCallback" in globalThis)) {
         timeRemaining() { return 1e3; },
     }
 
-    function requestIdleCallback(callback: IdleRequestCallback) {
-        requestAnimationFrame(callback.bind(null, never));
-    }
-    Object.assign(globalThis, { requestIdleCallback });
+    Object.assign(globalThis, {
+        requestIdleCallback(callback: IdleRequestCallback) {
+            requestAnimationFrame(callback.bind(null, never));
+        }
+    });
 }
 
 function processQueue(deadline: IdleDeadline) {
@@ -55,7 +56,7 @@ function processQueue(deadline: IdleDeadline) {
         if (average * 2 > deadline.timeRemaining()) break;
     }
 
-    if (queue.length) requestIdleCallback(processQueue);
+    if (queue.length) window.requestIdleCallback(processQueue);
     else pending = false;
 }
 
@@ -63,7 +64,7 @@ export function scheduleCleanup<T>(task: (t: T) => void, data: T) {
     queue.push({ task, data });
 
     if (!pending) {
-        requestIdleCallback(processQueue);
+        window.requestIdleCallback(processQueue);
         pending = true;
     }
 }
