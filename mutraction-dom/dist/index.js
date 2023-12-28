@@ -1568,7 +1568,15 @@ function ForEach(array, map) {
       result.append(output.container.removeAsFragment());
     }
     if (outputs.length > 0 && arrayDefined.length === 0) {
-      console.log("TODO optimize");
+      const parent = result.startMarker.parentElement;
+      if (parent?.firstChild === result.startMarker && parent.lastChild === result.endMarker) {
+        const frag = document.createDocumentFragment();
+        frag.append(...parent.childNodes);
+        parent.append(result.startMarker, result.endMarker);
+        for (const output of outputs)
+          scheduleCleanup(cleanupOutput, output);
+        outputs.length = 0;
+      }
     }
     while (outputs.length > arrayDefined.length) {
       const output = outputs.pop();
@@ -1782,7 +1790,7 @@ function untrackedCloneImpl(obj, maxDepth) {
 }
 
 // out/index.js
-var version = "0.24.0";
+var version = "0.25.0";
 export {
   ForEach,
   ForEachPersist,

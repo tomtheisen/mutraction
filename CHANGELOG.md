@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `class` is usable instead of `className`.  Use of both is not recommended.
 
+### Removed
+
+- The undocumented `timestamp` property was removed from history entries.
+
+### Changed
+
+- `Map`s and `Set`s can now be `track()`ed.  Depending on the use case, performance might not be great.  Any change to the collection will cause all element dependencies of the data structure to be notified.  Performance may improve in the future.
+- Some performance optimizations have been applied.
+    - When an `effect()` callback doesn't return a cleanup function, an empty placeholder function is not scheduled to run in its place.
+    - DOM node cleanups no longer run synchronously.  They now run "later" via [`requestIdleCallback()`](https://developer.mozilla.org/en-US/docs/Web/API/Window/requestIdleCallback)
+    - There is a faster approach for emptying an `ElementSpan`, which is an internal type representing a contiguous span nodes.  It's similar to a [`DocumentFragment`](https://developer.mozilla.org/en-US/docs/Web/API/DocumentFragment), but it's allowed to be attached to the document as well.  Internally, this is used by pretty much everything in mutraction.
+    - There is a faster implementation of the special case where a `ForEach` array becomes empty after being non-empty.
+    - When not running in debug mode, there is no longer a collection maintained of all `PropRef`s maintained.
+
 ## [0.24.0] - 2023-11-25
 
 ### Changed
