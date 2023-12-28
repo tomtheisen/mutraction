@@ -3,6 +3,7 @@ import { ProxyOf } from "./symbols.js";
 import { isTracked } from "./proxy.js";
 import { DependencyList } from "./dependency.js";
 import { LiveCollection } from "./liveCollection.js";
+import { isDebugMode } from "./debug.js";
 
 const allPropRefs = new LiveCollection<PropReference>;
 export function getAllPropRefs() {
@@ -31,7 +32,7 @@ export class PropReference<T = any> {
         this.object = object;
         this.prop = prop;
 
-        allPropRefs?.add(this);
+        if (isDebugMode) allPropRefs.add(this);
     }
 
     subscribe(dependencyList: DependencyList): Subscription {

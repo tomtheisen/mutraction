@@ -4,7 +4,7 @@ import { PropReference } from "./propref.js";
 import { Tracker, defaultTracker } from "./tracker.js";
 import { Subscription } from "./types.js";
 
-const emptyEffect: Subscription = { dispose: () => {} };
+const emptyEffect: Subscription = { dispose: () => {}, noop: true };
 
 type EffectOptions = {
     suppressUntrackedWarning?: boolean;

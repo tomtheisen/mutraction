@@ -49,6 +49,7 @@ export type ReadonlyDeep<T extends object> = {
 
 export type Subscription = {
     dispose(): void;
+    noop?: true;
 }
 
 export function isNodeOptions(arg: unknown): arg is NodeOptions {

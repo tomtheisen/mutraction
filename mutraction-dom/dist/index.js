@@ -391,7 +391,8 @@ var PropReference = class {
     }
     this.object = object;
     this.prop = prop;
-    allPropRefs?.add(this);
+    if (isDebugMode)
+      allPropRefs.add(this);
   }
   subscribe(dependencyList) {
     this.#subscribers.add(dependencyList);
@@ -1199,7 +1200,7 @@ function describeMutation(mut) {
 
 // out/effect.js
 var emptyEffect = { dispose: () => {
-} };
+}, noop: true };
 var activeEffectsGeneration = 0;
 var activeEffects = /* @__PURE__ */ new Map();
 function recordActiveEffect(sideEffect) {
@@ -1270,6 +1271,8 @@ function effect(sideEffect, options = {}) {
 // out/cleanup.js
 var nodeCleanups = /* @__PURE__ */ new WeakMap();
 function registerCleanup(node, subscription) {
+  if (subscription.noop)
+    return;
   const cleanups = nodeCleanups.get(node);
   if (cleanups) {
     cleanups.push(subscription);

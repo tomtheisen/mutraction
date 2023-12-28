@@ -84,6 +84,7 @@ type ReadonlyDeep<T extends object> = {
 };
 type Subscription = {
 	dispose(): void;
+	noop?: true;
 };
 type NodeOptions = {
 	node: Node;
