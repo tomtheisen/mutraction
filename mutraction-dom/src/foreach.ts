@@ -50,7 +50,17 @@ export function ForEach<TIn>(array: TIn[] | (() => TIn[]) | undefined, map: (ite
         }
 
         if (outputs.length > 0 && arrayDefined.length === 0) {
-            console.log("TODO optimize");
+            const parent = result.startMarker.parentElement;
+            if (parent?.firstChild === result.startMarker && parent.lastChild === result.endMarker) {
+                // special case optimization for an emptied array with no element siblings in the container
+                const frag = document.createDocumentFragment();
+                // remove all the child nodes, but keep them in a fragment so the ElementSpans can be iterated over
+                frag.append(...parent.childNodes);
+                // put only the outermost span markers back
+                parent.append(result.startMarker, result.endMarker);
+                for (const output of outputs) scheduleCleanup(cleanupOutput, output)
+                outputs.length = 0;
+            }
         }
         while (outputs.length > arrayDefined.length) {
             const output = outputs.pop()!;
