@@ -113,7 +113,7 @@ export class Tracker {
 
     /** Add another transaction to the stack  */
     startTransaction(name?: string): Transaction {
-        this.#transaction = { type: "transaction", parent: this.#transaction, operations: [], dependencies: new Set, timestamp: new Date };
+        this.#transaction = { type: "transaction", parent: this.#transaction, operations: [], dependencies: new Set };
         if (name) this.#transaction.transactionName = name;
         return this.#transaction;
     }

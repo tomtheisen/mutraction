@@ -34,7 +34,7 @@ export function getSetProxyHandler<T>(tracker: Tracker): ProxyHandler<Set<T>> {
 
                         if (target.has(value)) return;
                         const result = target.add(value);
-                        tracker[RecordMutation]({ type: "setadd", name: ItemsSymbol, target, timestamp: new Date, newValue: value });
+                        tracker[RecordMutation]({ type: "setadd", name: ItemsSymbol, target, newValue: value });
                         return result;
                     };
 
@@ -43,7 +43,7 @@ export function getSetProxyHandler<T>(tracker: Tracker): ProxyHandler<Set<T>> {
                         value = maybeGetProxy(value, tracker) ?? value;
                         if (!target.has(value)) return;
                         const result = target.delete(value);
-                        tracker[RecordMutation]({ type: "setdelete", name: ItemsSymbol, target, timestamp: new Date, oldValue: value });
+                        tracker[RecordMutation]({ type: "setdelete", name: ItemsSymbol, target, oldValue: value });
                         return result;
                     };
 
@@ -52,7 +52,7 @@ export function getSetProxyHandler<T>(tracker: Tracker): ProxyHandler<Set<T>> {
                         if (target.size === 0) return;
                         const oldValues = Array.from(target.values());
                         target.clear();
-                        tracker[RecordMutation]({ type: "setclear", name: ItemsSymbol, target, timestamp: new Date, oldValues });
+                        tracker[RecordMutation]({ type: "setclear", name: ItemsSymbol, target, oldValues });
                     };
 
                 default: return Reflect.get(target, name, receiver);

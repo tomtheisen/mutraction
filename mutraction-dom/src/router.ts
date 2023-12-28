@@ -71,7 +71,7 @@ export function Router(...routes: Route[]): Node {
                 return;
             }
         }
-        container.emptyAsFragment();
+        container.empty();
     }
     
     window.addEventListener("hashchange", ev => hashChangeHandler(ev.newURL));

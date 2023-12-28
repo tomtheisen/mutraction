@@ -39,7 +39,7 @@ function getSetProxyHandler(tracker) {
             if (target.has(value))
               return;
             const result = target.add(value);
-            tracker[RecordMutation]({ type: "setadd", name: ItemsSymbol, target, timestamp: /* @__PURE__ */ new Date(), newValue: value });
+            tracker[RecordMutation]({ type: "setadd", name: ItemsSymbol, target, newValue: value });
             return result;
           };
         case "delete":
@@ -48,7 +48,7 @@ function getSetProxyHandler(tracker) {
             if (!target.has(value))
               return;
             const result = target.delete(value);
-            tracker[RecordMutation]({ type: "setdelete", name: ItemsSymbol, target, timestamp: /* @__PURE__ */ new Date(), oldValue: value });
+            tracker[RecordMutation]({ type: "setdelete", name: ItemsSymbol, target, oldValue: value });
             return result;
           };
         case "clear":
@@ -57,7 +57,7 @@ function getSetProxyHandler(tracker) {
               return;
             const oldValues = Array.from(target.values());
             target.clear();
-            tracker[RecordMutation]({ type: "setclear", name: ItemsSymbol, target, timestamp: /* @__PURE__ */ new Date(), oldValues });
+            tracker[RecordMutation]({ type: "setclear", name: ItemsSymbol, target, oldValues });
           };
         default:
           return Reflect.get(target, name, receiver);
@@ -109,7 +109,7 @@ function getMapProxyHandler(tracker) {
               setAccessPath(proxy, getAccessPath(target), `get(${key})`);
             }
             target.set(key, val = proxy ?? val);
-            const mutation = isChange ? { target, name: ItemsSymbol, timestamp: /* @__PURE__ */ new Date(), type: "mapchange", key, newValue: val, oldValue } : { target, name: ItemsSymbol, timestamp: /* @__PURE__ */ new Date(), type: "mapcreate", key, newValue: val };
+            const mutation = isChange ? { target, name: ItemsSymbol, type: "mapchange", key, newValue: val, oldValue } : { target, name: ItemsSymbol, type: "mapcreate", key, newValue: val };
             tracker[RecordMutation](mutation);
             return receiver;
           };
@@ -118,7 +118,7 @@ function getMapProxyHandler(tracker) {
             const oldValue = target.get(key);
             if (!target.delete(key))
               return false;
-            const mutation = { target, name: ItemsSymbol, timestamp: /* @__PURE__ */ new Date(), type: "mapdelete", key, oldValue };
+            const mutation = { target, name: ItemsSymbol, type: "mapdelete", key, oldValue };
             tracker[RecordMutation](mutation);
             return true;
           };
@@ -126,7 +126,7 @@ function getMapProxyHandler(tracker) {
           return function clear() {
             const oldEntries = Array.from(target.entries());
             target.clear();
-            const mutation = { target, name: ItemsSymbol, timestamp: /* @__PURE__ */ new Date(), type: "mapclear", oldEntries };
+            const mutation = { target, name: ItemsSymbol, type: "mapclear", oldEntries };
             tracker[RecordMutation](mutation);
           };
         default:
@@ -272,7 +272,7 @@ function makeProxyHandler(model, tracker) {
       setAccessPath(newValue, getAccessPath(target), name);
     }
     newValue = maybeGetProxy(newValue, tracker) ?? newValue;
-    const mutation = name in target ? { type: "change", target, name, oldValue: model[name], newValue, timestamp: /* @__PURE__ */ new Date() } : { type: "create", target, name, newValue, timestamp: /* @__PURE__ */ new Date() };
+    const mutation = name in target ? { type: "change", target, name, oldValue: model[name], newValue } : { type: "create", target, name, newValue };
     const initialSets = setsCompleted;
     const wasSet = Reflect.set(target, name, newValue, receiver);
     if (wasSet && initialSets == setsCompleted++) {
@@ -291,15 +291,7 @@ function makeProxyHandler(model, tracker) {
       const newLength = parseInt(newValue, 10);
       if (newLength < oldLength) {
         const removed = Object.freeze(target.slice(newLength, oldLength));
-        const shorten = {
-          type: "arrayshorten",
-          target,
-          name,
-          oldLength,
-          newLength,
-          removed,
-          timestamp: /* @__PURE__ */ new Date()
-        };
+        const shorten = { type: "arrayshorten", target, name, oldLength, newLength, removed };
         const wasSet = Reflect.set(target, name, newValue, receiver);
         tracker[RecordMutation](shorten);
         ++setsCompleted;
@@ -315,8 +307,7 @@ function makeProxyHandler(model, tracker) {
           name,
           oldLength: target.length,
           newIndex: index,
-          newValue,
-          timestamp: /* @__PURE__ */ new Date()
+          newValue
         };
         const wasSet = Reflect.set(target, name, newValue, receiver);
         tracker[RecordMutation](extension);
@@ -327,7 +318,7 @@ function makeProxyHandler(model, tracker) {
     return setOrdinary(target, name, newValue, receiver);
   }
   function deleteProperty(target, name) {
-    const mutation = { type: "delete", target, name, oldValue: model[name], timestamp: /* @__PURE__ */ new Date() };
+    const mutation = { type: "delete", target, name, oldValue: model[name] };
     const wasDeleted = Reflect.deleteProperty(target, name);
     if (wasDeleted) {
       tracker[RecordMutation](mutation);
@@ -400,7 +391,8 @@ var PropReference = class {
     }
     this.object = object;
     this.prop = prop;
-    allPropRefs?.add(this);
+    if (isDebugMode)
+      allPropRefs.add(this);
   }
   subscribe(dependencyList) {
     this.#subscribers.add(dependencyList);
@@ -609,7 +601,7 @@ var Tracker = class {
   }
   /** Add another transaction to the stack  */
   startTransaction(name) {
-    this.#transaction = { type: "transaction", parent: this.#transaction, operations: [], dependencies: /* @__PURE__ */ new Set(), timestamp: /* @__PURE__ */ new Date() };
+    this.#transaction = { type: "transaction", parent: this.#transaction, operations: [], dependencies: /* @__PURE__ */ new Set() };
     if (name)
       this.#transaction.transactionName = name;
     return this.#transaction;
@@ -1208,7 +1200,7 @@ function describeMutation(mut) {
 
 // out/effect.js
 var emptyEffect = { dispose: () => {
-} };
+}, noop: true };
 var activeEffectsGeneration = 0;
 var activeEffects = /* @__PURE__ */ new Map();
 function recordActiveEffect(sideEffect) {
@@ -1279,6 +1271,8 @@ function effect(sideEffect, options = {}) {
 // out/cleanup.js
 var nodeCleanups = /* @__PURE__ */ new WeakMap();
 function registerCleanup(node, subscription) {
+  if (subscription.noop)
+    return;
   const cleanups = nodeCleanups.get(node);
   if (cleanups) {
     cleanups.push(subscription);
@@ -1286,11 +1280,49 @@ function registerCleanup(node, subscription) {
     nodeCleanups.set(node, [subscription]);
   }
 }
-function cleanup(node) {
+var cleanup = scheduleCleanup.bind(null, doCleanup);
+function doCleanup(node) {
   const cleanups = nodeCleanups.get(node);
   cleanups?.forEach((s) => s.dispose());
-  if (node instanceof Element) {
-    node.childNodes.forEach(cleanup);
+  if (node instanceof Element)
+    node.childNodes.forEach(doCleanup);
+}
+var pending = false;
+var queue = [];
+if (!("requestIdleCallback" in globalThis)) {
+  const never = {
+    didTimeout: false,
+    timeRemaining() {
+      return 1e3;
+    }
+  };
+  Object.assign(globalThis, {
+    requestIdleCallback(callback) {
+      requestAnimationFrame(callback.bind(null, never));
+    }
+  });
+}
+function processQueue(deadline) {
+  let complete = 0;
+  let start = performance.now();
+  while (queue.length) {
+    const { task, data } = queue.shift();
+    task(data);
+    const elapsed = performance.now() - start;
+    const average = elapsed / ++complete;
+    if (average * 2 > deadline.timeRemaining())
+      break;
+  }
+  if (queue.length)
+    window.requestIdleCallback(processQueue);
+  else
+    pending = false;
+}
+function scheduleCleanup(task, data) {
+  queue.push({ task, data });
+  if (!pending) {
+    window.requestIdleCallback(processQueue);
+    pending = true;
   }
 }
 
@@ -1437,8 +1469,9 @@ var ElementSpan = class {
   }
   /** extracts the entire span as a fragment */
   removeAsFragment() {
-    if (this.startMarker.parentNode instanceof DocumentFragment) {
-      return this.startMarker.parentNode;
+    const parent = this.startMarker.parentNode;
+    if (parent instanceof DocumentFragment && parent.firstChild === this.startMarker && parent.lastChild === this.endMarker) {
+      return parent;
     }
     const nodes = [];
     for (let walk = this.startMarker; ; walk = walk?.nextSibling) {
@@ -1453,22 +1486,18 @@ var ElementSpan = class {
     return result;
   }
   /** extracts the interior of the span into a fragment, leaving the span container empty */
-  emptyAsFragment() {
-    const nodes = [];
-    for (let walk = this.startMarker.nextSibling; ; walk = walk?.nextSibling) {
-      if (walk == null)
+  empty() {
+    let next = null;
+    while ((next = this.startMarker.nextSibling) !== this.endMarker) {
+      if (next == null)
         throw Error("End marker not found as subsequent document sibling as start marker");
-      if (Object.is(walk, this.endMarker))
-        break;
-      nodes.push(walk);
+      cleanup(next);
+      next.remove();
     }
-    const result = document.createDocumentFragment();
-    result.append(...nodes);
-    return result;
   }
   /** replaces the interior contents of the span */
   replaceWith(...nodes) {
-    this.emptyAsFragment();
+    this.empty();
     this.append(...nodes);
   }
   append(...nodes) {
@@ -1483,10 +1512,8 @@ var ElementSpan = class {
   }
   /** empties the contents of the span, and invokes cleanup on each child node */
   cleanup() {
+    this.empty();
     cleanup(this.startMarker);
-    for (const node of this.emptyAsFragment().childNodes) {
-      cleanup(node);
-    }
   }
 };
 
@@ -1499,9 +1526,7 @@ function isNodeOptions(arg) {
 function Swapper(nodeFactory) {
   const span = new ElementSpan();
   const swapperSubscription = effect(function swapperEffect(dep) {
-    for (const node of span.emptyAsFragment().childNodes) {
-      cleanup(node);
-    }
+    span.empty();
     const output = nodeFactory();
     if (isNodeOptions(output)) {
       span.replaceWith(output.node);
@@ -1528,8 +1553,7 @@ function ForEach(array, map) {
       const output = { container: new ElementSpan() };
       outputs.push(output);
       output.subscription = effect(function forEachItemEffect(dep) {
-        output.cleanup?.();
-        output.container.cleanup();
+        output.container.empty();
         const item = arrayDefined[i];
         const projection = item !== void 0 ? map(item, i, arrayDefined) : document.createTextNode("");
         if (isNodeOptions(projection)) {
@@ -1539,11 +1563,25 @@ function ForEach(array, map) {
           output.container.replaceWith(projection);
           output.cleanup = void 0;
         }
+        return output.cleanup;
       }, suppress2);
       result.append(output.container.removeAsFragment());
     }
+    if (outputs.length > 0 && arrayDefined.length === 0) {
+      const parent = result.startMarker.parentElement;
+      if (parent?.firstChild === result.startMarker && parent.lastChild === result.endMarker) {
+        const frag = document.createDocumentFragment();
+        frag.append(...parent.childNodes);
+        parent.append(result.startMarker, result.endMarker);
+        for (const output of outputs)
+          scheduleCleanup(cleanupOutput, output);
+        outputs.length = 0;
+      }
+    }
     while (outputs.length > arrayDefined.length) {
-      cleanupOutput(outputs.pop());
+      const output = outputs.pop();
+      output.container.removeAsFragment();
+      scheduleCleanup(cleanupOutput, output);
     }
   }, suppress2);
   result.registerCleanup({ dispose() {
@@ -1551,12 +1589,11 @@ function ForEach(array, map) {
   } });
   result.registerCleanup(lengthSubscription);
   return result.removeAsFragment();
-  function cleanupOutput({ cleanup: cleanup2, container, subscription }) {
-    cleanup2?.();
-    subscription?.dispose();
-    container.removeAsFragment();
-    container.cleanup();
-  }
+}
+function cleanupOutput({ cleanup: cleanup2, container, subscription }) {
+  cleanup2?.();
+  subscription?.dispose();
+  container.cleanup();
 }
 function ForEachPersist(array, map) {
   if (typeof array === "function")
@@ -1570,7 +1607,7 @@ function ForEachPersist(array, map) {
       const container = new ElementSpan();
       containers.push(container);
       effect(function forEachPersistItemEffect(dep) {
-        container.emptyAsFragment();
+        container.empty();
         const item = arrayDefined[i];
         if (item == null)
           return;
@@ -1709,7 +1746,7 @@ function Router(...routes) {
         return;
       }
     }
-    container.emptyAsFragment();
+    container.empty();
   }
   window.addEventListener("hashchange", (ev) => hashChangeHandler(ev.newURL));
   hashChangeHandler(location.href);
@@ -1753,7 +1790,7 @@ function untrackedCloneImpl(obj, maxDepth) {
 }
 
 // out/index.js
-var version = "0.24.0";
+var version = "0.25.0";
 export {
   ForEach,
   ForEachPersist,

@@ -17,10 +17,10 @@ export class ElementSpan {
     }
 
     /** extracts the entire span as a fragment */
-    removeAsFragment(): DocumentFragment {
-        if (this.startMarker.parentNode instanceof DocumentFragment) {
-            // TODO: this is only true if this ElementSpan is the entire contents
-            return this.startMarker.parentNode;
+        removeAsFragment(): DocumentFragment {
+        const parent = this.startMarker.parentNode;
+        if (parent instanceof DocumentFragment && parent.firstChild === this.startMarker && parent.lastChild === this.endMarker) {
+            return parent;
         }
         const nodes: Node[] = [];
         for (let walk: ChildNode | null | undefined = this.startMarker; ; walk = walk?.nextSibling) {
@@ -36,23 +36,19 @@ export class ElementSpan {
     }
 
     /** extracts the interior of the span into a fragment, leaving the span container empty */
-    emptyAsFragment(): DocumentFragment {
-        const nodes: Node[] = [];
-        for (let walk: ChildNode | null | undefined = this.startMarker.nextSibling; ; walk = walk?.nextSibling) {
-            if (walk == null)
+    empty(): void {
+        let next: ChildNode | null = null;
+        while ((next = this.startMarker.nextSibling) !== this.endMarker) {
+            if (next == null)
                 throw Error("End marker not found as subsequent document sibling as start marker");
-            if (Object.is(walk, this.endMarker)) break;
-            nodes.push(walk);
+            cleanup(next);
+            next.remove();
         }
-        
-        const result = document.createDocumentFragment();
-        result.append(...nodes);
-        return result;
     }
 
     /** replaces the interior contents of the span */
     replaceWith(...nodes: Node[]) {
-        this.emptyAsFragment();
+        this.empty();
         this.append(...nodes);
     }
 
@@ -72,9 +68,7 @@ export class ElementSpan {
 
     /** empties the contents of the span, and invokes cleanup on each child node */
     cleanup() {
+        this.empty();
         cleanup(this.startMarker);
-        for (const node of this.emptyAsFragment().childNodes) {
-            cleanup(node);
-        }
     }
 }

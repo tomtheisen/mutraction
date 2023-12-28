@@ -1,9 +1,12 @@
+import { cleanup, scheduleCleanup } from "./cleanup.js";
 import { effect } from "./effect.js"
 import { ElementSpan } from './elementSpan.js';
 import { Swapper } from "./swapper.js";
 import { isNodeOptions, type Subscription, type NodeOptions } from "./types.js";
 
 const suppress = { suppressUntrackedWarning: true };
+
+type Output = { container: ElementSpan, subscription?: Subscription, cleanup?: () => void };
 
 /**
  * Generates DOM nodes for an array of values.  The resulting nodes track the array indices.
@@ -17,7 +20,6 @@ export function ForEach<TIn>(array: TIn[] | (() => TIn[]) | undefined, map: (ite
     if (typeof array === "function") return Swapper(() => ForEach(array(), map));
 
     const result = new ElementSpan();
-    type Output = { container: ElementSpan, subscription?: Subscription, cleanup?: () => void };
     const outputs: Output[] = [];
 
     const arrayDefined = array ?? [];
@@ -28,8 +30,7 @@ export function ForEach<TIn>(array: TIn[] | (() => TIn[]) | undefined, map: (ite
             outputs.push(output);
 
             output.subscription = effect(function forEachItemEffect(dep) {
-                output.cleanup?.();
-                output.container.cleanup();
+                output.container.empty();
 
                 const item = arrayDefined[i];
                 const projection = item !== undefined ? map(item, i, arrayDefined) : document.createTextNode("");
@@ -41,13 +42,30 @@ export function ForEach<TIn>(array: TIn[] | (() => TIn[]) | undefined, map: (ite
                     output.container.replaceWith(projection);
                     output.cleanup = undefined;
                 }
+
+                return output.cleanup;
             }, suppress);
 
             result.append(output.container.removeAsFragment());
         }
 
+        if (outputs.length > 0 && arrayDefined.length === 0) {
+            const parent = result.startMarker.parentElement;
+            if (parent?.firstChild === result.startMarker && parent.lastChild === result.endMarker) {
+                // special case optimization for an emptied array with no element siblings in the container
+                const frag = document.createDocumentFragment();
+                // remove all the child nodes, but keep them in a fragment so the ElementSpans can be iterated over
+                frag.append(...parent.childNodes);
+                // put only the outermost span markers back
+                parent.append(result.startMarker, result.endMarker);
+                for (const output of outputs) scheduleCleanup(cleanupOutput, output)
+                outputs.length = 0;
+            }
+        }
         while (outputs.length > arrayDefined.length) {
-            cleanupOutput(outputs.pop()!);
+            const output = outputs.pop()!;
+            output.container.removeAsFragment();
+            scheduleCleanup(cleanupOutput, output);
         }
     }, suppress);
 
@@ -55,13 +73,12 @@ export function ForEach<TIn>(array: TIn[] | (() => TIn[]) | undefined, map: (ite
     result.registerCleanup(lengthSubscription);
 
     return result.removeAsFragment();
+}
 
-    function cleanupOutput({ cleanup, container, subscription }: Output) {
-        cleanup?.();
-        subscription?.dispose();
-        container.removeAsFragment();
-        container.cleanup();
-    }
+function cleanupOutput({ cleanup, container, subscription }: Output) {
+    cleanup?.();
+    subscription?.dispose();
+    container.cleanup();
 }
 
 /**
@@ -87,7 +104,7 @@ export function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]) 
 
             effect(function forEachPersistItemEffect(dep) {
                 // just keep the contents together with a parent somewhere
-                container.emptyAsFragment();
+                container.empty();
 
                 const item = arrayDefined[i];
                 if (item == null) return; // probably an array key deletion

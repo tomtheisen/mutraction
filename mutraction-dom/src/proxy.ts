@@ -160,8 +160,8 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
         newValue = maybeGetProxy(newValue, tracker) ?? newValue;
 
         const mutation: SingleMutation = name in target
-            ? { type: "change", target, name, oldValue: model[name], newValue, timestamp: new Date }
-            : { type: "create", target, name,                        newValue, timestamp: new Date };
+            ? { type: "change", target, name, oldValue: model[name], newValue }
+            : { type: "create", target, name,                        newValue };
         
         const initialSets = setsCompleted;
         const wasSet = Reflect.set(target, name, newValue, receiver);
@@ -185,9 +185,7 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
             
             if (newLength < oldLength) {
                 const removed = Object.freeze(target.slice(newLength, oldLength));
-                const shorten: ArrayShorten = {
-                    type: "arrayshorten", target, name, oldLength, newLength, removed, timestamp: new Date
-                };
+                const shorten: ArrayShorten = { type: "arrayshorten", target, name, oldLength, newLength, removed };
                 const wasSet = Reflect.set(target, name, newValue, receiver);
                 tracker[RecordMutation](shorten);
                 ++setsCompleted;
@@ -200,7 +198,7 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
             if (index >= target.length) {
                 // assignment to array index will lengthen array    
                 const extension: ArrayExtend = { 
-                    type: "arrayextend", target, name, oldLength: target.length, newIndex: index, newValue, timestamp: new Date
+                    type: "arrayextend", target, name, oldLength: target.length, newIndex: index, newValue
                 };
                 const wasSet = Reflect.set(target, name, newValue, receiver);
                 tracker[RecordMutation](extension);
@@ -213,7 +211,7 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
     }
 
     function deleteProperty(target: TModel, name: TKey) {
-        const mutation: DeleteProperty = { type: "delete", target, name, oldValue: model[name], timestamp: new Date };
+        const mutation: DeleteProperty = { type: "delete", target, name, oldValue: model[name] };
         const wasDeleted = Reflect.deleteProperty(target, name);
         if (wasDeleted) {
             tracker[RecordMutation](mutation);
