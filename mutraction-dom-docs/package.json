@@ -6,10 +6,10 @@
   "main": "index.js",
   "scripts": {
     "build": "npx tsc && npm run transform && npm run bundle && npm run publish && npm run cleanout",
-    "transform": "npx babel out -d out2",
-    "bundle": "npx esbuild out2/index.js --bundle --format=esm --outfile=dist/index.js",
-    "cleanout": "rd /Q /S out && rd /Q /S out2",
-    "publish": "xcopy /y assets publish\\assets\\ && xcopy /y dist publish\\dist\\ && xcopy /y cases publish\\cases\\ && copy index.html publish && copy _redirects publish",
+      "transform": "npx babel out -d out2",
+      "bundle": "npx esbuild out2/index.js --bundle --format=esm --outfile=dist/index.js",
+      "publish": "xcopy /y assets publish\\assets\\ && xcopy /y dist publish\\dist\\ && xcopy /y cases publish\\cases\\ && copy index.html publish && copy _redirects publish",
+      "cleanout": "rd /Q /S out && rd /Q /S out2",
     "start": "npx http-server publish -b -c20 -o"
   },
   "author": "Tom Theisen",

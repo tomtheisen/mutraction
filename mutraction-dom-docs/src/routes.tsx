@@ -24,6 +24,7 @@ import { effectDoc } from "./ref/effectDoc.js";
 import { routerDoc } from "./ref/routerDoc.js";
 import { trackerDoc } from "./ref/trackerDoc.js";
 import { makeLocalStyleDoc } from "./ref/makeLocalStyleDoc.js";
+import { neverTrackDoc } from "./ref/neverTrackDoc.js";
 import { untrackedCloneDoc } from "./ref/untrackedCloneDoc.js";
 
 import { mounting } from "./recipes/mounting.js";
@@ -62,6 +63,7 @@ export const routes = Router(
     { pattern: '#ref/Tracker', element: trackerDoc },
     { pattern: '#ref/apply', element: apply },
     { pattern: '#ref/makeLocalStyle', element: makeLocalStyleDoc },
+    { pattern: '#ref/neverTrack', element: neverTrackDoc },
     { pattern: '#ref/untrackedClone', element: untrackedCloneDoc },
 
     { pattern: '#recipes/mounting', element: mounting },

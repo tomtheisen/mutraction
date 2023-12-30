@@ -44,11 +44,18 @@ const unproxyableConstructors: Set<Function> = new Set([RegExp, Promise]);
 // Detect node; node's constructor chains appear slightly different
 if ("window" in globalThis) unproxyableConstructors.add(globalThis.window.constructor)
 
+const neverTracked = new WeakSet<object>;
+export function neverTrack<T extends object>(obj: T): T {
+    neverTracked.add(obj);
+    return obj;
+}
+
 export function canBeProxied(val: unknown): val is object {
     if (val == null) return false;
     if (typeof val !== "object") return false;
     if (isTracked(val)) return false;
     if (!Object.isExtensible(val)) return false;
+    if (neverTracked.has(val)) return false;
 
     if (unproxyableConstructors.has(val.constructor)) return false;
 

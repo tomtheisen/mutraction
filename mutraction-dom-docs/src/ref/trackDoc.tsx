@@ -21,6 +21,11 @@ export function trackDoc() {
                 </li>
             </ul>
 
+            <h2>Return value</h2>
+            <p>
+                This returns the model, wrapped in a tracking proxy.
+            </p>
+
             <p>
                 This function uses the default <a href="#ref/Tracker"><code>Tracker</code></a> instance.
                 This is probably almost always what you want.  

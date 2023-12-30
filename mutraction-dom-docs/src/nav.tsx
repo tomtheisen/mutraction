@@ -4,7 +4,7 @@ export const nav =
             <li><a href="?">Introduction</a></li>
             <li><a href="#start">Getting Started</a></li>
             <li>
-                <details open={true}>
+                <details open>
                     <summary><a>Topics</a></summary>
                     <ul>
                         <li><a href="#topics/tracking">Model tracking</a></li>
@@ -19,27 +19,49 @@ export const nav =
                 </details>
             </li>
             <li>
-                <details open={true}>
+                <details open>
                     <summary><a>Reference</a></summary>
                     <ul>
                         <li><a href="#ref/track">track()</a></li>
                         <li><a href="#ref/effect">effect()</a></li>
-                        <li><a href="#ref/ifelse">mu:if / mu:else</a></li>
-                        <li><a href="#ref/syncEvent">mu:syncEvent</a></li>
-                        <li><a href="#ref/apply">mu:apply</a></li>
-                        <li><a href="#ref/ForEach">ForEach()</a></li>
-                        <li><a href="#ref/ForEachPersist">ForEachPersist()</a></li>
-                        <li><a href="#ref/PromiseLoader">PromiseLoader()</a></li>
-                        <li><a href="#ref/Swapper">Swapper()</a></li>
-                        <li><a href="#ref/Router">Router()</a></li>
-                        <li><a href="#ref/makeLocalStyle">makeLocalStyle()</a></li>
-                        <li><a href="#ref/untrackedClone">untrackedClone()</a></li>
                         <li><a href="#ref/Tracker">Tracker</a></li>
+                        <li>
+                            <details>
+                                <summary><a>JSX attributes</a></summary>
+                                <ul>
+                                    <li><a href="#ref/ifelse">mu:if / mu:else</a></li>
+                                    <li><a href="#ref/syncEvent">mu:syncEvent</a></li>
+                                    <li><a href="#ref/apply">mu:apply</a></li>
+                                </ul>
+                            </details>
+                        </li>
+                        <li>
+                            <details>
+                                <summary><a>DOM wrappers</a></summary>
+                                <ul>
+                                    <li><a href="#ref/ForEach">ForEach()</a></li>
+                                    <li><a href="#ref/ForEachPersist">ForEachPersist()</a></li>
+                                    <li><a href="#ref/PromiseLoader">PromiseLoader()</a></li>
+                                    <li><a href="#ref/Swapper">Swapper()</a></li>
+                                    <li><a href="#ref/Router">Router()</a></li>
+                                </ul>
+                            </details>
+                        </li>
+                        <li>
+                            <details>
+                                <summary><a>Other functions</a></summary>
+                                <ul>
+                                    <li><a href="#ref/makeLocalStyle">makeLocalStyle()</a></li>
+                                    <li><a href="#ref/neverTrack">neverTrack()</a></li>
+                                    <li><a href="#ref/untrackedClone">untrackedClone()</a></li>
+                                </ul>
+                            </details>
+                        </li>
                     </ul>
                 </details>
             </li>
             <li>
-                <details open={true}>
+                <details open>
                     <summary><a>Recipes</a></summary>
                     <ul>
                         <li><a href="#recipes/mounting">Mounting components</a></li>
