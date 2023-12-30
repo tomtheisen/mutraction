@@ -16,11 +16,12 @@ export function choose(...choices: ConditionalElement[]): Node {
     let current: ChildNode | undefined;
     let currentNodeGetter: () => ChildNode;   
 
-    // Flag is set when condition value caused the resolved node to change.
-    // The effect needs to be disposed when the node is cleaned up, but only without the flag.
-    let conditionChanging = false;
+    // count is incremented when condition value caused the resolved node to change.
+    // The effect needs to be disposed when the node is cleaned up, but only when there's no pending change cleanup.
+    let changeCount = 0;
     function dispose() {
-        if (!conditionChanging) sub.dispose();
+        if (changeCount === 0) sub.dispose();
+        else --changeCount;
     }
 
     const sub = effect(function chooseEffect() {
@@ -38,9 +39,8 @@ export function choose(...choices: ConditionalElement[]): Node {
         // but we don't want to rebuild the node
         if (newNodeGetter !== currentNodeGetter) {
             if (current) {
-                conditionChanging = true;
+                ++changeCount;
                 cleanup(current);
-                conditionChanging = false;
             }
 
             currentNodeGetter = newNodeGetter;

@@ -18,7 +18,7 @@ if ("sessionStorage" in globalThis) {
     }
 
     Object.assign(window, { [Symbol.for("mutraction.debug")]: enableDebugMode });
-    if (["localhost", "127.0.0.1", "[::1]"].includes(location.hostname) && !isDebugMode) {
+    if (["localhost", "127.0.0.1", "[::1]", ""].includes(location.hostname) && !isDebugMode) {
         console.info(`[µ] Try the mutraction diagnostic tool.  This message is only shown from localhost, but the tool is always available.`);
         console.info("» window[Symbol.for('mutraction.debug')]()");
     }
