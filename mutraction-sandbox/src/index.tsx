@@ -165,7 +165,10 @@ function run(code: string | undefined = editor?.getValue()) {
     try {
         appState.compiledCode = muCompile(code);
         frame.addEventListener("load", ev => {
-            frame.contentWindow?.postMessage(appState.compiledCode, "*");
+            console.log("experimentally waiting to post message");
+            setTimeout(() => {
+                frame.contentWindow?.postMessage(appState.compiledCode, "*");
+            }, 500);
         }, { once: true });
         frame.contentWindow?.location.reload();
 
