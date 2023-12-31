@@ -1,4 +1,4 @@
-import { cleanup } from "./cleanup.js";
+import { cleanupNode } from "./cleanup.js";
 import { effect } from "./effect.js";
 import { ElementSpan } from "./elementSpan.js";
 import { NodeOptions, isNodeOptions } from "./types.js";

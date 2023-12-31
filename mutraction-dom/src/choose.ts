@@ -1,4 +1,4 @@
-import { cleanup, registerCleanup } from "./cleanup.js";
+import { cleanupNode, registerCleanupForNode } from "./cleanup.js";
 import { effect } from "./effect.js";
 
 type ConditionalElement = {
@@ -40,14 +40,14 @@ export function choose(...choices: ConditionalElement[]): Node {
         if (newNodeGetter !== currentNodeGetter) {
             if (current) {
                 ++changeCount;
-                cleanup(current);
+                cleanupNode(current);
             }
 
             currentNodeGetter = newNodeGetter;
             const newNode = currentNodeGetter();
             current?.replaceWith(newNode);
 
-            registerCleanup(newNode, { dispose });
+            registerCleanupForNode(newNode, { dispose });
             current = newNode;
         }
     }, suppress);

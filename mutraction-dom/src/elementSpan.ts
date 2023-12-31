@@ -1,4 +1,4 @@
-import { cleanup, registerCleanup } from "./cleanup.js";
+import { cleanupNode, registerCleanupForNode } from "./cleanup.js";
 import { Subscription } from "./types.js";
 
 /**
@@ -41,7 +41,7 @@ export class ElementSpan {
         while ((next = this.startMarker.nextSibling) !== this.endMarker) {
             if (next == null)
                 throw Error("End marker not found as subsequent document sibling as start marker");
-            cleanup(next);
+            cleanupNode(next);
             next.remove();
         }
     }
@@ -63,12 +63,12 @@ export class ElementSpan {
     }
 
     registerCleanup(subscription: Subscription) {
-        registerCleanup(this.startMarker, subscription);
+        registerCleanupForNode(this.startMarker, subscription);
     }
 
     /** empties the contents of the span, and invokes cleanup on each child node */
     cleanup() {
         this.empty();
-        cleanup(this.startMarker);
+        cleanupNode(this.startMarker);
     }
 }

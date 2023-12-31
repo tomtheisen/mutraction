@@ -1,8 +1,13 @@
 import { Subscription } from "./types.js";
 
+type CleanupItem<T = any> = {
+    task: (data: T) => void;
+    data: T;
+}
+
 const nodeCleanups = new WeakMap<ChildNode, Subscription[]>;
 
-export function registerCleanup(node: ChildNode, subscription: Subscription) {
+export function registerCleanupForNode(node: ChildNode, subscription: Subscription) {
     if (subscription.noop) return;
     
     const cleanups = nodeCleanups.get(node);
@@ -14,7 +19,13 @@ export function registerCleanup(node: ChildNode, subscription: Subscription) {
     }
 }
 
-export const cleanup = (scheduleCleanup<ChildNode>).bind(null, doCleanup);
+/** 
+ * Immediately dispose all the subscriptions held by a DOM node and its descendants.
+ * This is useful when it's being removed from the document.
+ * You don't usually need to call this in application code.  
+ * Mutraction does it for you, unless you're imperatively manipulating the document.
+ */
+export const cleanupNode = (scheduleCleanup<ChildNode>).bind(null, doCleanup);
 
 function doCleanup(node: ChildNode) {
     const cleanups = nodeCleanups.get(node);
@@ -23,34 +34,15 @@ function doCleanup(node: ChildNode) {
     if (node instanceof Element) node.childNodes.forEach(doCleanup);
 }
 
-type CleanupItem<T = any> = {
-    task: (data: T) => void;
-    data: T;
-}
-
 let pending = false;
 let queue: CleanupItem[] = [];
-
-// dumb polyfill, come on safari
-if (!("requestIdleCallback" in globalThis)) {
-    const never: IdleDeadline = {
-        didTimeout: false,
-        timeRemaining() { return 1e3; },
-    }
-
-    Object.assign(globalThis, {
-        requestIdleCallback(callback: IdleRequestCallback) {
-            requestAnimationFrame(callback.bind(null, never));
-        }
-    });
-}
 
 function processQueue(deadline: IdleDeadline) {
     let complete = 0;
     let start = performance.now();
 
     while(queue.length) {
-        const { task, data} = queue.shift()!;
+        const { task, data } = queue.shift()!;
         task(data);
 
         const elapsed = performance.now() - start;
@@ -62,6 +54,14 @@ function processQueue(deadline: IdleDeadline) {
     else pending = false;
 }
 
+/**
+ * Immediately and synchronously perform all cleanups scheduled via `scheduleCleanup()`
+ */
+export function doScheduledCleanupsNow() {
+    for (const { task, data } of queue) task(data);
+    queue.length = 0;
+}
+
 export function scheduleCleanup<T>(task: (t: T) => void, data: T) {
     queue.push({ task, data });
 
@@ -69,4 +69,18 @@ export function scheduleCleanup<T>(task: (t: T) => void, data: T) {
         window.requestIdleCallback(processQueue);
         pending = true;
     }
+}
+
+// dumb requestIdleCallback polyfill, come on safari
+if (!("requestIdleCallback" in globalThis)) {
+    const never: IdleDeadline = {
+        didTimeout: false,
+        timeRemaining() { return 1e3; },
+    }
+
+    Object.assign(globalThis, {
+        requestIdleCallback(callback: IdleRequestCallback) {
+            requestAnimationFrame(callback.bind(null, never));
+        }
+    });
 }

@@ -3,7 +3,7 @@ import { defaultTracker } from "./tracker.js";
 import { DependencyList } from "./dependency.js";
 import { PropReference } from "./propref.js";
 import { NodeModifier, Subscription } from "./types.js";
-import { registerCleanup } from "./cleanup.js";
+import { registerCleanupForNode } from "./cleanup.js";
 import { isDebugMode } from "./debug.js";
 
 const suppress = { suppressUntrackedWarning: true };
@@ -101,7 +101,7 @@ export function element<E extends keyof HTMLElementTagNameMap>(
                     if (isDebugMode) addNodeDependency(el, dl);
                 }
                 const sub = effect(updateStyle, suppress);
-                registerCleanup(el, sub);
+                registerCleanupForNode(el, sub);
                 break;
             }
 
@@ -112,7 +112,7 @@ export function element<E extends keyof HTMLElementTagNameMap>(
                     if (isDebugMode) addNodeDependency(el, dl);
                 }
                 const sub = effect(updateClassList, suppress);
-                registerCleanup(el, sub);
+                registerCleanupForNode(el, sub);
                 break;
             }
 
@@ -122,7 +122,7 @@ export function element<E extends keyof HTMLElementTagNameMap>(
                     if (isDebugMode) addNodeDependency(el, dl);
                 }
                 const sub = effect(updateAttribute, suppress);
-                registerCleanup(el, sub);
+                registerCleanupForNode(el, sub);
                 break;
             }
         }
@@ -152,12 +152,12 @@ export function child(getter: () => number | string | bigint | null | undefined 
         }
         else {
             const newNode = document.createTextNode(String(val ?? ""));
-            if (sub) registerCleanup(newNode, sub);
+            if (sub) registerCleanupForNode(newNode, sub);
             node.replaceWith(newNode);
             node = newNode;
             if (isDebugMode) addNodeDependency(node, dl);
         }
     }, suppress);
-    registerCleanup(node, sub);
+    registerCleanupForNode(node, sub);
     return node;
 }

@@ -11,7 +11,7 @@
   "types": "dist/index.d.ts",
   "files": [ "dist" ],
   "scripts": {
-    "build": "npm run clean  && npx tsc && npm run version && npm run bundle && npm run types && npm run compiler && npm run cleanout && npm run minify && npm run readme",
+    "build": "npm run clean && npx tsc && npm run version && npm run bundle && npm run types && npm run compiler && npm run cleanout && npm run minify && npm run readme",
       "clean": "del /Q /S dist && del /Q /S out",
       "version": "node tasks/injectVersion.js",
       "bundle": "npx esbuild out/index.js --bundle --format=esm --outfile=dist/index.js --external:@babel/core --external:@babel/types",
@@ -36,6 +36,7 @@
     "@types/babel__core": "^7.20.1"
   },
   "devDependencies": {
+    "dts-bundle-generator": "^9.2.1",
     "esbuild": "^0.19.1",
     "typescript": "^5.1.6",
     "uvu": "^0.5.6"

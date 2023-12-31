@@ -1,4 +1,4 @@
-import { cleanup, scheduleCleanup } from "./cleanup.js";
+import { cleanupNode, scheduleCleanup } from "./cleanup.js";
 import { effect } from "./effect.js"
 import { ElementSpan } from './elementSpan.js';
 import { Swapper } from "./swapper.js";
