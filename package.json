@@ -12,8 +12,5 @@
       "copy:docs": "xcopy /y /s mutraction-dom-docs\\publish\\ publish\\",
       "copy:sandbox": "xcopy /y /s mutraction-sandbox\\publish\\ publish\\sandbox\\",
     "start": "npx http-server publish -o -b -c20"
-  },
-  "devDependencies": {
-    "dts-bundle-generator": "^8.0.1"
   }
 }

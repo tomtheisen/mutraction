@@ -10,16 +10,6 @@ export { effect } from './effect.js';
 export { Router } from './router.js';
 export { makeLocalStyle } from './makeLocalStyle.js';
 export { untrackedClone } from './untrackedClone.js';
-
-// https://github.com/timocov/dts-bundle-generator/issues/283
-// export * as cleanup from "./cleanup.js";
-
-import { cleanupNode, doScheduledCleanupsNow, registerCleanupForNode, scheduleCleanup } from "./cleanup.js";
-export const cleanup = {
-    cleanupNode: cleanupNode,
-    doScheduledCleanupsNow: doScheduledCleanupsNow,
-    registerCleanupForNode: registerCleanupForNode,
-    scheduleCleanup: scheduleCleanup,
-};
+export * as cleanup from "./cleanup.js";
 
 export const version = "__VER__" as string;
