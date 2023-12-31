@@ -6,7 +6,7 @@ export type Assertion = {
 export type TestScenario = {
     root: ParentNode;
     steps: {
-        action: () => void; // model mutation
+        action: () => void | Promise<void>; // model mutation
         assertions: Assertion[];
     }[];
     started?: true;

@@ -5,6 +5,7 @@ import ifElseFactory from "./scenarios/choose.js";
 import transactionFactory from "./scenarios/transaction.js";
 import forEachFactory from "./scenarios/foreach.js";
 import swapperFactory from "./scenarios/swapper.js";
+import promiseLoaderFactory from "./scenarios/promise.js";
 
 defaultTracker.setOptions({ 
     autoTransactionalize: false, // need explicit tranaction control for tests
@@ -22,13 +23,13 @@ const model = track({
         transactionFactory,
         forEachFactory,
         swapperFactory,
-        // promiseLoaderFactory,
+        promiseLoaderFactory,
         // syncEventFactory,
         // localStyleFactory,
     ],
 });
 
-function runActive() {
+async function runActive() {
     if (!model.activeScenario) return;
     if (model.activeScenario.started) {
         model.activeScenario = model.activeFactory!.create();
@@ -38,7 +39,8 @@ function runActive() {
 
     scenario.started = true;
     for (const step of scenario.steps) {
-        step.action();
+        const resolution = step.action();
+        if (resolution) await resolution;
 
         for (const assertion of step.assertions) {
             const success = assertion.condition(scenario.root);
@@ -54,13 +56,13 @@ function runActive() {
     model.scenariosComplete++;
 }
 
-function runAll() {
+async function runAll() {
     model.scenariosComplete = model.stepsComplete = 0;
     model.failures.length = 0;
     for (const factory of model.scenarioFactories) {
         model.activeFactory = factory;
         model.activeScenario = factory.create();
-        runActive();
+        await runActive();
     }
 
     model.activeFactory = undefined;
