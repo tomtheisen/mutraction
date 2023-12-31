@@ -35,7 +35,7 @@ export const tracking = (
         <h2>How does it work?</h2>
         <p>
             <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy">Proxies</a> allow 
-            the injection of arbitrary behavior on property reads, writes, and deletes. (among other things)
+            the injection of arbitrary behavior on property reads, writes, and deletes (among other things).
             This allows for property reads to create subscriptions and property mutations to notify those subscribers.
         </p>
         <p>
