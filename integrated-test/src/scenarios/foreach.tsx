@@ -1,4 +1,4 @@
-import { neverTrack, track, defaultTracker, untrackedClone, ForEach } from "mutraction-dom";
+import { neverTrack, track, ForEach } from "mutraction-dom";
 import type { TestScenario, TestScenarioFactory } from "../types.js";
 
 function create(): TestScenario {
@@ -18,6 +18,8 @@ function create(): TestScenario {
                 ) }
             </ul>
         </div> as HTMLDivElement);
+
+    let lis: HTMLElement[] = [];
 
     const steps = [
         { 
@@ -49,6 +51,27 @@ function create(): TestScenario {
                     condition: () => root.querySelectorAll("li").length === 0,
                     message: "All list items should be removed",
                 },
+            ]
+        },
+        {
+            action() { model.items.push({ id: 33, name: "wert" }, { id: 44, name: "erty" }) },
+            assertions: [
+                {
+                    condition() {
+                        const lis = Array.from(root.querySelectorAll("li"));
+                        return lis.length === 2;
+                    },
+                    message: "There should be 2 <li>s.",
+                },
+            ]
+        },
+        {
+            action() { model.items.reverse(); },
+            assertions: [
+                {
+                    condition: () => Array.from(root.querySelectorAll("li")).every(li => !lis.includes(li)),
+                    message: "Reversing array should make all new elements",
+                }
             ]
         },
     ];

@@ -1,4 +1,4 @@
-import { neverTrack, track, cleanup, PromiseLoader } from "mutraction-dom";
+import { neverTrack, PromiseLoader } from "mutraction-dom";
 import type { TestScenario, TestScenarioFactory } from "../types.js";
 
 function getPromiseBundle() {

@@ -1,4 +1,4 @@
-import { neverTrack, track, defaultTracker, untrackedClone } from "mutraction-dom";
+import { neverTrack, track, defaultTracker } from "mutraction-dom";
 import type { TestScenario, TestScenarioFactory } from "../types.js";
 
 function create(): TestScenario {

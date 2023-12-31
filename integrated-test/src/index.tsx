@@ -6,6 +6,8 @@ import transactionFactory from "./scenarios/transaction.js";
 import forEachFactory from "./scenarios/foreach.js";
 import swapperFactory from "./scenarios/swapper.js";
 import promiseLoaderFactory from "./scenarios/promise.js";
+import makeLocalStyleFactory from "./scenarios/localStyle.js";
+import syncEventFactory from "./scenarios/syncEvent.js";
 
 defaultTracker.setOptions({ 
     autoTransactionalize: false, // need explicit tranaction control for tests
@@ -24,8 +26,8 @@ const model = track({
         forEachFactory,
         swapperFactory,
         promiseLoaderFactory,
-        // syncEventFactory,
-        // localStyleFactory,
+        makeLocalStyleFactory,
+        syncEventFactory,
     ],
 });
 
