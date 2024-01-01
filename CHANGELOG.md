@@ -7,7 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
 - Expose some DOM node cleanup functions under the exported object `cleanup`.  There's almost never a use for these directly.  But I'm saying there's a chance.
+
+### Changed
+
+- The `ignoreUpdates()` instance method on `Tracker` now returns the result of its callback argument.
+- A warning is logged to the console if a new object is tracked during the callback to `Swapper()`.  This is probably unintentional, and can cause dependencies that  make the swapper reload more often than intended.
 
 ## [0.25.1] - 2023-12-29
 

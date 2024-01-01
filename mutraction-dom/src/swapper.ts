@@ -1,4 +1,3 @@
-import { cleanupNode } from "./cleanup.js";
 import { effect } from "./effect.js";
 import { ElementSpan } from "./elementSpan.js";
 import { NodeOptions, isNodeOptions } from "./types.js";
@@ -14,6 +13,7 @@ export function Swapper(nodeFactory: () => Node | NodeOptions) {
 
     const swapperSubscription = effect(function swapperEffect(dep) {
         span.empty();
+        dep.newTrackingWarning = "track() was called during Swapper() callback.  That's not generally recommended.  You might have some swap triggers you didn't intend."
         const output = nodeFactory();
 
         if (isNodeOptions(output)) {

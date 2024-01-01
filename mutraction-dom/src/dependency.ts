@@ -18,6 +18,11 @@ export class DependencyList {
     #subscribers: Set<Subscriber> = new Set;
     active = true;
 
+    /** If an untracked object starts being tracked while this DependencyList is on top of the stack, console warn.
+     * Useful for Swapper(), maybe other stuff too.
+     */
+    newTrackingWarning?: string;
+
     constructor(tracker: Tracker) {
         this.#tracker = tracker;
     }

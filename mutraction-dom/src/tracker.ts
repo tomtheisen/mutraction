@@ -71,6 +71,9 @@ export class Tracker {
      */
     track<TModel extends object>(model: TModel): TModel {
         if (isTracked(model)) throw Error('Object already tracked');
+        if (this.#dependencyTrackers[0]?.newTrackingWarning) {
+            console.warn(this.#dependencyTrackers[0]?.newTrackingWarning);
+        }
         this.#inUse = true;
         prepareForTracking(model, this);
         const proxied = new Proxy(model, makeProxyHandler(model, this));
@@ -311,11 +314,15 @@ export class Tracker {
     }
 
     /** Run the callback without calling any subscribers */
-    ignoreUpdates(callback: () => void) {
+    ignoreUpdates<T>(callback: () => T): T {
         const dep = this.startDependencyTrack();
         dep.active = false;
-        callback();
-        dep.endDependencyTrack();
+        try {
+            return callback();
+        }
+        finally {
+            dep.endDependencyTrack();
+        }
     }
 
     /** Create a new `DependencyList` from this tracker  */
