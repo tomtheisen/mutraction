@@ -27,7 +27,7 @@
             el.type = 'module';
             el.textContent = moduleSource;
             el.src = URL.createObjectURL(new Blob([el.textContent], {type:'application/javascript'}));
-            document.body.append(el);
+            document.body.replaceChildren(el);
         }
         window.addEventListener("message", ev => runCode(ev.data));
 
@@ -54,4 +54,7 @@
         });        
     </script>
 </head>
+<body>
+    Hello. The frame loaded.
+</body>
 </html>

@@ -168,7 +168,7 @@ function run(code: string | undefined = editor?.getValue()) {
             console.log("experimentally waiting to post message");
             setTimeout(() => {
                 frame.contentWindow?.postMessage(appState.compiledCode, "*");
-            }, 500);
+            }, 5000);
         }, { once: true });
         frame.contentWindow?.location.reload();
 
