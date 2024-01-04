@@ -120,7 +120,6 @@ test('compact into nothing', () => {
         parent: undefined, 
         operations: [], 
         dependencies: new Set([createOrRetrievePropRef(model, "x")]),
-        timestamp: tr.history[0].timestamp,
     }]);
 });
 
@@ -142,7 +141,6 @@ test('compound noop', () => {
             type:'transaction', 
             operations: [], 
             dependencies: new Set, 
-            timestamp: tr.history[0].timestamp,
             transactionName: "noop2", 
         }])
     );

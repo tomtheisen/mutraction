@@ -70,11 +70,9 @@ test('action log recipe', () => {
                         "oldLength":3,
                         "newIndex":3,
                         "newValue":5,
-                        timestamp: (tr as any).history[0].operations[0].timestamp
                     }
                 ],
                 "dependencies":{},
-                timestamp: tr.history[0].timestamp,
                 "transactionName":"add",
             }
         ])

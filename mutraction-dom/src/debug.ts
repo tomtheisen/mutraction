@@ -141,6 +141,7 @@ if ("sessionStorage" in globalThis) {
             },
             closeButton, toggle, "μ diagnostics");
 
+        // active effects
         const effectDetails = el("div", { whiteSpace: "pre" });
         const effectCount = el("span", {}, "0");
         const effectSummary = el("details", { cursor: "pointer", marginBottom: "1em" }, 
@@ -157,6 +158,7 @@ if ("sessionStorage" in globalThis) {
             }
         });
 
+        // history
         const undoButton = el("button", {}, "Undo");
         const redoButton = el("button", {}, "Redo");
         queueMicrotask(() => {
@@ -167,8 +169,8 @@ if ("sessionStorage" in globalThis) {
         const history = defaultTracker.history;
         const historyCount = el("span", {}, "0");
         const historyList = el("ol", {});
-        const historySummary = el("details", { cursor: "pointer", marginBottom: "1em" },
-            el("summary", {}, 
+        const historySummary = el("details", { marginBottom: "1em" },
+            el("summary", { cursor: "pointer" }, 
                 el("strong", {}, "Recent history: "),
                 historyCount, " total " , undoButton, redoButton
             ),
@@ -182,6 +184,7 @@ if ("sessionStorage" in globalThis) {
             historyList.replaceChildren(...items);
         });
         
+        // all proprefs
         const propRefCountNumber = el("span", {}, "0");
 
         const allPropRefs = getAllPropRefs();
