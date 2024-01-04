@@ -102,9 +102,9 @@ export function makeProxyHandler<TModel extends object>(model: TModel, tracker: 
         if (name === GetOriginal) return target;
         if (name === AccessPath) return target[name];
 
+        let result = Reflect.get(target, name, receiver) as TModel[TKey];
         tracker[RecordDependency](createOrRetrievePropRef(target, name));
 
-        let result = Reflect.get(target, name, receiver) as TModel[TKey];
         if (result && typeof result === "object" && isDebugMode) {
             setAccessPath(result, getAccessPath(target), name);
         }

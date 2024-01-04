@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `ignoreUpdates()` instance method on `Tracker` now returns the result of its callback argument.
 - A warning is logged to the console if a new object is tracked during the callback to `Swapper()`.  This is probably unintentional, and can cause dependencies that  make the swapper reload more often than intended.
 
+### Fixed
+
+- `tracker.getPropRef()` now favors outer property references in the callback over inner ones.  For example `defaultTracker.getPropRef(() => model.fullName)` will return a reference to the "fullName" property, even if refers to `firstName` and `lastName` in its implementation.
+
 ## [0.25.1] - 2023-12-29
 
 ### Added

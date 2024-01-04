@@ -37,4 +37,17 @@ test('get prop ref makes no dependency', () => {
     assert.equal(pr.prop, "x");
 });
 
+test('get prop ref does not include implementation of getters', () => {
+    class C {
+        first = "abc";
+        last = "zxcv";
+        get full() { return `${this.first} ${this.last}` }
+    }
+    
+    const model = track(new C);
+    const pr = defaultTracker.getPropRef(() => model.full); 
+
+    assert.equal(pr.prop, "full");
+});
+
 test.run();
