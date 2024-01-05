@@ -9,10 +9,6 @@ import { getSelfContainedUrl } from "./selfContained.js";
 import { muCompile } from "./compile.js";
 import { getShortLink } from "./shortLinks.js";
 
-// monaco ambience
-declare const require: Function & { config: Function };
-declare const monaco: typeof monacoType;
-
 const storageKey = "mu_playground_source";
 
 const query = new URL(location.href).searchParams;
@@ -54,7 +50,6 @@ effect(() => {
         : "50vw";
     sourceBox.style.minWidth = appState.view === "normal" ? "10vw" : "";
     sourceBox.style.maxWidth = appState.view === "normal" ? "90vw" : "";
-    editor?.layout();
     
     // set URL parameter
     const query = new URL(location.href).searchParams;
@@ -96,12 +91,6 @@ function hamburger() {
         if (hamburgerState.isActive) {
             document.body.addEventListener("mousedown", outClickHandler, { capture: true });
             window.addEventListener("blur", () => hamburgerState.isActive = false, { once: true });
-            const code = editor?.getValue();
-            if (code) {
-                hamburgerState.downloadScaffoldLink = getScaffoldZipUrl(code);
-                hamburgerState.downloadSelfContainedLink = getSelfContainedUrl(code);
-                hamburgerState.runLink = getRunLink(code);
-            }
         }
         else {
             document.body.removeEventListener("mousedown", outClickHandler, { capture: true });
@@ -139,7 +128,6 @@ function hamburger() {
                                 err => <a className="err">{ err }</a>
                         )) }
                     </li>
-                    <li onclick={ () => editor?.setValue(defaultSource) }><a>✨ New</a></li>
                     <li onclick={ () => appState.view = "code" }>
                         <a>⟺ Fullscreen editor</a>
                         <kbd>Alt + 1</kbd>
@@ -158,18 +146,12 @@ function hamburger() {
     return hamburger;
 }
 
-function run(code: string | undefined = editor?.getValue()) {
+function run(code: string | undefined = "") {
     if (!code) return;
 
     sessionStorage.setItem(storageKey, code);
     try {
         appState.compiledCode = muCompile(code);
-        frame.addEventListener("load", ev => {
-            console.log("experimentally waiting to post message");
-            setTimeout(() => {
-                frame.contentWindow?.postMessage(appState.compiledCode, "*");
-            }, 5000);
-        }, { once: true });
         frame.contentWindow?.location.reload();
 
         // if you run, you want to see output
@@ -184,24 +166,6 @@ function run(code: string | undefined = editor?.getValue()) {
             position: "relative",
             overflowX: "auto",            
         };
-        const clearStyle: Partial<CSSStyleDeclaration> = {
-            position: "absolute",
-            top: "1em",
-            right: "0",
-        };
-        const errBanner = 
-            <div style={ style }>
-                <button style={clearStyle} onclick={ () => editor?.setBanner(null, 20) }>✕</button>
-                { err instanceof Error ? err.message : String(err) }
-            </div> as HTMLElement;
-        editor?.setBanner(errBanner, 20);
-        if (err && typeof err === "object" && "loc" in err) {
-            const { line = undefined, column = undefined } = err?.loc ?? {} as any;
-            if (typeof line === "number" && typeof column === "number") {
-                editor?.revealLineInCenter(line);
-                editor?.setPosition({ lineNumber: line, column: column });
-            }
-        }
     }
 }
 
@@ -217,7 +181,6 @@ window.addEventListener("message", ev => {
 
         case "zen":
             document.firstElementChild?.classList.toggle("zen");
-            editor?.layout();
             break;
 
         case "display":
@@ -265,46 +228,13 @@ function stopSizing() {
 function updateSize(ev: MouseEvent) {
     appState.view = "normal";
     sourceBox.style.width = ev.pageX + "px";
-    editor?.layout();
     ev.stopPropagation();
 }
-
-window.addEventListener("resize", ev => editor?.layout());
 
 async function share() {
     appState.shortLinkLoading = appState.shortLinkDialogOpen = true;
     appState.shortRunLinkError = appState.shortLinkError = "";
     appState.shortRunLink = appState.shortLink = "";
-    const compressed = await compress(editor?.getValue() ?? "");
-    const longLink = new URL(location.href);
-    longLink.hash = compressed;
-    history.replaceState({}, "", longLink.href);
-
-    try {
-        appState.shortLink = await getShortLink(longLink.href);
-    }
-    catch (err) {
-        appState.shortLinkError = String(err);
-    }
-    finally {
-        appState.shortLinkLoading = false;
-    }
-}
-
-async function shareRun() {
-    appState.shortRunLinkLoading = true;
-    const runLink = await getRunLink(editor?.getValue() ?? "");
-    const longLink = new URL(runLink, location.href);
-
-    try {
-        appState.shortRunLink = await getShortLink(longLink.href);
-    }
-    catch (err) {
-        appState.shortRunLinkError = String(err);
-    }
-    finally {
-        appState.shortRunLinkLoading = false;
-    }
 }
 
 async function doCopy(val: string) {
@@ -344,7 +274,6 @@ const dialog =
             { appState.shortRunLinkError }<br/>
             You can still use the long link in the URL bar.
         </p>
-        <p mu:else><button onclick={ shareRun }>Get standalone link</button></p>
     </dialog> as HTMLDialogElement;
 
 effect(() => {
@@ -383,48 +312,10 @@ const app =
 
 document.body.append(app, dialog);
 
-let editor: ReturnType<typeof monaco["editor"]["create"]> | undefined;
 async function init() {
     const source = location.hash.length > 1
         ? await decompress(location.hash.substring(1))
         : sessionStorage.getItem(storageKey) ?? defaultSource;
     run(source);
-
-    const indexDts = await getMutractionDomDts();
-    const jsxDts = await getJsxDts();
-
-    // this stuff is actually async, but not awaitable
-    require.config({ paths: { vs: 'monaco/vs' } });
-    require(['vs/editor/editor.main'], function () {
-        // ts compiler options
-        const existing = monaco.languages.typescript.typescriptDefaults.getCompilerOptions();
-        monaco.languages.typescript.typescriptDefaults.setCompilerOptions({ 
-            ...existing,
-            jsx: monaco.languages.typescript.JsxEmit.Preserve,
-            moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
-            jsxImportSource: "mutraction-dom",
-        });
-
-        // mutraction typedefs
-        monaco.languages.typescript.typescriptDefaults.addExtraLib(indexDts, "mutraction-dom.ts");
-
-        // jsx types
-        monaco.languages.typescript.typescriptDefaults.addExtraLib(jsxDts, "file:///node_modules/mutraction-dom/jsx-runtime/index.d.ts");
-        
-        // create the editor
-        editor = monaco.editor.create(sourceBox, { 
-            language: 'typescript',
-            minimap: { enabled: false },
-            theme: "vs-dark",
-        }, { });
-
-        // add the source code (model)
-        const codeModel = monaco.editor.createModel(source, "typescript", monaco.Uri.file("mutraction_app.tsx"));
-        editor.setModel(codeModel);
-
-        // pass through Ctrl+Enter; was "editor.action.insertLineAfter"
-        monaco.editor.addKeybindingRule({ keybinding: monaco.KeyCode.Enter | monaco.KeyMod.WinCtrl, command: undefined });
-        monaco.editor.addKeybindingRule({ keybinding: monaco.KeyCode.Enter | monaco.KeyMod.CtrlCmd, command: undefined });
-    });
 }
 init();
