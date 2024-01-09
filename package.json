@@ -4,7 +4,8 @@
     "mutraction-dom",
     "mutraction-dom-docs",
     "mutraction-dom-template",
-    "mutraction-sandbox"
+    "mutraction-sandbox",
+    "mutraction-vite"
   ],
   "scripts": {
     "clean": "rd /S /Q publish",
