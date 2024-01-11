@@ -32,11 +32,11 @@ import { radio } from "./recipes/radio.js";
 import { spinner } from "./recipes/spinner.js";
 import { array } from "./recipes/array.js";
 import { html } from "./recipes/html.js";
+import { computed } from "./recipes/computed.js";
 
 import { examples } from "./examples.js";
 import { faq } from "./faq.js";
 import { why } from "./why.js";
-
 
 
 export const routes = Router(
@@ -71,6 +71,7 @@ export const routes = Router(
     { pattern: '#recipes/spinner', element: spinner },
     { pattern: '#recipes/array', element: array },
     { pattern: '#recipes/html', element: html },
+    { pattern: '#recipes/computed', element: computed },
 
     { pattern: '#examples', element: examples },
     { pattern: '#why', element: why },

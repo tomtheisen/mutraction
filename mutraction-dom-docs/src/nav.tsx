@@ -69,6 +69,7 @@ export const nav =
                         <li><a href="#recipes/spinner">Loading spinner</a></li>
                         <li><a href="#recipes/array">Arrays</a></li>
                         <li><a href="#recipes/html">Raw HTML</a></li>
+                        <li><a href="#recipes/computed">Computed values</a></li>
                     </ul>
                 </details>
             </li>
