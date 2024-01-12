@@ -16,6 +16,7 @@ export class DependencyList {
     #tracker: Tracker;
     #tracksAllChanges = false;
     #subscribers: Set<Subscriber> = new Set;
+    /** get operations of tracked prop refs will be added when this is the top dependency list */
     active = true;
 
     /** If an untracked object starts being tracked while this DependencyList is on top of the stack, console warn.

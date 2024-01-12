@@ -190,6 +190,23 @@ test('map transaction collapsing', () => {
     assert.equal((tr.history[0] as Transaction).operations.length, 0);
 });
 
+test('ignore changes', () => {
+    const model = track({ val: 1 });
+
+    let copied = 0;
+    effect(() => { copied = model.val; } );
+
+    assert.equal(copied, 1);
+
+    defaultTracker.startTransaction();
+    ++model.val;
+    defaultTracker.commit({ notify: false });
+    assert.equal(copied, 1);
+
+    ++model.val;
+    assert.equal(copied, 3);
+});
+
 
 test.run();
 

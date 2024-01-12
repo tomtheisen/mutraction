@@ -16,6 +16,11 @@ const defaultTrackerOptions = {
 
 export type TrackerOptions = Partial<typeof defaultTrackerOptions>;
 
+type CommitOptions = {
+    transaction?: Transaction;
+    notify?: boolean;
+};
+
 /**
  * Oversees object mutations and allows history manipulation.
  * @see track
@@ -124,7 +129,11 @@ export class Tracker {
     /** resolve and close the most recent transaction  
       * throws if no transactions are active 
       */
-    commit(transaction?: Transaction) {
+    commit(transactionOrOptions?: Transaction | CommitOptions) {
+        const { notify = true, transaction } = transactionOrOptions && "type" in transactionOrOptions
+            ? { transaction: transactionOrOptions }
+            : transactionOrOptions ?? {};
+
         if (!this.#transaction) 
             throw Error('Attempted to commit transaction when none were open.');
 
@@ -134,8 +143,11 @@ export class Tracker {
         if (this.options.compactOnCommit) compactTransaction(this.#transaction);
 
         if (this.#transaction.parent) {
-            this.#transaction.parent.operations.push(this.#transaction);
-            this.#transaction.dependencies.forEach(d => this.#transaction!.parent!.dependencies.add(d));
+            if (notify) {
+                this.#transaction.parent.operations.push(this.#transaction);
+                const parentPropRefs = this.#transaction!.parent!.dependencies;
+                this.#transaction.dependencies.forEach(d => parentPropRefs.add(d));
+            }
             this.#transaction = this.#transaction.parent;
         }
         else {
@@ -148,14 +160,14 @@ export class Tracker {
                     allDependencyLists.add(dependencyList);
                 }
             }
-            for (const depList of allDependencyLists) {
+            if (notify) for (const depList of allDependencyLists) {
                 depList.notifySubscribers();
             }
 
             this.#transaction = undefined;
         }
 
-        if (this.#transaction == null) {
+        if (this.#transaction == null && notify) {
             // top level transaction, notify any history dependency
             this.#historyPropRef?.notifySubscribers();
         }
@@ -310,18 +322,6 @@ export class Tracker {
                 createOrRetrievePropRef(mutation.target, "length").notifySubscribers();
             }
             this.#historyPropRef?.notifySubscribers();
-        }
-    }
-
-    /** Run the callback without calling any subscribers */
-    ignoreUpdates<T>(callback: () => T): T {
-        const dep = this.startDependencyTrack();
-        dep.active = false;
-        try {
-            return callback();
-        }
-        finally {
-            dep.endDependencyTrack();
         }
     }
 
