@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.25.2] - 2024-01-13
+
 ### Added
 
 - Expose some DOM node cleanup functions under the exported object `cleanup`.  There's almost never a use for these directly.  But I'm saying there's a chance.
