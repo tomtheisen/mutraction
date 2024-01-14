@@ -5,7 +5,8 @@
   "description": "Documentation for mutraction-dom",
   "main": "index.js",
   "scripts": {
-    "build": "npx tsc && npm run transform && npm run bundle && npm run publish && npm run cleanout",
+    "build": "npx tsc && npm run hash && npm run transform && npm run bundle && npm run publish && npm run cleanout",
+      "hash": "node tasks/injectHash.js",
       "transform": "npx babel out -d out2",
       "bundle": "npx esbuild out2/index.js --bundle --format=esm --outfile=dist/index.js",
       "publish": "xcopy /y assets publish\\assets\\ && xcopy /y dist publish\\dist\\ && xcopy /y cases publish\\cases\\ && copy index.html publish && copy _redirects publish",
