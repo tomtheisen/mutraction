@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- When a `ForEachPersist` item is removed from the document, do not dispose its subscriptions, as it could be re-added later.  In the future, a `FinalizationRegistry` callback will ensure cleanup.
+
 ## [0.25.2] - 2024-01-13
 
 ### Added

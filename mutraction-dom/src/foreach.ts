@@ -99,12 +99,13 @@ export function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]) 
     const lengthSubscription = effect(function forEachPersistLengthEffect(lengthDep) {
         // i is scoped to each loop body invocation
         for (let i = containers.length; i < arrayDefined.length; i++) {
-            const container = new ElementSpan();
+            const container = new ElementSpan;
             containers.push(container);
 
             effect(function forEachPersistItemEffect(dep) {
                 // just keep the contents together with a parent somewhere
-                container.empty();
+                // but do not run cleanup
+                container.contentsRemoved();
 
                 const item = arrayDefined[i];
                 if (item == null) return; // probably an array key deletion

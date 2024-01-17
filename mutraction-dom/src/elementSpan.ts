@@ -17,7 +17,7 @@ export class ElementSpan {
     }
 
     /** extracts the entire span as a fragment */
-        removeAsFragment(): DocumentFragment {
+    removeAsFragment(): DocumentFragment {
         const parent = this.startMarker.parentNode;
         if (parent instanceof DocumentFragment && parent.firstChild === this.startMarker && parent.lastChild === this.endMarker) {
             return parent;
@@ -35,7 +35,7 @@ export class ElementSpan {
         return result;
     }
 
-    /** extracts the interior of the span into a fragment, leaving the span container empty */
+    /** detach all contents, and cleanup */
     empty(): void {
         let next: ChildNode | null = null;
         while ((next = this.startMarker.nextSibling) !== this.endMarker) {
@@ -44,6 +44,20 @@ export class ElementSpan {
             cleanupNode(next);
             next.remove();
         }
+    }
+
+    /** extracts the interior of the span into a fragment, leaving the span container empty.
+     * do not run cleanup
+     */
+    contentsRemoved(): DocumentFragment {
+        const result = document.createDocumentFragment();
+        let next: ChildNode | null = null;
+        while ((next = this.startMarker.nextSibling) !== this.endMarker) {
+            if (next == null)
+                throw Error("End marker not found as subsequent document sibling as start marker");
+            result.append(next);
+        }
+        return result;
     }
 
     /** replaces the interior contents of the span */
