@@ -378,8 +378,6 @@ const app =
         </main>
     </>;
 
-document.body.append(app, dialog);
-
 let editor: ReturnType<typeof monaco["editor"]["create"]> | undefined;
 async function init() {
     const source = location.hash.length > 1
@@ -424,4 +422,9 @@ async function init() {
         monaco.editor.addKeybindingRule({ keybinding: monaco.KeyCode.Enter | monaco.KeyMod.CtrlCmd, command: undefined });
     });
 }
-init();
+
+// initialize only after output frame is loaded first
+// this way we ensure that the reload() called during run() won't happen prior to complete loading
+frame.addEventListener("load", init, { once: true });
+
+document.body.append(app, dialog);
