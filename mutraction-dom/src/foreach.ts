@@ -137,7 +137,8 @@ export function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]) 
         }
 
         while (containers.length > arrayDefined.length) {
-            cleanupSpan(containers.pop()!);
+            // don't dispose yet, might need these alive later
+            containers.pop()!.removeAsFragment();
         }
     }, suppress);
 

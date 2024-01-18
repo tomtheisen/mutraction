@@ -8,6 +8,7 @@ import swapperFactory from "./scenarios/swapper.js";
 import promiseLoaderFactory from "./scenarios/promise.js";
 import makeLocalStyleFactory from "./scenarios/localStyle.js";
 import syncEventFactory from "./scenarios/syncEvent.js";
+import forEachPersistFactory from "./scenarios/forEachPersist.js";
 
 defaultTracker.setOptions({ 
     autoTransactionalize: false, // need explicit tranaction control for tests
@@ -28,6 +29,7 @@ const model = track({
         promiseLoaderFactory,
         makeLocalStyleFactory,
         syncEventFactory,
+        forEachPersistFactory,
     ],
 });
 
