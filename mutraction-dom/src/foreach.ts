@@ -1,6 +1,7 @@
-import { cleanupNode, scheduleCleanup } from "./cleanup.js";
+import { cleanupNode, registerCleanupForNode, scheduleCleanup } from "./cleanup.js";
 import { effect } from "./effect.js"
 import { ElementSpan } from './elementSpan.js';
+import { cleanup } from "./index.js";
 import { Swapper } from "./swapper.js";
 import { isNodeOptions, type Subscription, type NodeOptions } from "./types.js";
 
@@ -91,24 +92,47 @@ function cleanupOutput({ cleanup, container, subscription }: Output) {
 export function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]) | undefined, map: (e: TIn) => Node): Node {
     if (typeof array === "function") return Swapper(() => ForEachPersist(array(), map));
 
-    const result = new ElementSpan();
-    const containers: ElementSpan[] = [];
+    const result = new ElementSpan;
+    const outputs: { item?: TIn, container: ElementSpan }[] = [];
+    const currentItems = new Set<TIn>;
     const outputMap = new WeakMap<TIn, HTMLElement | ElementSpan>;
+
+    function cleanupOldItem(oldItem: TIn) {
+        if (!currentItems.has(oldItem)) {
+            const oldOutput = outputMap.get(oldItem);
+            outputMap.delete(oldItem);
+            if (oldOutput instanceof ElementSpan) oldOutput.cleanup();
+            else if (oldOutput) cleanupNode(oldOutput);
+        }
+    }
 
     const arrayDefined = array ?? [];
     const lengthSubscription = effect(function forEachPersistLengthEffect(lengthDep) {
         // i is scoped to each loop body invocation
-        for (let i = containers.length; i < arrayDefined.length; i++) {
+        for (let i = outputs.length; i < arrayDefined.length; i++) {
             const container = new ElementSpan;
-            containers.push(container);
+            const output: typeof outputs[number] = { container };
+            outputs.push(output);
 
             effect(function forEachPersistItemEffect(dep) {
-                // just keep the contents together with a parent somewhere
-                // but do not run cleanup
-                container.contentsRemoved();
-
                 const item = arrayDefined[i];
-                if (item == null) return; // probably an array key deletion
+
+                if (Object.is(item, output.item)) return; // no change
+                
+                if (output.item) cleanup.scheduleCleanup(cleanupOldItem, output.item);
+
+                output.item = item;
+
+                if (item == null) {
+                    // probably an array key deletion
+                    // just keep the contents together with a parent somewhere
+                    // but do not run cleanup
+                    container.contentsRemoved();
+                    return;
+                }
+
+                if (currentItems.has(item)) console.error("ForEachPersist encountered the same item in the source array twice", item);
+                currentItems.add(item);
 
                 if (typeof item !== "object") throw Error("Elements must be object in ForEachPersist");
                 
@@ -131,19 +155,29 @@ export function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]) 
                 else if (newContents != null) {
                     container.replaceWith(newContents.removeAsFragment());
                 }
+
+                return () => currentItems.delete(item);
             }, suppress);
 
             result.append(container.removeAsFragment());
         }
 
-        while (containers.length > arrayDefined.length) {
+        while (outputs.length > arrayDefined.length) {
             // don't dispose yet, might need these alive later
-            containers.pop()!.removeAsFragment();
+            const { container, item } = outputs.pop()!;
+            container.contentsRemoved();
+            if (item) cleanupOldItem(item);
         }
     }, suppress);
 
-    result.registerCleanup({ dispose() { containers.forEach(cleanupSpan); } })
-    result.registerCleanup(lengthSubscription);
+    result.registerCleanup({ 
+        dispose() { 
+            for (const { container } of outputs) {
+                cleanupSpan(container);
+            }
+            lengthSubscription.dispose();
+        }
+    });
 
     return result.removeAsFragment();
 
@@ -152,4 +186,3 @@ export function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]) 
         container.cleanup();
     }
 }
-
