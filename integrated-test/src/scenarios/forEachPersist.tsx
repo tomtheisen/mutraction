@@ -1,9 +1,16 @@
-import { ForEachPersist, neverTrack, track, cleanup } from "mutraction-dom";
+import { ForEachPersist, neverTrack, track, cleanup, defaultTracker } from "mutraction-dom";
 import { TestScenario } from "../types.js";
 
+class ItemObject {
+    id: string;
+    constructor(id: string) {
+        this.id = id;
+    }
+}
+
 function create(): TestScenario {
-    const model = track([{ id: "abc" }]);
-    let abc: { id: string } | undefined = model[0], abcDisposed = false;
+    const model = track([new ItemObject("abc")]);
+    let abc: ItemObject | undefined = model[0], abcDisposed = false;
 
     const root: ParentNode = neverTrack(<div>
         { ForEachPersist(model,  e => <p id={ e.id }>{ e.id }</p>) }
@@ -14,7 +21,12 @@ function create(): TestScenario {
     const steps = [
         {
             action() {
-                cleanup.registerCleanupForNode(abcEl, { dispose() { abcDisposed = true; } })
+                cleanup.registerCleanupForNode(abcEl, { 
+                    dispose() { 
+                        abcDisposed = true;
+                        console.log("abc cleaning up");
+                    } 
+                })
             },
             assertions: [
                 {
@@ -25,7 +37,7 @@ function create(): TestScenario {
         },
         {
             action() {
-                model[0] = { id: "def" }
+                model[0] = new ItemObject("def");
             },
             assertions: [
                 {
@@ -52,7 +64,7 @@ function create(): TestScenario {
         {
             action() {
                 model.length = 0;
-                abc = undefined;
+                // abc = undefined;
             },
             assertions: [
                 {
@@ -76,6 +88,18 @@ function create(): TestScenario {
                 }
             ]
         },
+        {
+            action() {
+                abc = undefined; // abc now eligible for gc -> abcEl now eligible for cleanup
+                defaultTracker.clearHistory();
+            },
+            assertions: [
+                {
+                    condition: () => abcDisposed,
+                    message: "abc should have been GC'd, and the element should be cleaned up",
+                }
+            ]
+        }
         
     ];
 

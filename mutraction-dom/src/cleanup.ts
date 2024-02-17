@@ -29,7 +29,7 @@ export const cleanupNode = (scheduleCleanup<ChildNode>).bind(null, doCleanup);
 
 function doCleanup(node: ChildNode) {
     const cleanups = nodeCleanups.get(node);
-    cleanups?.forEach(s => s.dispose());
+    if (cleanups) for (const s of cleanups) s.dispose();
 
     if (node instanceof Element) node.childNodes.forEach(doCleanup);
 }

@@ -92,18 +92,18 @@ function cleanupOutput({ cleanup, container, subscription }: Output) {
 export function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]) | undefined, map: (e: TIn) => Node): Node {
     if (typeof array === "function") return Swapper(() => ForEachPersist(array(), map));
 
+    function collected(output: HTMLElement | ElementSpan) {
+        cleanup.scheduleCleanup(cleanupOldOutput, output);
+    }
+    const fr = new FinalizationRegistry(collected);
+
     const result = new ElementSpan;
     const outputs: { item?: TIn, container: ElementSpan }[] = [];
-    const currentItems = new Set<TIn>;
     const outputMap = new WeakMap<TIn, HTMLElement | ElementSpan>;
 
-    function cleanupOldItem(oldItem: TIn) {
-        if (!currentItems.has(oldItem)) {
-            const oldOutput = outputMap.get(oldItem);
-            outputMap.delete(oldItem);
-            if (oldOutput instanceof ElementSpan) oldOutput.cleanup();
-            else if (oldOutput) cleanupNode(oldOutput);
-        }
+    function cleanupOldOutput(oldOutput: HTMLElement | ElementSpan | undefined) {
+        if (oldOutput instanceof ElementSpan) oldOutput.cleanup();
+        else if (oldOutput) cleanupNode(oldOutput);
     }
 
     const arrayDefined = array ?? [];
@@ -119,7 +119,7 @@ export function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]) 
 
                 if (Object.is(item, output.item)) return; // no change
                 
-                if (output.item) cleanup.scheduleCleanup(cleanupOldItem, output.item);
+                // if (output.item) cleanup.scheduleCleanup(cleanupOldItem, output.item);
 
                 output.item = item;
 
@@ -131,10 +131,7 @@ export function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]) 
                     return;
                 }
 
-                if (currentItems.has(item)) console.error("ForEachPersist encountered the same item in the source array twice", item);
-                currentItems.add(item);
-
-                if (typeof item !== "object") throw Error("Elements must be object in ForEachPersist");
+                if (typeof item !== "object") throw Error("Items must be object in ForEachPersist");
                 
                 let newContents = outputMap.get(item);
                 if (newContents == null) {
@@ -142,6 +139,7 @@ export function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]) 
                     try {
                         const newNode = map(item); // this is the line that might throw
                         newContents = newNode instanceof HTMLElement ? newNode : new ElementSpan(newNode);
+                        fr.register(item, newContents);
                         outputMap.set(item, newContents);
                     }
                     finally {
@@ -149,14 +147,15 @@ export function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]) 
                     }
                 }
 
+                // .replaceWith() invokes cleanup, so get everything out first
+                // so ForEachPersist can use the contents (element) later
+                container.contentsRemoved();
                 if (newContents instanceof HTMLElement) {
                     container.replaceWith(newContents);
                 }
                 else if (newContents != null) {
                     container.replaceWith(newContents.removeAsFragment());
                 }
-
-                return () => currentItems.delete(item);
             }, suppress);
 
             result.append(container.removeAsFragment());
@@ -166,7 +165,6 @@ export function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]) 
             // don't dispose yet, might need these alive later
             const { container, item } = outputs.pop()!;
             container.contentsRemoved();
-            if (item) cleanupOldItem(item);
         }
     }, suppress);
 
