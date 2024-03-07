@@ -87,6 +87,7 @@ function cleanupOutput({ cleanup, container, subscription }: Output) {
  * @param array is the input array of objects.  Primitive element values can't be used. If it's a function returning an array, identity changes to the array itself will be tracked.
  * @param map is the callback function to produce DOM nodes
  * @returns a DOM node you can include in a document
+ * @deprecated Use ForEach instead
  */
 export function ForEachPersist<TIn extends object>(array: TIn[] | (() => TIn[]) | undefined, map: (e: TIn) => Node): Node {
     if (typeof array === "function") return Swapper(() => ForEachPersist(array(), map));

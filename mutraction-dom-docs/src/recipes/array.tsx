@@ -22,7 +22,7 @@ export function array() {
         <>
             <h1>Dealing with arrays</h1>
             <p>
-                In general, use <a href="#ref/ForEach"><code>ForEach</code></a> or <a href="#ref/ForEachPersist"><code>ForEachPersist</code></a>.
+                In general, use <a href="#ref/ForEach"><code>ForEach</code></a>.
                 You can also put an array directly into a <a href="#topics/jsx">JSX</a> expression.
                 That will convert all the elements to strings, and join with commas.
                 If, for some reason, you have an array of DOM elements, slap it in a <code>ForEach</code> like so.

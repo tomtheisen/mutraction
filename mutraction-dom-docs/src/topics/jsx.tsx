@@ -142,7 +142,7 @@ export function jsx() {
             Expressions are delimited with curly braces.
             Primitives, DOM elements, arrays, and more can all be used here.
             If you have an array, it might be more useful to 
-            use <a href="#ref/ForEach"><code>ForEach()</code></a> or <a href="#ref/ForEachPersist"><code>ForEachPersist()</code></a>.
+            use <a href="#ref/ForEach"><code>ForEach()</code></a>.
         </p>
         { codeSample(`
             const hr = <hr />;

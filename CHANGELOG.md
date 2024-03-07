@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Removed
+
+## [0.26.0] - 2024-02-17
+
+- `ForEachPersist` has been deprecated.  It will be removed soon.
+
 ### Fixed
 
 - When a `ForEachPersist` item is removed from the document, do not dispose its subscriptions, as it could be re-added later.  In the future, a `FinalizationRegistry` callback will ensure cleanup.
