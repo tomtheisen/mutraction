@@ -42,7 +42,7 @@ export function getStarted() {
                     "target": "ES2022",
                     "jsx": "preserve",
                     "jsxImportSource": "mutraction-dom",
-                    "module": "ES2022",
+                    "module": "Node16",
                     "moduleResolution": "Node16",
                     "outDir": "./out/",
                     "strict": true,
