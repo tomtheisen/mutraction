@@ -1,9 +1,6 @@
-import _jsTokens from "js-tokens";
+import jsTokens from "js-tokens";
 import { getSandboxLink } from "./compress.js";
 import { PromiseLoader } from "mutraction-dom";
-
-// typescript bug?
-const jsTokens = _jsTokens as unknown as typeof _jsTokens.default;
 
 function dedent(s: string) {
     const prefix = /\n[ \t]*$/.exec(s);

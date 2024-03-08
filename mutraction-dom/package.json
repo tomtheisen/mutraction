@@ -18,7 +18,7 @@
       "types": "npm run types:dts && npm run types:jsx && npm run types:compile-jsx",
         "types:dts": "npx dts-bundle-generator -o .\\dist\\index.d.ts .\\src\\index.ts --export-referenced-types false",
         "types:jsx": "copy src\\jsx.d.ts dist",
-        "types:compile-jsx": "npx tsc .\\src\\compile-jsx.ts --emitDeclarationOnly --declaration --target ES2022 --moduleResolution NodeNext --outdir dist",
+        "types:compile-jsx": "npx tsc .\\src\\compile-jsx.ts --emitDeclarationOnly --declaration --target ESNext --moduleResolution Bundler --outdir dist",
       "compiler": "copy out\\compile-jsx.js dist",
       "cleanout": "rd /Q /S out",
       "minify": "npx esbuild dist/index.js --outfile=dist/index.min.js --minify",
@@ -38,7 +38,7 @@
   "devDependencies": {
     "dts-bundle-generator": "^9.2.1",
     "esbuild": "^0.19.1",
-    "typescript": "^5.1.6",
+    "typescript": "^5.4.2",
     "uvu": "^0.5.6"
   },
   "exports": {
