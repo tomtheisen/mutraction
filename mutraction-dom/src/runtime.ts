@@ -5,6 +5,7 @@ import { PropReference } from "./propref.js";
 import { NodeModifier, Subscription } from "./types.js";
 import { registerCleanupForNode } from "./cleanup.js";
 import { isDebugMode } from "./debug.js";
+import type { ElementRef } from "./types.js";
 
 const suppress = { suppressUntrackedWarning: true };
 
@@ -75,6 +76,10 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 
             case "mu:apply":
                 doApply(el, value);
+                break;
+
+            case "mu:ref":
+                (value as ElementRef).element = el;
                 break;
 
             default:

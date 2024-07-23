@@ -1,5 +1,9 @@
 import { PropReference } from "./propref.js";
 
+export type ElementRef = {
+    element?: HTMLElement;
+}
+
 export type Key = string | symbol;
 export type BaseSingleMutation = { target: object, name: Key };
 export type CreateProperty = BaseSingleMutation & { type: "create", newValue: any };
