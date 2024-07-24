@@ -3,10 +3,6 @@ type NodeModifier = {
     readonly $muType: string;
 }
 
-type ElementRef = {
-    element?: HTMLElement;
-}
-
 type MutractionElement<ElementType extends keyof HTMLElementTagNameMap> = {
     [Prop in keyof HTMLElementTagNameMap[ElementType]]?:
         Prop extends "classList" ? Record<string, boolean> :
