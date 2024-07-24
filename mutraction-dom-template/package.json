@@ -12,9 +12,9 @@
   "author": "Tom Theisen",
   "license": "MIT",
   "devDependencies": {
-    "@babel/cli": "^7.22.10",
-    "@babel/core": "^7.22.10",
-    "@babel/preset-env": "^7.22.10",
+    "@babel/cli": "^7.24.8",
+    "@babel/core": "^7.24.9",
+    "@babel/preset-env": "^7.24.8",
     "esbuild": "^0.19.1",
     "typescript": "^5.4.2"
   },
