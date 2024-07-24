@@ -32,7 +32,7 @@ export const nav =
                                     <li><a href="#ref/ifelse">mu:if / mu:else</a></li>
                                     <li><a href="#ref/syncEvent">mu:syncEvent</a></li>
                                     <li><a href="#ref/apply">mu:apply</a></li>
-                                    
+                                    <li><a href="#ref/ref">mu:ref</a></li>
                                 </ul>
                             </details>
                         </li>

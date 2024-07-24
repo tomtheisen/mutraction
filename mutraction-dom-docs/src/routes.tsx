@@ -15,6 +15,7 @@ import { debug } from "./topics/debug.js";
 import { ifelse } from "./ref/ifelse.js"
 import { syncEvent } from "./ref/syncEvent.js";
 import { apply } from "./ref/apply.js";
+import { ref } from "./ref/ref.js";
 import { forEach } from "./ref/forEach.js";
 import { promiseLoader } from "./promiseLoader.js";
 import { swapper } from "./ref/swapper.js";
@@ -52,6 +53,7 @@ export const routes = Router(
 
     { pattern: '#ref/ifelse', element: ifelse },
     { pattern: '#ref/syncEvent', element: syncEvent },
+    { pattern: '#ref/ref', element: ref },
     { pattern: '#ref/ForEach', element: forEach },
     { pattern: '#ref/PromiseLoader', element: promiseLoader },
     { pattern: '#ref/Swapper', element: swapper },

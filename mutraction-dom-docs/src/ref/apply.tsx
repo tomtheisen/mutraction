@@ -2,7 +2,7 @@ export function apply() {
     return <>
         <h1><code>mu:apply</code></h1>
         <p>
-            <code>mu:apply</code> as a <a href="#topics/jsx">JSX</a> attribute that can apply
+            <code>mu:apply</code> is a <a href="#topics/jsx">JSX</a> attribute that can apply
             certain modifications.  Currently, there's only a single such modification.
         </p>
 
