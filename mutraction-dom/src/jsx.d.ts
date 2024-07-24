@@ -12,14 +12,13 @@ type MutractionElement<ElementType extends keyof HTMLElementTagNameMap> = {
         Prop extends "classList" ? Record<string, boolean> :
         Prop extends "style" ? Partial<CSSStyleDeclaration> :
         HTMLElementTagNameMap[ElementType][Prop];
-}
-& {
+} & {
     "class"?: string;
     "mu:if"?: boolean;
     "mu:else"?: true;
     "mu:syncEvent"?: (keyof HTMLElementEventMap) | string;
     "mu:apply"?: NodeModifier | NodeModifier[];
-    "mu:ref"?: ElementRef;
+    "mu:ref"?: (element: HTMLElementTagNameMap[ElementType]) => void;
 };
 
 export namespace JSX {

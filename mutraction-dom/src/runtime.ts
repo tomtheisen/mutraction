@@ -5,7 +5,6 @@ import { PropReference } from "./propref.js";
 import { NodeModifier, Subscription } from "./types.js";
 import { registerCleanupForNode } from "./cleanup.js";
 import { isDebugMode } from "./debug.js";
-import type { ElementRef } from "./types.js";
 
 const suppress = { suppressUntrackedWarning: true };
 
@@ -66,12 +65,12 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 
     let syncEvents: string | undefined;
 
-    for (let [name, value] of Object.entries(staticAttrs) as [string, string][]) {
+    for (let [name, value] of Object.entries(staticAttrs) as [string, unknown][]) {
         name = propRedirects[name] ?? name;
         
         switch (name) {
             case "mu:syncEvent":
-                syncEvents = value;
+                syncEvents = value as string;
                 break;
 
             case "mu:apply":
@@ -79,7 +78,7 @@ export function element<E extends keyof HTMLElementTagNameMap>(
                 break;
 
             case "mu:ref":
-                (value as ElementRef).element = el;
+                (value as Function)(el);
                 break;
 
             default:

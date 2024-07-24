@@ -164,8 +164,8 @@ export default function(_: Babel): PluginObj {
                                     break;
 
                                 case "apply":
-                                    case "ref":
-                                        if (value?.type !== "JSXExpressionContainer" || value.expression.type === "JSXEmptyExpression") 
+                                case "ref":
+                                    if (value?.type !== "JSXExpressionContainer" || value.expression.type === "JSXEmptyExpression") 
                                         throw path.buildCodeFrameError(`Expression value expected for '${ name.name.name }'`);
                                     staticPropsForRuntime.push(
                                         t.objectProperty(t.stringLiteral("mu:" + name.name.name), value.expression, true /* computed */)
