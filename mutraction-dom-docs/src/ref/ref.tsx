@@ -13,6 +13,13 @@ function ex1() {
     return app;
 }
 
+function ex2() {
+    return <>
+        <div>hello world 1</div>
+        <div>hello world 2</div>
+    </>;
+}
+
 export function ref() {
     return <>
         <h1><code>mu:ref</code></h1>
@@ -32,13 +39,24 @@ export function ref() {
             `, ex1(), { docAppend: "app", sandboxLink: true, sandboxImports: [] }
         )}
         <p>
-            The callback function is invoked synchronously as a side effect of the jsx expression.
+            The callback function is invoked synchronously as a side effect of the jsx expression.  Remember that jsx expressions
+            resolve to DOM elements, so in some cases, you can just assign the expression straight to a variable rather than using a 
+            <code>mu:ref</code> callback.  <code>mu:ref</code> is most likely to be useful in cases where the target element is not the
+            top-level element of an expression.
         </p>
-        <h2>Interaction with <code>mu:if</code></h2>
-        <p>
-            <a href="#/ref/ifelse"><code>mu:if</code> and <code>mu:else</code></a> affect elements&rsquo; visibility in a document,
-            but not the existence of those elements.  Any <code>mu:ref</code> callback will be invoked regardless of <code>mu:if</code>
-            conditions or <code>mu:else</code>.
-        </p>
+        { codeSample(`
+            // these two blocks are behaviorally identical
+            {
+                let myDiv: HTMLDivElement;
+                document.body.append(<div mu:ref={ el => myDiv = el }>hello world 1</div>);
+                console.log("block 1", myDiv); // assigned
+            }
+            {
+                let myDiv = <div>hello world 2</div>;
+                document.body.append(myDiv);
+                console.log("block 2", myDiv); // also assigned
+            }
+            `, ex2(), { sandboxLink: true, sandboxImports: [] }
+        )}
     </>;
 }
