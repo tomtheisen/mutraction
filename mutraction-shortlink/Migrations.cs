@@ -1,5 +1,12 @@
 ﻿using Microsoft.Data.Sqlite;
 
+/*
+ * Minimal migrations:
+ *  - To create a new migration step, append items to `Commands`.  Never remove one.
+ *  - Schema version is determined by count of commands. Current schema version is stored in table `schema`.
+ *  - When `EnsureDb()` runs, any new migration commands will be invoked.  Then the stored schema is updated.
+ */
+
 public static class Migrations {
     private static string[] Commands =
     {
@@ -20,7 +27,7 @@ public static class Migrations {
         """,
         """
         UPDATE link SET hits = 0 WHERE hits IS NULL
-        """
+        """,
     };
 
     public static void EnsureDb() {
