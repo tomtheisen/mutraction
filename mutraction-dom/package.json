@@ -1,7 +1,7 @@
 {
   "name": "mutraction-dom",
   "type": "module",
-  "version": "0.26.0",
+  "version": "0.27.0",
   "description": "DOM synchronization for mutable models ",
   "main": "dist/index.js",
   "repository": {
@@ -9,7 +9,7 @@
     "url": "git+https://github.com/tomtheisen/mutraction.git"
   },
   "types": "dist/index.d.ts",
-  "files": [ "dist" ],
+  "files": [ "dist", "README.md", "logo.png" ],
   "scripts": {
     "build": "npm run clean && npx tsc && npm run version && npm run bundle && npm run types && npm run compiler && npm run cleanout && npm run minify && npm run readme",
       "clean": "del /Q /S dist && del /Q /S out",
@@ -22,7 +22,7 @@
       "compiler": "copy out\\compile-jsx.js dist",
       "cleanout": "rd /Q /S out",
       "minify": "npx esbuild dist/index.js --outfile=dist/index.min.js --minify",
-      "readme": "copy ..\\README.md .\\dist\\ && copy ..\\logo.png .\\dist\\",
+      "readme": "copy ..\\README.md .\\ && copy ..\\logo.png .\\",
     "test": "npx tsc -p tsconfig.tests.json && npx uvu out-tests -i \"[.]d[.]ts$\" && rd /Q /S out-tests"
   },
   "author": "Tom Theisen",

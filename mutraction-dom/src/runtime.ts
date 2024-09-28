@@ -65,16 +65,20 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 
     let syncEvents: string | undefined;
 
-    for (let [name, value] of Object.entries(staticAttrs) as [string, string][]) {
+    for (let [name, value] of Object.entries(staticAttrs) as [string, unknown][]) {
         name = propRedirects[name] ?? name;
         
         switch (name) {
             case "mu:syncEvent":
-                syncEvents = value;
+                syncEvents = value as string;
                 break;
 
             case "mu:apply":
                 doApply(el, value);
+                break;
+
+            case "mu:ref":
+                (value as Function)(el);
                 break;
 
             default:
