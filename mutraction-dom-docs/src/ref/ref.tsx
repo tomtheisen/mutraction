@@ -1,7 +1,9 @@
 import { codeSample } from "../codesample.js";
 
 function ex1() {
+    // this variable will be assigned in the mu:ref callback
     let dialog: HTMLDialogElement;
+    
     const app = <div>
         <button onclick={ () => dialog.showModal() }>Show Dialog</button>
         <dialog mu:ref={ el => dialog = el }>
@@ -28,7 +30,9 @@ export function ref() {
             It takes a callback function that accepts the element reference.
         </p>
         { codeSample(`
+            // this variable will be assigned in the mu:ref callback
             let dialog: HTMLDialogElement;
+            
             const app = <div>
                 <button onclick={ () => dialog.showModal() }>Show Dialog</button>
                 <dialog mu:ref={ el => dialog = el }>
