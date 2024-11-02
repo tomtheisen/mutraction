@@ -14,7 +14,7 @@ function ex1() {
         </p>
         <p>
             { model.data.first } { model.data.last } 
-            accolades: { model.data.accolades } (won't be updated)
+            accolades: { model.data.accolades } (won't be updated) 
             <button onclick={ () => ++model.data.accolades }>Regard</button>
         </p>
     </>;
@@ -33,8 +33,9 @@ export function neverTrackDoc() {
                 That's where <code>neverTrack()</code> comes in.
             </p>
             <p>
-                When you pass an object to <code>neverTrack()</code>, it will never be proxied or tracked.
-                <code>neverTrack</code> is useful in certain advanced mutracting scenarios, but is 
+                When you pass an object to <code>neverTrack()</code>, it will never be proxied or tracked.  
+                <code>neverTrack</code> is useful in certain advanced mutracting scenarios, but is probably not what you want
+                if you're not sure.
             </p>
 
             <h2>Arguments</h2>
@@ -66,7 +67,7 @@ export function neverTrackDoc() {
                     </p>
                     <p>
                         { model.data.first } { model.data.last } 
-                        accolades: { model.data.accolades } (won't be updated)
+                        accolades: { model.data.accolades } (won't be updated) 
                         <button onclick={ () => ++model.data.accolades }>Regard</button>
                     </p>
                 </>;
