@@ -21,9 +21,11 @@ if (args.Contains("prod"))
 var app = builder.Build();
 app.UseCors();
 
+const string DbFileName = "links.db";
+
 SqliteConnection GetConnection()
 {
-    var connection = new SqliteConnection("Data Source=links.db");
+    var connection = new SqliteConnection($"Data Source={ DbFileName }");
     connection.Open();
     return connection;
 }
@@ -160,6 +162,11 @@ app.MapGet("/stats", () =>
     }
 
     return $"Started { startup }. { links } links stored. Last write at { lastCreated }.";
+});
+
+app.MapGet("/export", () =>
+{
+    return Results.File(DbFileName);
 });
 
 app.Run();

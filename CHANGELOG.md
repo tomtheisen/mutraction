@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-### Removed
+## [0.27.0] - 2024-09-28
+
+### Added
+
+- `mu:ref` is a new jsx attribute that takes a callback accepting the constructed DOM node.
 
 ## [0.26.0] - 2024-02-17
 
