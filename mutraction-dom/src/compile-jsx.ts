@@ -14,29 +14,21 @@ export default function(_: Babel): PluginObj {
         BT.JSXElement | 
         BT.JSXFragment
     ): BT.Expression | null {
-        const type = child.type;
-        if (type === "JSXText") {
-            const value = child.value.trim();
-            if (value === "") return null;
-            return t.stringLiteral(value);
-        }
-        else if (type === "JSXElement") {
-            return child;
-        }
-        else if (type === "JSXExpressionContainer") {
-            if (child.expression.type === "JSXEmptyExpression") return null;
-            return t.callExpression(
-                t.identifier(ctx.childFnName), 
-                [ t.arrowFunctionExpression([], child.expression) ]
-            );
-        }
-        else if (type === "JSXSpreadChild") {
-            return t.stringLiteral("NIE spread child");
-        }
-        else {
-            // some of these children have already been transformed into unexpected types
-            // probably function calls
-            return child;
+        switch (child.type) {
+            case "JSXText": throw Error("Unexepected JSXText");
+            case "JSXSpreadChild": throw Error("Spread Children not supported in JSX transform");
+            case "JSXExpressionContainer":
+                if (child.expression.type === "JSXEmptyExpression") return null;
+                // turn `exp` into `() => exp`
+                return t.callExpression(
+                    t.identifier(ctx.childFnName), 
+                    [ t.arrowFunctionExpression([], child.expression) ]
+                );
+            case "JSXElement":
+            default: 
+                // some of these children have already been transformed into unexpected types
+                // probably function calls or string literals
+                return child;
         }
     }
     
@@ -54,7 +46,7 @@ export default function(_: Babel): PluginObj {
         BT.StringLiteral |
         null | undefined
     ): [isDynamic: boolean, expr: BT.Expression] {
-        // bare attribute e.b. <input disabled />
+        // bare attribute e.g. <input disabled />
         if (!attrVal) return [false, t.booleanLiteral(true)];
     
         if (attrVal.type === 'StringLiteral') {
@@ -348,15 +340,12 @@ export default function(_: Babel): PluginObj {
                 let { value } = path.node;
                 // strip leading whitespace starting with the first newline
                 // strip trailing whitespace, but only if it contains a newline
-                value = value.replace(/^(?:([ \t]*)\n\s*)?(.*?)(?:\n\s*)?$/, "$1$2")
-                // replace runs of whitespace with a single space
-                value = value.replace(/\s+/g, ' ');
-                if (value) {
-                    path.replaceWith(t.stringLiteral(value));
-                }
-                else {
-                    path.remove();
-                }
+                value = value.replace(/^(?:([ \t]*)\n[ \n\r\t]*)?(.*?)(?:\n[ \n\r\t]*)?$/, "$1$2")
+                // replace runs of breaking whitespace with a single space
+                value = value.replace(/[ \n\r\t]+/g, ' ');
+
+                if (value) path.replaceWith(t.stringLiteral(value));
+                else path.remove();
             },
         }
     };

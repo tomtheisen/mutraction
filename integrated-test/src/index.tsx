@@ -1,6 +1,7 @@
 import { ForEach, Swapper, defaultTracker, track } from "mutraction-dom";
 import { TestScenario, TestScenarioFactory } from "./types.js";
 
+import jsxFactory from "./scenarios/jsx.js";
 import ifElseFactory from "./scenarios/choose.js";
 import transactionFactory from "./scenarios/transaction.js";
 import forEachFactory from "./scenarios/foreach.js";
@@ -22,6 +23,7 @@ const model = track({
     scenariosComplete: 0,
     failures: [] as { name: string, messages: string[] }[],
     scenarioFactories: [
+        jsxFactory,
         ifElseFactory, 
         transactionFactory,
         forEachFactory,
