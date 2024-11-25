@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.28.0] - 2024-11-24
+
 ### Fixed
 
 - Fixed a jsx compilation issue where leading or trailing whitespace would be collapsed incorrectly when it contained `&nbsp;`.
