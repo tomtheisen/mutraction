@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>AOC 2024</title>
+
+        <title>Mutraction | Visualizations</title>
+        <link rel="stylesheet" href="../assets/simple.css">
+        <link rel="icon" href="../assets/favicon.png">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <style>
+            .calendar {
+                display: grid;
+                grid-template-columns: repeat(7, 1fr);
+                grid-auto-rows: 4em;
+                gap: 0.2em;
+            }
+            .calendar > * {
+                background: #8882;
+                padding: 0.5em;
+            }
+            header {
+                grid-column: 1/8;
+                font-weight: bold;
+                text-align: center;
+                font-size: 140%;
+            }
+            a:link {
+                opacity: 1;
+                font-weight: bold;
+            }
+            a:not(:link) {
+                opacity: 0.5;
+            }            
+        </style>
+    </head>
+    <body>
+        <h1>Mutraction visualizations</h1>
+
+        <p>
+            These are some solutions written for <a href="https://adventofcode.com/2024">Advent Of Code 2024</a>.
+            Most of them provide some kind of visualization to illustrate the solution.
+            In order to run each program, you must provide an input.  Inputs are available from the official site.
+            Everyone gets different inputs.
+        </p>
+
+        <figure class="calendar">
+            <header>Advent Of Code 2024</header>
+            <div style="grid-column: 6;">
+                <a target="_blank" href="https://mutraction.dev/sandbox/?view=normal#xVdtb9s2EP7uX3Ew9kFaFSlSMmBzbAdD22HFNrRY9i0NEFo62UIl0SCpdK6r/77ji96S1u2AYtMHiSLv7nnueEedUl5LBQdkAlaQnCeXAWTsQOP4ajYrqj0XCo6gBEvfBXDznu33KALAPMdUBfALFy9ZuoMWcsErmFeNllQFr88yXs3JRGrsS8UF2+JvqC3fM56eFfW+UWffHTVyS08Cbe+vnHjFMyxJ0sB6xxnQZRQWIFFKMn9jDYZbVK8UVt4A4MPHj0DTLzBnTaleaTXPD8BdUQQPrGyQ7IHaISj8WzGBzGCQd2WB2SsLNZ8HWryRmEHOBaSsTJuSae8CYERjW9MKryEti/SdMSCa+g0TpHseDHh7moEYyEJybaQkIao/m9rbG9m6qTYofLB+6sv4HzpjFActd/VodcyVROykCZKVbINZ69MGqMMeoZO6tVi3dwF0ozuSyZvabJoGkmhD1sVbiaLe+gtnwnK0u1QWUsXaKFnT48SMr4bdCkm38vxQElPlRW/F9ds68sPcJo2HsFqPnLZG8wLLTJIl7NXks8gfvDeo4b6RO8/K3p7fPVpOJstxt9y6p0DViBpujSVHnWi3ozi40MeeP/F4qmI3povX013R0R8YS6okz2MBbHztN4MzGl3NBs6fERjBC0y5MMGxJiu29zwMoDAK3hH6KMhCYbwAWptMJQuLdVvcjVayIs9NxlKu5kVZ6tKgNEfRSyiuWKlFXBw73qjsEjE672JrKPZ7LDQzEXZS9vlsRVMalWb+YGoXso30RGgYktd2FPud826/luuez3K//otqN20qU48PSD5QUdUplbWEJeUsr7frY8+GKe8s9h2Ldhk5gRDIikSg+jdngd4BqmgdIhkuo/0IkJfDi76O3dHnOYwAjKvLspgK6ut3Mgi0HT0x5+HABD6tkzzRSU7pvHBBmGjpOJ9Set4HcaJmYvU5vWVEbvrQDvGJugAto/UnSyn5JqVkdVPe1Erq46bG95RBe5t7+oz2rEQNPLem/U46lKg8Ori97n2r3324voZzH55B7JL6C/WGnyq1aaXxNG2EQNoIuYAxGlq0YKRbFSUThTr89/U3YMPKlRx8T4MR+6cRcUo6JD1SURLVDmiwerJ6J9mkS3nERpLdf1vHE3u/ohhqOkPFilKa5EDdqhhH3xeKRrxCqKlV+YCCjxiEo7T+ujOgC8upQ+DG5Mmjcj5VmK/HaTTSG23QKfWbUW5NULvp/+FQsElEhU35YxdG4d3F06AtGewE5qvj/U6pvVxE0dBdhhk+RCmjZjCiZtJ1kdF9u/759XOwb8uIrSGCL5hk2QPWiucpHTlhyquos0X9aOS60nb9gjpiM9ZGR/6NKS9LtsFybXtHioV5G1a7PtN2n6vjuGGj9rlqFvJQpy81m9XczM6p9zqUJKrzXxYfaCvmDyhUQX0odaY7LLY73aX+iNUc2haiEdqmUYrOXvoqsk2J2SO41WpFzS2h8tq0rrTsmRbCCvXtaUy7uaaB62CXkTX7zXGSCU4y4AxAEu3XpA/JVhTZc142VU0hiKNLEwKKYpH3JPr+mWjEhDBNhd3F+o1zi4aPCtv96HhdHzhNa0dm/e3oJZ+ll3wFveQEPVN6s4xTr0SpFW54dtBfVqwzjx76kLb/cp7dmUe/V/LJ71Uw3mHTovVf+ic/Xe6D774A97MLermcXdL9YpbQ/YdZbMZ6/idzv5jdu58GOi/+AQ==">
+                    1
+                </a>
+            </div>
+            <div>
+                <a target="_blank">
+                    2
+                </a>
+            </div>
+            <div>
+                <a target="_blank">
+                    3
+                </a>
+            </div>
+            <div>
+                <a target="_blank">
+                    4
+                </a>
+            </div>
+            <div>
+                <a target="_blank">
+                    5
+                </a>
+            </div>
+            <div>
+                <a target="_blank">
+                    6
+                </a>
+            </div>
+            <div>
+                <a target="_blank">
+                    7
+                </a>
+            </div>
+            <div>
+                <a target="_blank">
+                    8
+                </a>
+            </div>
+            <div>
+                <a target="_blank">
+                    9
+                </a>
+            </div>
+            <div>
+                <a target="_blank">
+                    10
+                </a>
+            </div>
+            <div>
+                <a target="_blank">
+                    11
+                </a>
+            </div>
+            <div>
+                <a target="_blank">
+                    12
+                </a>
+            </div>
+            <div>
+                <a target="_blank">
+                    13
+                </a>
+            </div>
+            <div>
+                <a target="_blank">
+                    14
+                </a>
+            </div>
+            <div>
+                <a target="_blank">
+                    15
+                </a>
+            </div>
+            <div>
+                <a target="_blank">
+                    16
+                </a>
+            </div>
+            <div>
+                <a target="_blank">
+                    17
+                </a>
+            </div>
+            <div>
+                <a target="_blank">
+                    18
+                </a>
+            </div>
+            <div>
+                <a target="_blank">
+                    19
+                </a>
+            </div>
+            <div>
+                <a target="_blank">
+                    20
+                </a>
+            </div>
+            <div>
+                <a target="_blank">
+                    21
+                </a>
+            </div>
+            <div>
+                <a target="_blank">
+                    22
+                </a>
+            </div>
+            <div>
+                <a target="_blank">
+                    23
+                </a>
+            </div>
+            <div>
+                <a target="_blank">
+                    24
+                </a>
+            </div>
+            <div>
+                <a target="_blank">
+                    25
+                </a>
+            </div>
+        </figure>
+    </body>
+</html>
