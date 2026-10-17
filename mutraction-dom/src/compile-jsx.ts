@@ -181,18 +181,24 @@ export default function(_: Babel): PluginObj {
                         case 'JSXIdentifier': {
                             // probably standard DOM attribute
                             const { name, value } = attr;
+
+                            // support data- attributes
+                            let attrKey = name.name.includes('-')
+                                ? t.stringLiteral(name.name)
+                                : t.identifier(name.name);
+                            
                             const [isDynamic, expr] = jsxAttrVal2Prop(value);
                             if (isDynamic) {
                                 dynamicPropsForRuntime.push(
                                     t.objectProperty(
-                                        t.identifier(name.name),
+                                        attrKey,
                                         t.arrowFunctionExpression([], expr)
                                     )
                                 );
                             }
                             else {
                                 staticPropsForRuntime.push(
-                                    t.objectProperty(t.identifier(name.name), expr)
+                                    t.objectProperty(attrKey, expr)
                                 );
                             }
                             break;

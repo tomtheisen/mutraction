@@ -67,23 +67,29 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 
     for (let [name, value] of Object.entries(staticAttrs) as [string, unknown][]) {
         name = propRedirects[name] ?? name;
-        
-        switch (name) {
-            case "mu:syncEvent":
-                syncEvents = value as string;
-                break;
 
-            case "mu:apply":
-                doApply(el, value);
-                break;
+        if (name.startsWith('data-')) {
+            el.dataset[name.slice(5)] = value as string;
 
-            case "mu:ref":
-                (value as Function)(el);
-                break;
+        } else {
 
-            default:
-                (el as any)[name] = value;                
-                break;
+            switch (name) {
+                case "mu:syncEvent":
+                    syncEvents = value as string;
+                    break;
+
+                case "mu:apply":
+                    doApply(el, value);
+                    break;
+
+                case "mu:ref":
+                    (value as Function)(el);
+                    break;
+
+                default:
+                    (el as any)[name] = value;
+                    break;
+            }
         }
     }
 
@@ -122,7 +128,11 @@ export function element<E extends keyof HTMLElementTagNameMap>(
 
             default: {
                 function updateAttribute(dl: DependencyList) { 
-                    (el as any)[name] = getter();
+                    if (name.startsWith('data-')) {
+                        el.dataset[name.slice(5)] = getter();
+                    } else {
+                        (el as any)[name] = getter();
+                    }
                     if (isDebugMode) addNodeDependency(el, dl);
                 }
                 const sub = effect(updateAttribute, suppress);
